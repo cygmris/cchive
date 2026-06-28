@@ -1,17 +1,21 @@
 /**
  * Application root + dev hash router.
  *
- * S1 stands up the design-system foundation (tokens, fonts, theme engine,
- * component library). The real application shell — window chrome, sidebar,
- * the 13 screens — is composed in later specs. For now this renders a small
- * token-driven splash so the Tauri window is never blank.
+ * Renders the Clavis shell — the frameless {@link Window} (sidebar + active
+ * screen + status bar) plus the global {@link CommandPalette} — inside the
+ * theme and toast providers. Global keyboard shortcuts (⌘K / Esc) are bound for
+ * the shell via {@link useGlobalShortcuts}.
  *
  * `#/gallery` opens the developer-only component gallery for visual fidelity
- * checks. It is intentionally NOT part of the user navigation — there is no
- * link to it; you reach it only by typing the hash.
+ * checks. It is intentionally NOT part of the user navigation — there is no link
+ * to it; you reach it only by typing the hash.
  */
 import { useEffect, useState } from "react";
 import { ThemeProvider } from "@/theme/ThemeProvider";
+import { ToastProvider } from "@/ui/Toast";
+import { Window } from "@/app/Window";
+import { CommandPalette } from "@/app/CommandPalette";
+import { useGlobalShortcuts } from "@/app/useGlobalShortcuts";
 import { Gallery } from "@/screens/_gallery/Gallery";
 
 /** Track the current location hash so `#/gallery` toggles without a reload. */
@@ -27,41 +31,14 @@ function useHash(): string {
   return hash;
 }
 
-function Splash() {
+/** The application shell: window chrome + screen outlet + command palette. */
+function Shell() {
+  useGlobalShortcuts();
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        background: "var(--app-bg)",
-        color: "var(--text)",
-        fontFamily: "var(--font-sans)",
-      }}
-    >
-      <div style={{ textAlign: "center" }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: "var(--fs-title)",
-            lineHeight: "var(--lh-title)",
-            letterSpacing: "var(--ls-title)",
-            fontWeight: 600,
-          }}
-        >
-          Clavis
-        </h1>
-        <p
-          style={{
-            marginTop: "var(--space-2)",
-            color: "var(--text-2)",
-            fontSize: "var(--fs-body)",
-          }}
-        >
-          Design system foundation
-        </p>
-      </div>
-    </main>
+    <>
+      <Window />
+      <CommandPalette />
+    </>
   );
 }
 
@@ -70,6 +47,8 @@ export default function App() {
   const showGallery = hash === "#/gallery";
 
   return (
-    <ThemeProvider>{showGallery ? <Gallery /> : <Splash />}</ThemeProvider>
+    <ThemeProvider>
+      <ToastProvider>{showGallery ? <Gallery /> : <Shell />}</ToastProvider>
+    </ThemeProvider>
   );
 }
