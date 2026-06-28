@@ -1,0 +1,228 @@
+/* ============================================================
+   Clavis design tokens — single source of truth
+   A warm, low-glare "paper & clay" workspace palette. Sand neutrals
+   in light, espresso neutrals in dark, with one swappable clay accent.
+   Token NAMES match the running product so design and app never drift.
+   Values are transcribed verbatim from .design-bundles/tokens/*.
+
+   Theme:    <html> = light (default); <html data-theme="dark"> or .dark
+   Accent:   set --accent (ThemeProvider swaps to a preset); all emphasis
+             colors derive from it via color-mix.
+   Density:  <html data-density="compact"> tightens rows/cards.
+
+   Font families live in fonts.css (next to the @font-face rules).
+   ============================================================ */
+
+:root {
+  /* ---- Clay ramp — the one accent (warm terracotta) ---- */
+  --clay-300: #e2906f; /* tint — top of the app-icon gradient        */
+  --clay-400: #e08a6b;
+  --clay-500: #d97757; /* PRIMARY accent                              */
+  --clay-600: #c75f3b; /* shade — bottom of gradient, pressed states  */
+  --clay-700: #a8482a;
+
+  /* ---- Sand — warm light neutrals ---- */
+  --sand-0: #ffffff;
+  --sand-50: #faf8f4;
+  --sand-100: #f7f4ef;
+  --sand-150: #f1ede6;
+  --sand-200: #e9e3d9;
+  --sand-300: #dbd3c6;
+  --sand-400: #dcd6cb;
+
+  /* ---- Stone — warm light text ---- */
+  --stone-500: #9a8f80;
+  --stone-700: #6a6155;
+  --stone-900: #221d17;
+
+  /* ---- Semantic neutrals (LIGHT) ---- */
+  --backdrop: var(--sand-400); /* canvas behind the app window  */
+  --app-bg: var(--sand-50); /* main content background       */
+  --sidebar-bg: var(--sand-150); /* sidebar / rails               */
+  --surface: var(--sand-0); /* cards, popovers, inputs       */
+  --surface-2: var(--sand-100); /* insets, fields, hover wells   */
+  --border: var(--sand-200); /* hairlines, card edges         */
+  --border-strong: var(--sand-300); /* inputs, focus rings, dividers */
+  --text: var(--stone-900); /* primary text                  */
+  --text-2: var(--stone-700); /* secondary text                */
+  --text-3: var(--stone-500); /* muted / meta / placeholder    */
+  --hover: rgba(34, 29, 23, 0.045); /* neutral hover overlay   */
+  --window-border: rgba(0, 0, 0, 0.1); /* app window outline    */
+
+  /* ---- Accent (theme-independent; ThemeProvider may retint) ----
+     Every emphasis color derives from --accent so a retint stays coherent. */
+  --accent: var(--clay-500);
+  --on-accent: #ffffff;
+  --accent-tint: color-mix(in srgb, var(--accent) 13%, transparent);
+  --accent-hover: color-mix(in srgb, var(--accent) 92%, #ffffff); /* ~brightness 1.05 */
+  --accent-press: color-mix(in srgb, var(--accent) 86%, #000000); /* pressed / clay-600 feel */
+
+  /* ---- Status — calm, slightly desaturated to sit in the warm field ---- */
+  --success: #3fb37a;
+  --success-strong: #28c840;
+  --warning: #e0a93f;
+  --danger: #e5484d;
+  --info: #5b8def;
+
+  /* ---- Provider brand chips (config sources) ---- */
+  --prov-anthropic: var(--clay-500);
+  --prov-zai: #4b6bfb;
+  --prov-kimi: #10b981;
+  --prov-aws: #ff9900;
+  --prov-deepseek: #4d6bfe;
+
+  /* ---- Accent presets — the product exposes these as a Tweak ---- */
+  --accent-clay: #d97757;
+  --accent-blue: #4b6bfb;
+  --accent-green: #2f8f63;
+  --accent-violet: #7c6cf0;
+  --accent-ember: #c2410c;
+
+  /* ---- Radius ---- */
+  --radius-xs: 5px; /* mini tiles, code chips            */
+  --radius-sm: 7px; /* small controls, segmented buttons */
+  --radius-md: 8px; /* inputs, icon buttons, nav items   */
+  --radius-lg: 9px; /* primary buttons, logo tile        */
+  --radius-xl: 12px; /* popovers, menus                  */
+  --radius-2xl: 14px; /* cards (default)                 */
+  --radius-3xl: 16px; /* hero / feature cards            */
+  --radius-tile: 9px; /* sidebar logo tile               */
+  --radius-icon: 22%; /* macOS-style app-icon squircle   */
+  --radius-pill: 999px; /* switches, status dots, badges */
+
+  /* ---- Shadow & elevation (warm-tinted, never neutral black) ---- */
+  --shadow-card: 0 1px 3px rgba(20, 14, 8, 0.06);
+  --shadow-raised: 0 1px 3px rgba(20, 14, 8, 0.06),
+    0 12px 30px -18px rgba(20, 14, 8, 0.2);
+  --shadow-pop: 0 16px 40px -12px rgba(20, 14, 8, 0.35);
+  --shadow-window: inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 24px 60px -20px rgba(20, 14, 8, 0.45),
+    0 8px 24px -12px rgba(20, 14, 8, 0.3);
+  --shadow-tile: 0 3px 8px -2px color-mix(in srgb, var(--accent) 55%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  --shadow-tile-lg: 0 10px 24px -8px color-mix(in srgb, var(--accent) 55%, transparent),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 6px rgba(120, 45, 20, 0.25);
+  --shadow-knob: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --ring-accent: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  --ring-success: 0 0 0 3px color-mix(in srgb, var(--success-strong) 22%, transparent);
+
+  /* ---- Spacing (4px grid) ---- */
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0_5: 2px;
+  --space-1: 4px;
+  --space-1_5: 6px;
+  --space-2: 8px;
+  --space-2_5: 10px;
+  --space-3: 12px;
+  --space-3_5: 14px;
+  --space-4: 16px;
+  --space-4_5: 18px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ---- Named application spaces ---- */
+  --gutter: 28px; /* page padding                  */
+  --card-gap: 14px; /* gap between sibling cards     */
+  --card-pad-tight: 15px; /* compact card padding    */
+  --row-py-tight: 9px; /* compact list-row            */
+  --control-h: 34px; /* primary control height        */
+  --control-h-sm: 28px; /* small control / chip height */
+  --field-h: 30px; /* form input height               */
+  --sidebar-w: 248px; /* left navigation width         */
+  --nav-item-h: 34px; /* sidebar item height           */
+
+  /* ---- Density (default: comfortable). [data-density="compact"] tightens. ---- */
+  --row-py: 13px; /* list-row vertical padding         */
+  --card-pad: 20px; /* card padding                    */
+
+  /* ---- Typography — weights ---- */
+  --weight-light: 300; /* big stat numerals only          */
+  --weight-regular: 400; /* body                          */
+  --weight-medium: 500; /* secondary labels, controls     */
+  --weight-semibold: 600; /* titles, emphasis, button labels */
+  --weight-bold: 700; /* rare, display only               */
+
+  /* ---- Typography — scale (size / line-height / tracking) ---- */
+  --fs-display: 40px;
+  --lh-display: 1.05;
+  --ls-display: -0.03em;
+  --fs-title: 20px;
+  --lh-title: 1.2;
+  --ls-title: -0.015em;
+  --fs-heading: 14px;
+  --lh-heading: 1.3;
+  --ls-heading: -0.01em;
+  --fs-section: 13px;
+  --lh-section: 1.3;
+  --ls-section: 0;
+  --fs-body: 13px;
+  --lh-body: 1.5;
+  --ls-body: 0;
+  --fs-body-sm: 12px;
+  --lh-body-sm: 1.45;
+  --ls-body-sm: 0;
+  --fs-mono: 12.5px;
+  --lh-mono: 1.6;
+  --ls-mono: 0;
+  --fs-mono-sm: 11px;
+  --lh-mono-sm: 1.5;
+  --ls-mono-sm: 0;
+  --fs-stat: 30px;
+  --lh-stat: 1;
+  --ls-stat: -0.02em;
+  --fs-stat-sm: 28px;
+  --fs-label: 10.5px;
+  --lh-label: 1.2;
+  --ls-label: 0.1em;
+  --fs-nav: 13px;
+}
+
+/* ============================================================
+   Dark theme — espresso neutrals, cream text.
+   Accent + shadow tokens reference --accent, so they retint automatically.
+   ============================================================ */
+.dark,
+[data-theme="dark"] {
+  /* ---- Espresso — warm dark neutrals ---- */
+  --espresso-900: #0e0c0a;
+  --espresso-800: #151210;
+  --espresso-750: #1a1714;
+  --espresso-700: #1e1a16;
+  --espresso-650: #221e1a;
+  --espresso-600: #322c25;
+  --espresso-500: #3e372e;
+
+  /* ---- Cream — warm dark text ---- */
+  --cream-100: #f1ece4;
+  --cream-300: #a79d8f;
+  --cream-500: #786e61;
+
+  --backdrop: var(--espresso-900);
+  --app-bg: var(--espresso-750);
+  --sidebar-bg: var(--espresso-800);
+  --surface: var(--espresso-650);
+  --surface-2: var(--espresso-700);
+  --border: var(--espresso-600);
+  --border-strong: var(--espresso-500);
+  --text: var(--cream-100);
+  --text-2: var(--cream-300);
+  --text-3: var(--cream-500);
+  --hover: rgba(255, 255, 255, 0.05);
+  --window-border: rgba(255, 255, 255, 0.07);
+
+  --accent-tint: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* ============================================================
+   Density — compact tightens list rows and card padding.
+   ============================================================ */
+[data-density="compact"] {
+  --row-py: var(--row-py-tight);
+  --card-pad: var(--card-pad-tight);
+}

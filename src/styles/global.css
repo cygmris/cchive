@@ -1,0 +1,89 @@
+/* ============================================================
+   Clavis global stylesheet — the single CSS entry point.
+   Loads Tailwind v4, then the self-hosted fonts and the design
+   tokens, then maps the key tokens into Tailwind's @theme so
+   utilities (bg-surface, text-text-2, rounded-2xl, …) stay in
+   lockstep with the token layer.
+
+   Our token :root blocks are intentionally UNLAYERED, so they win
+   over Tailwind's @layer theme defaults regardless of source order.
+   ============================================================ */
+@import "tailwindcss";
+@import "../theme/fonts.css";
+@import "../theme/tokens.css";
+
+/* Map design tokens → Tailwind theme. `inline` makes utilities reference the
+   token var() directly, so they follow theme / accent / density at runtime. */
+@theme inline {
+  /* Families */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Neutrals */
+  --color-app-bg: var(--app-bg);
+  --color-backdrop: var(--backdrop);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-hover: var(--hover);
+
+  /* Accent (derived emphasis follows --accent via color-mix in tokens.css) */
+  --color-accent: var(--accent);
+  --color-accent-tint: var(--accent-tint);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-press: var(--accent-press);
+  --color-on-accent: var(--on-accent);
+
+  /* Semantic / status */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  /* Provider chips */
+  --color-prov-anthropic: var(--prov-anthropic);
+  --color-prov-zai: var(--prov-zai);
+  --color-prov-kimi: var(--prov-kimi);
+  --color-prov-aws: var(--prov-aws);
+  --color-prov-deepseek: var(--prov-deepseek);
+
+  /* Radius */
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
+}
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--app-bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Machine text (keys, URLs, model ids, paths, token counts, code). */
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+}

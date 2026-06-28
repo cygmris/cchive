@@ -1,0 +1,29 @@
+/* ============================================================
+   Fonts — Geist + Geist Mono (self-hosted)
+   Variable woff2 binaries copied from the `geist` npm package into
+   src/assets/fonts/. No Google Fonts, no remote host: the app reads
+   like the design and renders fully offline. `font-display: swap`
+   falls back to the system stack while the woff2 loads.
+   ============================================================ */
+
+@font-face {
+  font-family: "Geist";
+  src: url("../assets/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../assets/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Two families only: Geist for prose, Geist Mono for machine text. */
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+}

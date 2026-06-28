@@ -1,0 +1,39 @@
+# --- Local-only design reference (contains predecessor attribution; never commit) ---
+.design-bundles/
+
+# --- Node ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# --- Rust / Tauri ---
+src-tauri/target/
+src-tauri/gen/
+
+# --- Logs / env ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.env
+.env.*
+!.env.example
+
+# --- Editor / OS ---
+.DS_Store
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.vscode/*
+!.vscode/extensions.json
+
+# --- Tooling caches (local indexes, not part of the product) ---
+.gitnexus/
+.serena/
+
+# --- spec-workflow runtime artifacts (keep specs + steering; ignore transient research scratch & approvals) ---
+.spec-workflow/approvals/
+.spec-workflow/research/
