@@ -16,29 +16,21 @@
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { useTranslation } from "react-i18next";
-import { Plus } from "@/ui/icons";
+import { Plus, UserPlus } from "@/ui/icons";
 import { ScreenHeader } from "@/app/ScreenHeader";
 import {
+  accountIsActive,
   useAccounts,
+  useActiveAccountCapture,
   useActiveIdentity,
   useProviders,
 } from "@/lib/queries";
 import { useShellStore } from "@/lib/store";
-import type { AccountMeta, ActiveIdentity, ProviderMeta } from "@/lib/types";
+import type { ActiveIdentity, ProviderMeta } from "@/lib/types";
 import { AccountRow } from "./AccountRow";
 import { EnvOverrideBanner } from "./EnvOverrideBanner";
 import { NewProviderMenu } from "./NewProviderMenu";
 import { ProviderRow } from "./ProviderRow";
-
-/** Is `account` the live active session? Match on email, else display label. */
-function accountIsActive(
-  account: AccountMeta,
-  identity: ActiveIdentity | undefined,
-): boolean {
-  if (!identity || identity.kind !== "account") return false;
-  if (account.email && identity.email) return account.email === identity.email;
-  return identity.label === account.label;
-}
 
 /** Is `provider` the live active configuration? Match on label, else model. */
 function providerIsActive(
@@ -85,8 +77,19 @@ function SectionHeader({
   );
 }
 
-/** Centered empty state shown when no accounts are captured yet. */
-function AccountsEmptyState({ onAdd }: { onAdd: () => void }) {
+/**
+ * Centered empty state shown when no accounts are captured yet. When the live
+ * active account is itself uncaptured, `signedInAs` carries the concrete copy
+ * (it names the detected email) so the first capture is one click; otherwise the
+ * generic invitation shows.
+ */
+function AccountsEmptyState({
+  onAdd,
+  signedInAs,
+}: {
+  onAdd: () => void;
+  signedInAs: string | null;
+}) {
   return (
     <div
       style={{
@@ -98,28 +101,106 @@ function AccountsEmptyState({ onAdd }: { onAdd: () => void }) {
         textAlign: "center",
       }}
     >
-      <span
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "var(--fs-body)",
-          color: "var(--text-2)",
-        }}
-      >
-        No Claude accounts captured yet.
-      </span>
-      <span
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: "var(--fs-body-sm)",
-          color: "var(--text-3)",
-          maxWidth: 320,
-        }}
-      >
-        Capture the account you are signed into in Claude Code to add it to your
-        keyring.
-      </span>
+      {signedInAs ? (
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body)",
+            color: "var(--text-2)",
+            maxWidth: 320,
+          }}
+        >
+          {signedInAs}
+        </span>
+      ) : (
+        <>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body)",
+              color: "var(--text-2)",
+            }}
+          >
+            No Claude accounts captured yet.
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body-sm)",
+              color: "var(--text-3)",
+              maxWidth: 320,
+            }}
+          >
+            Capture the account you are signed into in Claude Code to add it to
+            your keyring.
+          </span>
+        </>
+      )}
       <Button icon={<Plus size={16} />} onClick={onAdd}>
         Add current account
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * The uncaptured-active banner — rendered as the first row of the accounts card
+ * when the live active account isn't saved yet (and other accounts exist). An
+ * accent-tinted left edge + {@link UserPlus} mark it as an invitation; the
+ * capture button opens the same explicit {@link AddAccountModal} as everywhere
+ * else (no silent write). `email` names the detected account when known.
+ */
+function CaptureActiveRow({
+  email,
+  onCapture,
+}: {
+  email: string | null;
+  onCapture: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-3)",
+        padding: "12px 16px",
+        background: "var(--accent-tint)",
+        borderLeft: "2px solid var(--accent)",
+      }}
+    >
+      <UserPlus size={18} active />
+      <div
+        style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body-sm)",
+            fontWeight: "var(--weight-semibold)",
+            color: "var(--text)",
+          }}
+        >
+          {t("configs.capture.uncaptured")}
+        </span>
+        {email && (
+          <span
+            style={{
+              marginTop: 2,
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--fs-mono-sm)",
+              color: "var(--text-3)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {email}
+          </span>
+        )}
+      </div>
+      <Button size="sm" icon={<UserPlus size={15} />} onClick={onCapture}>
+        {t("configs.capture.addToVault")}
       </Button>
     </div>
   );
@@ -148,9 +229,18 @@ export function ConfigurationsScreen() {
   const accounts = useAccounts();
   const providers = useProviders();
   const { data: identity } = useActiveIdentity();
+  const { needsCapture, email } = useActiveAccountCapture();
 
   const accountList = accounts.data ?? [];
   const providerList = providers.data ?? [];
+
+  // Concrete empty-state copy that names the detected account; null falls back
+  // to the generic invitation (no email, or already captured).
+  const signedInAs =
+    needsCapture && email ? t("configs.capture.signedInAs", { email }) : null;
+  // The uncaptured-active banner only joins a non-empty list (the empty list
+  // already names the account via `signedInAs`).
+  const showCapture = needsCapture && accountList.length > 0;
 
   return (
     <div
@@ -194,17 +284,25 @@ export function ConfigurationsScreen() {
             {accounts.isLoading ? (
               <CardNote>Loading accounts…</CardNote>
             ) : accountList.length === 0 ? (
-              <AccountsEmptyState onAdd={openAddAccount} />
+              <AccountsEmptyState
+                onAdd={openAddAccount}
+                signedInAs={signedInAs}
+              />
             ) : (
-              accountList.map((account, i) => (
-                <AccountRow
-                  key={account.id}
-                  account={account}
-                  index={i}
-                  divider={i > 0}
-                  active={accountIsActive(account, identity)}
-                />
-              ))
+              <>
+                {showCapture && (
+                  <CaptureActiveRow email={email} onCapture={openAddAccount} />
+                )}
+                {accountList.map((account, i) => (
+                  <AccountRow
+                    key={account.id}
+                    account={account}
+                    index={i}
+                    divider={showCapture || i > 0}
+                    active={accountIsActive(account, identity)}
+                  />
+                ))}
+              </>
             )}
           </Card>
         </section>

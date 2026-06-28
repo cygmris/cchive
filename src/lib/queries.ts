@@ -739,6 +739,51 @@ export function useActiveIdentity(): UseQueryResult<ActiveIdentity, Error> {
   return query;
 }
 
+/**
+ * Is `account` the live active session? Match on email, else display label.
+ * The single source of truth shared by the Configurations account list and
+ * {@link useActiveAccountCapture} (no duplicated email logic).
+ */
+export function accountIsActive(
+  account: AccountMeta,
+  identity: ActiveIdentity | undefined,
+): boolean {
+  if (!identity || identity.kind !== "account") return false;
+  if (account.email && identity.email) return account.email === identity.email;
+  return identity.label === account.label;
+}
+
+/**
+ * Whether the live active account is not yet captured in the vault — the signal
+ * the first-run capture prompts (the Configurations empty-state / uncaptured
+ * banner and the Overview tile nudge) hang off. `needsCapture` is true only once
+ * both queries have settled AND the active identity is an account that
+ * {@link accountIsActive} matches against no saved account; it stays false while
+ * either query loads and for provider/none identities, so no prompt flashes
+ * before the data is known. `email` is the active identity's email (the concrete
+ * name the prompts show), or null when there is none / nothing is loaded yet.
+ */
+export function useActiveAccountCapture(): {
+  needsCapture: boolean;
+  email: string | null;
+} {
+  const accounts = useAccounts();
+  const identity = useActiveIdentity();
+
+  const id = identity.data;
+  const list = accounts.data;
+  if (accounts.isLoading || identity.isLoading || !id || !list) {
+    return { needsCapture: false, email: null };
+  }
+  if (id.kind !== "account") {
+    return { needsCapture: false, email: id.email ?? null };
+  }
+  return {
+    needsCapture: !list.some((account) => accountIsActive(account, id)),
+    email: id.email ?? null,
+  };
+}
+
 /** Auth-relevant env vars that override what Clavis writes. */
 export function useEnvOverrides(): UseQueryResult<EnvOverrides, Error> {
   return useQuery({

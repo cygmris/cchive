@@ -190,5 +190,15 @@
     "testLatency": "Test latency",
     "latencyMs": "{{ms}} ms",
     "latencyTimeout": "Timeout"
+  },
+  "configs": {
+    "capture": {
+      "signedInAs": "You're signed in as {{email}}",
+      "addToVault": "Add to vault",
+      "uncaptured": "Add the account you're signed into"
+    }
+  },
+  "overview": {
+    "addThisAccount": "Add this account"
   }
 }

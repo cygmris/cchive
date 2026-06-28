@@ -190,5 +190,15 @@
     "testLatency": "测试延迟",
     "latencyMs": "{{ms}} 毫秒",
     "latencyTimeout": "超时"
+  },
+  "configs": {
+    "capture": {
+      "signedInAs": "你当前以 {{email}} 登录",
+      "addToVault": "添加到保险库",
+      "uncaptured": "添加你已登录的账户"
+    }
+  },
+  "overview": {
+    "addThisAccount": "添加此账户"
   }
 }

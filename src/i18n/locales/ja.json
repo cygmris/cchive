@@ -190,5 +190,15 @@
     "testLatency": "レイテンシをテスト",
     "latencyMs": "{{ms}} ms",
     "latencyTimeout": "タイムアウト"
+  },
+  "configs": {
+    "capture": {
+      "signedInAs": "{{email}} としてサインインしています",
+      "addToVault": "ボールトに追加",
+      "uncaptured": "サインイン中のアカウントを追加"
+    }
+  },
+  "overview": {
+    "addThisAccount": "このアカウントを追加"
   }
 }

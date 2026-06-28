@@ -190,5 +190,15 @@
     "testLatency": "Tester la latence",
     "latencyMs": "{{ms}} ms",
     "latencyTimeout": "Délai dépassé"
+  },
+  "configs": {
+    "capture": {
+      "signedInAs": "Vous êtes connecté en tant que {{email}}",
+      "addToVault": "Ajouter au coffre",
+      "uncaptured": "Ajoutez le compte avec lequel vous êtes connecté"
+    }
+  },
+  "overview": {
+    "addThisAccount": "Ajouter ce compte"
   }
 }

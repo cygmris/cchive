@@ -19,12 +19,13 @@ import { StatTile } from "@/ui/StatTile";
 import { OutputBars } from "@/ui/charts/OutputBars";
 import { ModelBars } from "@/ui/charts/ModelBars";
 import { useTranslation } from "react-i18next";
-import { Activity, BarChart, Book, Key, Server, Sparkles, User } from "@/ui/icons";
+import { Activity, BarChart, Book, Key, Server, Sparkles, User, UserPlus } from "@/ui/icons";
 import { ScreenHeader } from "@/app/ScreenHeader";
 import { AccountAvatar, initialsOf } from "@/app/AccountSwitcher";
 import { brandForProvider } from "@/screens/configurations/ProviderRow";
 import {
   useAccounts,
+  useActiveAccountCapture,
   useActiveIdentity,
   useActivity,
   useMcpServers,
@@ -310,6 +311,8 @@ function CardNote({ children }: { children: React.ReactNode }) {
 export function OverviewScreen() {
   const { t } = useTranslation();
   const go = useShellStore((s) => s.go);
+  const openAddAccount = useShellStore((s) => s.openAddAccount);
+  const { needsCapture } = useActiveAccountCapture();
 
   const { data: identity } = useActiveIdentity();
   const accounts = useAccounts();
@@ -366,12 +369,52 @@ export function OverviewScreen() {
             gap: "var(--card-gap)",
           }}
         >
-          <StatTile
-            label="Claude accounts"
-            value={accountsCount}
-            icon={<Key />}
-            onClick={() => go("configs")}
-          />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-2)",
+            }}
+          >
+            <StatTile
+              label="Claude accounts"
+              value={accountsCount}
+              icon={<Key />}
+              onClick={() => go("configs")}
+            />
+            {/* First-run nudge: the live active account isn't in the vault yet.
+                Unobtrusive + muted; gone once captured. Opens the same explicit
+                add-account modal (no silent write) after deep-linking to configs. */}
+            {needsCapture && (
+              <button
+                type="button"
+                onClick={() => {
+                  go("configs");
+                  openAddAccount();
+                }}
+                style={{
+                  alignSelf: "flex-start",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "var(--space-1)",
+                  padding: "2px 6px",
+                  marginLeft: 2,
+                  background: "none",
+                  border: "none",
+                  borderRadius: "var(--radius-sm)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "var(--fs-label)",
+                  fontWeight: "var(--weight-medium)",
+                  letterSpacing: "var(--ls-label)",
+                  color: "var(--text-3)",
+                }}
+              >
+                <UserPlus size={12} aria-hidden />
+                {t("overview.addThisAccount")}
+              </button>
+            )}
+          </div>
           <StatTile
             label="MCP servers"
             value={mcpCount}

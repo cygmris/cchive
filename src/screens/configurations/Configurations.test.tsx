@@ -69,11 +69,35 @@ const NO_ACTIVE: ActiveIdentity = {
   expiresAt: null,
 };
 
+// A live account identity whose email matches no saved account → uncaptured.
+const UNCAPTURED_ACTIVE: ActiveIdentity = {
+  kind: "account",
+  label: "Fresh Login",
+  email: "fresh@new.dev",
+  tier: "Max 5×",
+  model: "claude-sonnet-4-5",
+  expiresAt: null,
+};
+
+// A live account identity that matches ACCOUNTS[0] by email → already captured.
+const CAPTURED_ACTIVE: ActiveIdentity = {
+  kind: "account",
+  label: "Personal",
+  email: "me@personal.dev",
+  tier: "Max 5×",
+  model: "claude-sonnet-4-5",
+  expiresAt: null,
+};
+
 const NO_OVERRIDE = {
   oauthTokenSet: false,
   anthropicVars: [],
   configDirOverride: null,
 };
+
+// The explicit add-account trigger; swapped for a spy so the capture path is
+// observable without rendering the (shell-owned) modal.
+const openAddAccount = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -82,6 +106,7 @@ beforeEach(() => {
     paletteOpen: false,
     switcherOpen: false,
     addAccountOpen: false,
+    openAddAccount,
   });
   (ipc.listAccounts as Mock).mockResolvedValue(ACCOUNTS);
   (ipc.listProviders as Mock).mockResolvedValue(PROVIDERS);
@@ -201,5 +226,49 @@ describe("ConfigurationsScreen", () => {
     expect(
       screen.queryByText(/Switching is overridden by an environment variable/i),
     ).not.toBeInTheDocument();
+  });
+
+  it("names the detected account in the empty state and captures it on click", async () => {
+    const user = userEvent.setup();
+    (ipc.listAccounts as Mock).mockResolvedValue([]);
+    (ipc.getActiveIdentity as Mock).mockResolvedValue(UNCAPTURED_ACTIVE);
+    renderScreen();
+
+    expect(
+      await screen.findByText("You're signed in as fresh@new.dev"),
+    ).toBeInTheDocument();
+
+    // Two "Add current account" buttons share the name (section header + empty
+    // state); both open the explicit modal, so clicking the empty-state one
+    // (last in the DOM) proves the capture affordance triggers openAddAccount.
+    const buttons = screen.getAllByRole("button", {
+      name: "Add current account",
+    });
+    await user.click(buttons[buttons.length - 1]);
+    expect(openAddAccount).toHaveBeenCalled();
+  });
+
+  it("shows the uncaptured-active banner when other accounts already exist", async () => {
+    (ipc.getActiveIdentity as Mock).mockResolvedValue(UNCAPTURED_ACTIVE);
+    renderScreen();
+
+    expect(
+      await screen.findByText("Add the account you're signed into"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("fresh@new.dev")).toBeInTheDocument();
+  });
+
+  it("shows neither the concrete empty copy nor the banner once captured", async () => {
+    (ipc.getActiveIdentity as Mock).mockResolvedValue(CAPTURED_ACTIVE);
+    renderScreen();
+
+    // The saved rows still render…
+    expect(await screen.findByText("Personal")).toBeInTheDocument();
+    expect(screen.getByText("Team")).toBeInTheDocument();
+    // …but the capture prompts are absent.
+    expect(
+      screen.queryByText("Add the account you're signed into"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/You're signed in as/)).not.toBeInTheDocument();
   });
 });

@@ -55,6 +55,7 @@ import * as ipc from "./ipc";
 import {
   queryKeys,
   useAccounts,
+  useActiveAccountCapture,
   useActiveIdentity,
   useActivity,
   useAddCurrentAccount,
@@ -342,6 +343,105 @@ describe("query hooks call the matching IPC command", () => {
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useActiveAccountCapture", () => {
+  const PROVIDER_IDENTITY: ActiveIdentity = {
+    kind: "provider",
+    label: "Z.ai",
+    email: null,
+    tier: null,
+    model: "glm-4.6",
+    expiresAt: null,
+  };
+
+  const NONE_IDENTITY: ActiveIdentity = {
+    kind: "none",
+    label: "—",
+    email: null,
+    tier: null,
+    model: null,
+    expiresAt: null,
+  };
+
+  /** Render the hook alongside its two source queries so we can await settle. */
+  function renderCapture() {
+    return renderHook(
+      () => ({
+        capture: useActiveAccountCapture(),
+        accounts: useAccounts(),
+        identity: useActiveIdentity(),
+      }),
+      { wrapper: wrapperFor(newClient()) },
+    );
+  }
+
+  /** Wait until both underlying queries have resolved (deterministic settle). */
+  async function settle(
+    result: { current: { accounts: { isSuccess: boolean }; identity: { isSuccess: boolean } } },
+  ): Promise<void> {
+    await waitFor(() => {
+      expect(result.current.accounts.isSuccess).toBe(true);
+      expect(result.current.identity.isSuccess).toBe(true);
+    });
+  }
+
+  it("flags an uncaptured account identity (empty vault) and names its email", async () => {
+    (ipc.listAccounts as Mock).mockResolvedValue([]);
+    (ipc.getActiveIdentity as Mock).mockResolvedValue(ACTIVE);
+
+    const { result } = renderCapture();
+    await settle(result);
+
+    expect(result.current.capture.needsCapture).toBe(true);
+    expect(result.current.capture.email).toBe("me@personal.dev");
+  });
+
+  it("is false once a saved account matches the active identity", async () => {
+    (ipc.listAccounts as Mock).mockResolvedValue([
+      { id: "acc-1", label: "Personal", email: "me@personal.dev", tier: "Max 5×", lastUsed: null },
+    ]);
+    (ipc.getActiveIdentity as Mock).mockResolvedValue(ACTIVE);
+
+    const { result } = renderCapture();
+    await settle(result);
+
+    expect(result.current.capture.needsCapture).toBe(false);
+  });
+
+  it("is false when the active identity is a provider", async () => {
+    (ipc.listAccounts as Mock).mockResolvedValue([]);
+    (ipc.getActiveIdentity as Mock).mockResolvedValue(PROVIDER_IDENTITY);
+
+    const { result } = renderCapture();
+    await settle(result);
+
+    expect(result.current.capture.needsCapture).toBe(false);
+  });
+
+  it("is false when there is no active account", async () => {
+    (ipc.listAccounts as Mock).mockResolvedValue([]);
+    (ipc.getActiveIdentity as Mock).mockResolvedValue(NONE_IDENTITY);
+
+    const { result } = renderCapture();
+    await settle(result);
+
+    expect(result.current.capture.needsCapture).toBe(false);
+  });
+
+  it("is false while the queries are still loading", async () => {
+    (ipc.listAccounts as Mock).mockResolvedValue([]);
+    (ipc.getActiveIdentity as Mock).mockResolvedValue(ACTIVE);
+
+    const { result } = renderCapture();
+
+    // The initial synchronous render — neither query has resolved yet.
+    expect(result.current.capture.needsCapture).toBe(false);
+    expect(result.current.capture.email).toBeNull();
+
+    // Flush the pending queries so no state update escapes the test.
+    await settle(result);
   });
 });
 

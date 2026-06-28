@@ -190,5 +190,15 @@
     "testLatency": "測試延遲",
     "latencyMs": "{{ms}} ms",
     "latencyTimeout": "逾時"
+  },
+  "configs": {
+    "capture": {
+      "signedInAs": "你目前以 {{email}} 登入",
+      "addToVault": "新增至保險庫",
+      "uncaptured": "新增你已登入的帳戶"
+    }
+  },
+  "overview": {
+    "addThisAccount": "新增此帳戶"
   }
 }

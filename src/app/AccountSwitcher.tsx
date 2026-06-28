@@ -21,6 +21,7 @@ import { ProviderChip } from "@/ui/Badge";
 import { Check, ChevronsUpDown, Plus } from "@/ui/icons";
 import { useToast } from "@/ui/Toast";
 import {
+  accountIsActive,
   useAccounts,
   useActiveIdentity,
   useApplyProvider,
@@ -120,19 +121,8 @@ function PanelDivider() {
   );
 }
 
-/* Active-row predicates — kept in parity with the Configurations screen
- * (`screens/configurations/index.tsx`); importing them there would form a cycle
- * (index → AccountRow → AccountSwitcher). */
-
-/** Is `account` the live active session? Match on email, else display label. */
-function accountIsActive(
-  account: AccountMeta,
-  identity: ActiveIdentity | undefined,
-): boolean {
-  if (!identity || identity.kind !== "account") return false;
-  if (account.email && identity.email) return account.email === identity.email;
-  return identity.label === account.label;
-}
+/* `accountIsActive` is shared from `@/lib/queries` (single source). The provider
+ * predicate stays local — it's only used here. */
 
 /** Is `provider` the live active configuration? Match on label, else model. */
 function providerIsActive(

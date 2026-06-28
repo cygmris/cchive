@@ -54,6 +54,7 @@ import {
   Terminal as LuTerminal,
   Trash2 as LuTrash2,
   User as LuUser,
+  UserPlus as LuUserPlus,
   Wrench as LuWrench,
   X as LuX,
   Zap as LuZap,
@@ -129,6 +130,7 @@ export const Danger = tuned(LuCircleAlert, "Danger");
 export const Success = tuned(LuCircleCheck, "Success");
 export const Activity = tuned(LuActivity, "Activity");
 export const User = tuned(LuUser, "User");
+export const UserPlus = tuned(LuUserPlus, "UserPlus");
 export const Key = tuned(LuKey, "Key");
 export const Globe = tuned(LuGlobe, "Globe");
 export const Zap = tuned(LuZap, "Zap");
