@@ -7,6 +7,7 @@
 //! surface is self-contained; secrets never pass through here.
 
 pub mod accounts;
+pub mod activity;
 pub mod mcp;
 pub mod memory;
 pub mod projects;

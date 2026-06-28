@@ -20,6 +20,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type QueryClient,
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ import { useShellStore } from "./store";
 import type {
   AccountMeta,
   ActiveIdentity,
+  ActivityEntry,
   DayPoint,
   EnvOverrides,
   HeatCell,
@@ -72,6 +74,8 @@ export const queryKeys = {
   projects: ["projects"] as const,
   /** One project's `.claude/settings.local.json` (`projectSettings:<path>`). */
   projectSettings: (path: string) => ["projectSettings", path] as const,
+  /** The capped recent-activity feed (mutations invalidate this on append). */
+  activity: ["activity"] as const,
 };
 
 /** Stable key fragment for a memory scope (so invalidation can target one doc). */
@@ -436,6 +440,41 @@ function demoProjectSettings(path: string): ProjectSettings {
   };
 }
 
+/**
+ * A clearly-LABELLED demo recent-activity feed for off-Tauri rendering (the
+ * gallery / a plain browser). Every message is prefixed "DEMO ·" so it can never
+ * be mistaken for a real append, and it exercises each `kind` icon. Newest-first,
+ * with timestamps spread across the last couple of days for the relative-time
+ * column. Labels only — no token.
+ */
+const DEMO_ACTIVITY: ActivityEntry[] = [
+  {
+    kind: "account",
+    message: "DEMO · Switched account to Personal",
+    timestamp: Date.now() - 4 * 60_000,
+  },
+  {
+    kind: "provider",
+    message: "DEMO · Switched to Z.ai",
+    timestamp: Date.now() - 38 * 60_000,
+  },
+  {
+    kind: "mcp",
+    message: "DEMO · Enabled MCP server context7",
+    timestamp: Date.now() - 3 * 3_600_000,
+  },
+  {
+    kind: "skill",
+    message: "DEMO · Enabled skill pdf-forms",
+    timestamp: Date.now() - 27 * 3_600_000,
+  },
+  {
+    kind: "memory",
+    message: "DEMO · Updated memory global",
+    timestamp: Date.now() - 50 * 3_600_000,
+  },
+];
+
 /** Deterministic pseudo-random in `[0, 1)` so the demo series stays stable. */
 function demoNoise(n: number): number {
   const x = Math.sin(n * 99.13 + 7.7) * 43758.5453;
@@ -562,6 +601,26 @@ async function runMutation<T>(call: () => Promise<T>): Promise<T> {
   } catch (error) {
     throw new Error(coreErrorMessage(error));
   }
+}
+
+/**
+ * Best-effort activity append for the mutation success handlers: record a
+ * label-only `{ kind, message }` entry, then refresh the feed. The mutation has
+ * already succeeded, so this never rejects — a logging failure is swallowed and
+ * must not surface as an error. Off-Tauri (no backend) it silently no-ops.
+ */
+function recordActivity(
+  qc: QueryClient,
+  kind: string,
+  message: string,
+): void {
+  if (!isTauri()) return;
+  void ipc
+    .appendActivity(kind, message)
+    .then(() => qc.invalidateQueries({ queryKey: queryKeys.activity }))
+    .catch(() => {
+      /* best-effort: the mutation already succeeded; swallow the append error */
+    });
 }
 
 /* ------------------------------------------------------------------------- *
@@ -762,6 +821,21 @@ export function useProjectSettings(
   });
 }
 
+/**
+ * The capped recent-activity feed, newest-first up to `limit`. The mutation
+ * success handlers append to it via {@link recordActivity}. Off-Tauri it resolves
+ * to a labelled demo set (sliced to `limit`) so the gallery renders.
+ */
+export function useActivity(
+  limit: number,
+): UseQueryResult<ActivityEntry[], Error> {
+  return useQuery({
+    queryKey: queryKeys.activity,
+    queryFn: () =>
+      runQuery(DEMO_ACTIVITY.slice(0, limit), () => ipc.readActivity(limit)),
+  });
+}
+
 /* ------------------------------------------------------------------------- *
  * Mutations. Each invalidates the queries it can change, on success.
  * ------------------------------------------------------------------------- */
@@ -775,10 +849,15 @@ export function useSwitchAccount(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => runMutation(() => ipc.switchAccount(id)),
-    onSuccess: () => {
+    onSuccess: (result) => {
       void qc.invalidateQueries({ queryKey: queryKeys.accounts });
       void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
       void qc.invalidateQueries({ queryKey: queryKeys.settingsSummary });
+      recordActivity(
+        qc,
+        "account",
+        `Switched account to ${result.identity.label}`,
+      );
     },
   });
 }
@@ -800,10 +879,11 @@ export function useApplyProvider(): UseMutationResult<
   return useMutation({
     mutationFn: ({ meta, env }: ApplyProviderInput) =>
       runMutation(() => ipc.applyProvider(meta, env)),
-    onSuccess: () => {
+    onSuccess: (_data, { meta }) => {
       void qc.invalidateQueries({ queryKey: queryKeys.providers });
       void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
       void qc.invalidateQueries({ queryKey: queryKeys.settingsSummary });
+      recordActivity(qc, "provider", `Switched to ${meta.label}`);
     },
   });
 }
@@ -964,8 +1044,9 @@ export function useSaveMcpServer(): UseMutationResult<
   return useMutation({
     mutationFn: (input: McpServerInput) =>
       runMutation(() => ipc.saveMcpServer(input)),
-    onSuccess: () => {
+    onSuccess: (server) => {
       void qc.invalidateQueries({ queryKey: queryKeys.mcpServers });
+      recordActivity(qc, "mcp", `Added MCP server ${server.name}`);
     },
   });
 }
@@ -1000,8 +1081,13 @@ export function useToggleMcpServer(): UseMutationResult<
   return useMutation({
     mutationFn: ({ name, on }: ToggleMcpServerInput) =>
       runMutation(() => ipc.setMcpEnabled(name, on)),
-    onSuccess: () => {
+    onSuccess: (_data, { name, on }) => {
       void qc.invalidateQueries({ queryKey: queryKeys.mcpServers });
+      recordActivity(
+        qc,
+        "mcp",
+        `${on ? "Enabled" : "Disabled"} MCP server ${name}`,
+      );
     },
   });
 }
@@ -1075,8 +1161,13 @@ export function useSkillEnabled(): UseMutationResult<
   return useMutation({
     mutationFn: ({ name, on }: SetSkillEnabledInput) =>
       runMutation(() => ipc.setSkillEnabled(name, on)),
-    onSuccess: () => {
+    onSuccess: (_data, { name, on }) => {
       void qc.invalidateQueries({ queryKey: queryKeys.resources("skill") });
+      recordActivity(
+        qc,
+        "skill",
+        `${on ? "Enabled" : "Disabled"} skill ${name}`,
+      );
     },
   });
 }
@@ -1099,6 +1190,8 @@ export function useSaveMemory(): UseMutationResult<void, Error, SaveMemoryInput>
       runMutation(() => ipc.writeMemory(scope, content)),
     onSuccess: (_data, { scope }) => {
       void qc.invalidateQueries({ queryKey: queryKeys.memory(scope) });
+      const where = scope.kind === "global" ? "global" : scope.path;
+      recordActivity(qc, "memory", `Updated memory ${where}`);
     },
   });
 }

@@ -17,6 +17,7 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import type {
   AccountMeta,
   ActiveIdentity,
+  ActivityEntry,
   EnvOverrides,
   McpServer,
   McpServerInput,
@@ -268,6 +269,22 @@ export function listProjects(): Promise<Project[]> {
 export function readProjectSettings(path: string): Promise<ProjectSettings> {
   ensureTauri("read_project_settings");
   return invoke<ProjectSettings>("read_project_settings", { path });
+}
+
+/**
+ * Append a label-only `{ kind, message }` entry to the capped recent-activity log
+ * (newest 50, in the Clavis config dir). `message` carries a display label only —
+ * never a token.
+ */
+export function appendActivity(kind: string, message: string): Promise<void> {
+  ensureTauri("append_activity");
+  return invoke<void>("append_activity", { kind, message });
+}
+
+/** Read up to `limit` activity entries, newest-first (empty when absent/corrupt). */
+export function readActivity(limit: number): Promise<ActivityEntry[]> {
+  ensureTauri("read_activity");
+  return invoke<ActivityEntry[]>("read_activity", { limit });
 }
 
 /**

@@ -375,6 +375,22 @@ pub struct ProjectSettings {
     pub raw: String,
 }
 
+/// One recent-activity log entry for the Overview feed: a `kind` bucket, a
+/// human-readable `message`, and an epoch-millisecond `timestamp`. Labels ONLY —
+/// `message` is a display string (e.g. "Switched account to Work"); a token is
+/// never recorded here.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityEntry {
+    /// Bucket driving the feed icon: e.g. `"account" | "provider" | "mcp" |
+    /// "skill" | "memory"`.
+    pub kind: String,
+    /// Display label for the entry (no secret).
+    pub message: String,
+    /// Epoch milliseconds the entry was recorded.
+    pub timestamp: i64,
+}
+
 /// The single error type returned to the frontend. Serializes to a stable
 /// `{ code, message }` shape so the UI can branch on `code` without parsing
 /// human text.

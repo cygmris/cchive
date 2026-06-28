@@ -43,6 +43,8 @@ vi.mock("./ipc", () => ({
   listProjects: vi.fn(),
   readProjectSettings: vi.fn(),
   writeProjectSettings: vi.fn(),
+  appendActivity: vi.fn(),
+  readActivity: vi.fn(),
 }));
 
 import * as ipc from "./ipc";
@@ -50,6 +52,7 @@ import {
   queryKeys,
   useAccounts,
   useActiveIdentity,
+  useActivity,
   useAddCurrentAccount,
   useApplyProvider,
   useClearProvider,
@@ -79,6 +82,7 @@ import {
 } from "./queries";
 import type {
   ActiveIdentity,
+  ActivityEntry,
   McpServer,
   McpServerInput,
   MemoryDoc,
@@ -198,6 +202,11 @@ const PROJECT_SETTINGS: ProjectSettings = {
   raw: `{ "permissions": { "allow": [], "deny": [] } }`,
 };
 
+const ACTIVITY: ActivityEntry[] = [
+  { kind: "account", message: "Switched account to Personal", timestamp: 1_717_200_000_000 },
+  { kind: "skill", message: "Enabled skill pdf-forms", timestamp: 1_717_100_000_000 },
+];
+
 function newClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -259,6 +268,8 @@ beforeEach(() => {
   (ipc.listProjects as Mock).mockResolvedValue(PROJECTS);
   (ipc.readProjectSettings as Mock).mockResolvedValue(PROJECT_SETTINGS);
   (ipc.writeProjectSettings as Mock).mockResolvedValue(undefined);
+  (ipc.readActivity as Mock).mockResolvedValue([]);
+  (ipc.appendActivity as Mock).mockResolvedValue(undefined);
 });
 
 describe("query hooks call the matching IPC command", () => {
@@ -325,6 +336,20 @@ describe("useUsage", () => {
   });
 });
 
+describe("useActivity", () => {
+  it("reads the capped feed for the given limit via read_activity", async () => {
+    (ipc.readActivity as Mock).mockResolvedValue(ACTIVITY);
+    const { result } = renderHook(() => useActivity(6), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.readActivity).toHaveBeenCalledTimes(1);
+    expect(ipc.readActivity).toHaveBeenCalledWith(6);
+    expect(result.current.data).toEqual(ACTIVITY);
+  });
+});
+
 describe("useSwitchAccount", () => {
   it("invokes switch_account and invalidates the affected queries", async () => {
     const qc = newClient();
@@ -365,6 +390,28 @@ describe("useSwitchAccount", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.message).toBe(
       "rolled back: credential restored",
+    );
+  });
+
+  it("appends a label-only activity entry and refreshes the feed on success", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useSwitchAccount(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync("acc-1");
+    });
+
+    // The append carries the account label only — never a token.
+    expect(ipc.appendActivity).toHaveBeenCalledWith(
+      "account",
+      "Switched account to Personal",
+    );
+    // The best-effort append then invalidates the activity feed (a microtask later).
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.activity }),
     );
   });
 });

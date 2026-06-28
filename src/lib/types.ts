@@ -379,3 +379,21 @@ export interface ProjectSettings {
   /** The verbatim `.claude/settings.local.json` text (`"{}"` if absent). */
   raw: string;
 }
+
+/* ------------------------------------------------------------------------- *
+ * Activity-log DTO — mirrors `src-tauri/src/model.rs` (serde `camelCase`).
+ *
+ * One entry in the capped recent-activity feed. Carries a display label only —
+ * never a token: the append call sites pass account/provider/server/skill names
+ * and CLAUDE.md paths, all non-secret.
+ * ------------------------------------------------------------------------- */
+
+/** One recent-activity entry: a kind bucket, a label-only message, and a time. */
+export interface ActivityEntry {
+  /** Feed-icon bucket: `"account" | "provider" | "mcp" | "skill" | "memory"`. */
+  kind: string;
+  /** Display label for the entry (no secret). */
+  message: string;
+  /** Epoch milliseconds the entry was recorded. */
+  timestamp: number;
+}

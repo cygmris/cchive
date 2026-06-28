@@ -5,6 +5,7 @@
 
 pub mod paths;
 pub mod atomic_fs;
+pub mod activity;
 pub mod credentials;
 pub mod keyring_store;
 pub mod claude_json;
