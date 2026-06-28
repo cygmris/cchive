@@ -34,8 +34,10 @@ import {
   GripVertical as LuGripVertical,
   Info as LuInfo,
   Key as LuKey,
+  LayoutGrid as LuLayoutGrid,
   Loader2 as LuLoader2,
   LogOut as LuLogOut,
+  PanelLeft as LuPanelLeft,
   Moon as LuMoon,
   MoreHorizontal as LuMoreHorizontal,
   Pencil as LuPencil,
@@ -48,6 +50,7 @@ import {
   SlidersHorizontal as LuSlidersHorizontal,
   Sparkles as LuSparkles,
   Sun as LuSun,
+  Table as LuTable,
   Terminal as LuTerminal,
   Trash2 as LuTrash2,
   User as LuUser,
@@ -134,3 +137,7 @@ export const Tweaks = tuned(LuSlidersHorizontal, "Tweaks");
 export const Tool = tuned(LuWrench, "Tool");
 export const Power = tuned(LuPower, "Power");
 export const Sparkles = tuned(LuSparkles, "Sparkles");
+// Collection view-mode glyphs (Card / Table / Master-detail).
+export const LayoutGrid = tuned(LuLayoutGrid, "LayoutGrid");
+export const Table = tuned(LuTable, "Table");
+export const PanelLeft = tuned(LuPanelLeft, "PanelLeft");

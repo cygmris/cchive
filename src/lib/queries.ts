@@ -33,6 +33,8 @@ import type {
   DayPoint,
   EnvOverrides,
   HeatCell,
+  McpServer,
+  McpServerInput,
   ProviderConfigInput,
   ProviderConfigView,
   ProviderMeta,
@@ -54,6 +56,8 @@ export const queryKeys = {
   settingsSummary: ["settingsSummary"] as const,
   /** The usage aggregate for one range window (`usage:<rangeDays>`). */
   usage: (rangeDays: number) => ["usage", rangeDays] as const,
+  /** Global MCP servers (enabled + disabled stash). */
+  mcpServers: ["mcpServers"] as const,
 };
 
 /* ------------------------------------------------------------------------- *
@@ -146,6 +150,48 @@ const DEMO_SETTINGS_SUMMARY: SettingsSummary = {
   hasEnv: false,
   topLevelKeys: ["model", "permissions"],
 };
+
+/**
+ * A clearly-LABELLED demo set of MCP servers for off-Tauri rendering (the gallery
+ * / a plain browser). Every name is prefixed "DEMO ·" so it can never be mistaken
+ * for a real `~/.claude.json` server. Covers stdio + http transports and an
+ * enabled/disabled mix so the count + the disabled-dimming both render.
+ */
+const DEMO_MCP_SERVERS: McpServer[] = [
+  {
+    name: "DEMO · context7",
+    transport: "stdio",
+    command: "npx",
+    args: ["-y", "@upstash/context7-mcp"],
+    env: null,
+    url: null,
+    scope: "user",
+    enabled: true,
+    toolsHint: "resolve-library-id, query-docs",
+  },
+  {
+    name: "DEMO · exa",
+    transport: "http",
+    command: null,
+    args: null,
+    env: null,
+    url: "https://mcp.example.dev/exa",
+    scope: "user",
+    enabled: true,
+    toolsHint: "web_search, web_fetch",
+  },
+  {
+    name: "DEMO · serena",
+    transport: "stdio",
+    command: "uvx",
+    args: ["--from", "serena", "serena-mcp-server"],
+    env: null,
+    url: null,
+    scope: "user",
+    enabled: false,
+    toolsHint: "find_symbol, rename_symbol",
+  },
+];
 
 /** Deterministic pseudo-random in `[0, 1)` so the demo series stays stable. */
 function demoNoise(n: number): number {
@@ -383,6 +429,31 @@ export function useUsage(rangeDays: number): UseQueryResult<UsageSummary, Error>
   return query;
 }
 
+/**
+ * Global MCP servers (enabled from `~/.claude.json` + disabled from the stash).
+ * Off-Tauri it resolves to a labelled demo set so the gallery renders.
+ *
+ * As a side effect it hydrates the shell store's `mcpEnabledCount` (the number of
+ * enabled servers) so the StatusBar shows the real MCP count instead of the `0`
+ * placeholder.
+ */
+export function useMcpServers(): UseQueryResult<McpServer[], Error> {
+  const setActiveIdentity = useShellStore((s) => s.setActiveIdentity);
+  const query = useQuery({
+    queryKey: queryKeys.mcpServers,
+    queryFn: () => runQuery(DEMO_MCP_SERVERS, ipc.listMcpServers),
+  });
+
+  const data = query.data;
+  useEffect(() => {
+    if (!data) return;
+    const enabled = data.reduce((n, s) => n + (s.enabled ? 1 : 0), 0);
+    setActiveIdentity({ mcpEnabledCount: enabled });
+  }, [data, setActiveIdentity]);
+
+  return query;
+}
+
 /* ------------------------------------------------------------------------- *
  * Mutations. Each invalidates the queries it can change, on success.
  * ------------------------------------------------------------------------- */
@@ -568,6 +639,61 @@ export function useCreateProvider(): UseMutationResult<
       void qc.invalidateQueries({ queryKey: queryKeys.providers });
       void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
       void qc.invalidateQueries({ queryKey: queryKeys.settingsSummary });
+    },
+  });
+}
+
+/**
+ * Create or replace a global MCP server (upsert); invalidates the server list so
+ * the collection + the StatusBar count both refresh.
+ */
+export function useSaveMcpServer(): UseMutationResult<
+  McpServer,
+  Error,
+  McpServerInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: McpServerInput) =>
+      runMutation(() => ipc.saveMcpServer(input)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.mcpServers });
+    },
+  });
+}
+
+/** Delete a global MCP server by name; invalidates the server list. */
+export function useDeleteMcpServer(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => runMutation(() => ipc.deleteMcpServer(name)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.mcpServers });
+    },
+  });
+}
+
+/** Input for {@link useToggleMcpServer}: the server name + the desired state. */
+export interface ToggleMcpServerInput {
+  name: string;
+  on: boolean;
+}
+
+/**
+ * Enable/disable a global MCP server (a stash round-trip that never loses the
+ * definition); invalidates the server list so the count re-derives.
+ */
+export function useToggleMcpServer(): UseMutationResult<
+  void,
+  Error,
+  ToggleMcpServerInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, on }: ToggleMcpServerInput) =>
+      runMutation(() => ipc.setMcpEnabled(name, on)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.mcpServers });
     },
   });
 }

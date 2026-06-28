@@ -183,6 +183,55 @@ export interface SettingsSummary {
 }
 
 /* ------------------------------------------------------------------------- *
+ * MCP-server DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`).
+ *
+ * One global MCP server normalized from `~/.claude.json` `mcpServers` (or the
+ * Clavis disabled stash). Optional Rust fields serialize as `null`, so they are
+ * typed `T | null` to match the wire shape exactly.
+ *
+ * SAFETY: `env` is the user's OWN per-server MCP config (it may hold a server's
+ * API key, already in plaintext in `~/.claude.json`) — NOT an Anthropic auth
+ * token. It is shown back only inside the edit form; cards/tables/counts never
+ * surface it.
+ * ------------------------------------------------------------------------- */
+
+/** One global MCP server (enabled from `~/.claude.json`, or parked in the stash). */
+export interface McpServer {
+  name: string;
+  /** `"stdio" | "http" | "sse"` (missing `type` normalizes to `"stdio"`). */
+  transport: string;
+  /** stdio launch command. */
+  command: string | null;
+  /** stdio command arguments. */
+  args: string[] | null;
+  /** stdio environment variables. */
+  env: Record<string, string> | null;
+  /** http/sse endpoint URL. */
+  url: string | null;
+  /** `"user" | "project"` (global servers are `"user"`). */
+  scope: string;
+  /** `false` when the definition is parked in the Clavis disabled stash. */
+  enabled: boolean;
+  /** Optional free-text hint about the tools the server exposes (display only). */
+  toolsHint: string | null;
+}
+
+/**
+ * Upsert input mirror of {@link McpServer} (no `enabled` — upsert always writes an
+ * enabled server; toggling is a separate move to/from the stash). `scope` defaults
+ * to `"user"` when absent.
+ */
+export interface McpServerInput {
+  name: string;
+  transport: string;
+  command?: string | null;
+  args?: string[] | null;
+  env?: Record<string, string> | null;
+  url?: string | null;
+  scope?: string | null;
+}
+
+/* ------------------------------------------------------------------------- *
  * Usage-analytics DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`).
  *
  * SAFETY: numbers + model ids + local dates only; never a credential. `u64`

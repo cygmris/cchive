@@ -6,6 +6,8 @@
 //! files) and are never serialized into any of these structs.
 #![allow(dead_code)] // scaffolding: commands wire these up in a later task
 
+use std::collections::BTreeMap;
+
 use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize};
 
@@ -117,6 +119,52 @@ pub struct ProviderConfigInput {
     pub brand: String,
     pub env: ProviderEnv,
     pub config: ProviderSettings,
+}
+
+/// One global MCP server, normalized from `~/.claude.json` `mcpServers` (or from
+/// the Clavis disabled stash). `transport` is `"stdio" | "http" | "sse"` (missing
+/// `type` normalizes to `"stdio"`); `scope` is `"user" | "project"` (global
+/// servers are `"user"`). `enabled` is `false` for servers parked in the stash.
+///
+/// NOTE: `env` is the user's OWN per-server MCP config (it may hold a server's API
+/// key), already stored in plaintext in `~/.claude.json`. It is NOT an Anthropic
+/// auth/refresh token — those never leave the Rust core. The form is the only
+/// place `env` is shown back for editing; cards/tables/counts don't surface it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpServer {
+    pub name: String,
+    /// `"stdio" | "http" | "sse"`.
+    pub transport: String,
+    /// stdio launch command.
+    pub command: Option<String>,
+    /// stdio command arguments.
+    pub args: Option<Vec<String>>,
+    /// stdio environment variables.
+    pub env: Option<BTreeMap<String, String>>,
+    /// http/sse endpoint URL.
+    pub url: Option<String>,
+    /// `"user" | "project"`.
+    pub scope: String,
+    /// `false` when the definition is parked in the Clavis disabled stash.
+    pub enabled: bool,
+    /// Optional free-text hint about the tools the server exposes (display only).
+    pub tools_hint: Option<String>,
+}
+
+/// Upsert input mirror of `McpServer` (no `enabled` — upsert always writes an
+/// enabled server; toggling is a separate move to/from the stash). `scope`
+/// defaults to `"user"` when absent.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpServerInput {
+    pub name: String,
+    pub transport: String,
+    pub command: Option<String>,
+    pub args: Option<Vec<String>>,
+    pub env: Option<BTreeMap<String, String>>,
+    pub url: Option<String>,
+    pub scope: Option<String>,
 }
 
 /// Who the active session currently is, for the HUD. Never includes a token.

@@ -18,6 +18,8 @@ import type {
   AccountMeta,
   ActiveIdentity,
   EnvOverrides,
+  McpServer,
+  McpServerInput,
   ProviderConfigInput,
   ProviderConfigView,
   ProviderMeta,
@@ -137,4 +139,40 @@ export function detectEnvOverrides(): Promise<EnvOverrides> {
 export function readUsage(rangeDays: number): Promise<UsageSummary> {
   ensureTauri("read_usage");
   return invoke<UsageSummary>("read_usage", { rangeDays });
+}
+
+/**
+ * List global MCP servers: enabled (from `~/.claude.json` `mcpServers`) + disabled
+ * (from the Clavis stash), each normalized. `.credentials.json`/`mcpOAuth`
+ * untouched.
+ */
+export function listMcpServers(): Promise<McpServer[]> {
+  ensureTauri("list_mcp_servers");
+  return invoke<McpServer[]>("list_mcp_servers");
+}
+
+/**
+ * Create or replace a global MCP server (always enabled), returning the saved
+ * normalized server. Writes `~/.claude.json` `mcpServers` atomically, preserving
+ * every other key. The `env` block in `input` is the user's own per-server config
+ * (input only; written to `~/.claude.json`).
+ */
+export function saveMcpServer(input: McpServerInput): Promise<McpServer> {
+  ensureTauri("save_mcp_server");
+  return invoke<McpServer>("save_mcp_server", { input });
+}
+
+/** Delete a global MCP server by name (from both `~/.claude.json` and the stash). */
+export function deleteMcpServer(name: string): Promise<void> {
+  ensureTauri("delete_mcp_server");
+  return invoke<void>("delete_mcp_server", { name });
+}
+
+/**
+ * Enable/disable a global MCP server by moving its definition between
+ * `~/.claude.json` `mcpServers` and the disabled stash (never losing it).
+ */
+export function setMcpEnabled(name: string, on: boolean): Promise<void> {
+  ensureTauri("set_mcp_enabled");
+  return invoke<void>("set_mcp_enabled", { name, on });
 }

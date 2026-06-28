@@ -29,6 +29,10 @@ vi.mock("./ipc", () => ({
   readSettingsSummary: vi.fn(),
   detectEnvOverrides: vi.fn(),
   readUsage: vi.fn(),
+  listMcpServers: vi.fn(),
+  saveMcpServer: vi.fn(),
+  deleteMcpServer: vi.fn(),
+  setMcpEnabled: vi.fn(),
 }));
 
 import * as ipc from "./ipc";
@@ -40,18 +44,24 @@ import {
   useApplyProvider,
   useClearProvider,
   useCreateProvider,
+  useDeleteMcpServer,
   useDeleteProvider,
   useEnvOverrides,
+  useMcpServers,
   useProvider,
   useProviders,
   useRemoveAccount,
+  useSaveMcpServer,
   useSaveProvider,
   useSettingsSummary,
   useSwitchAccount,
+  useToggleMcpServer,
   useUsage,
 } from "./queries";
 import type {
   ActiveIdentity,
+  McpServer,
+  McpServerInput,
   ProviderConfigInput,
   ProviderConfigView,
   UsageSummary,
@@ -109,6 +119,28 @@ const USAGE_SUMMARY: UsageSummary = {
   heatmap: [{ date: "2026-06-28", tokens: 5_600, level: 4 }],
 };
 
+const MCP_SERVER: McpServer = {
+  name: "context7",
+  transport: "stdio",
+  command: "npx",
+  args: ["-y", "@upstash/context7-mcp"],
+  env: null,
+  url: null,
+  scope: "user",
+  enabled: true,
+  toolsHint: null,
+};
+
+const MCP_INPUT: McpServerInput = {
+  name: "context7",
+  transport: "stdio",
+  command: "npx",
+  args: ["-y", "@upstash/context7-mcp"],
+  env: null,
+  url: null,
+  scope: "user",
+};
+
 function newClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -156,6 +188,10 @@ beforeEach(() => {
   (ipc.saveProvider as Mock).mockResolvedValue(PROVIDER_VIEW);
   (ipc.deleteProvider as Mock).mockResolvedValue(undefined);
   (ipc.readUsage as Mock).mockResolvedValue(USAGE_SUMMARY);
+  (ipc.listMcpServers as Mock).mockResolvedValue([MCP_SERVER]);
+  (ipc.saveMcpServer as Mock).mockResolvedValue(MCP_SERVER);
+  (ipc.deleteMcpServer as Mock).mockResolvedValue(undefined);
+  (ipc.setMcpEnabled as Mock).mockResolvedValue(undefined);
 });
 
 describe("query hooks call the matching IPC command", () => {
@@ -176,6 +212,11 @@ describe("query hooks call the matching IPC command", () => {
       "useSettingsSummary → readSettingsSummary",
       useSettingsSummary,
       ipc.readSettingsSummary as Mock,
+    ],
+    [
+      "useMcpServers → listMcpServers",
+      useMcpServers,
+      ipc.listMcpServers as Mock,
     ],
   ];
 
@@ -429,5 +470,62 @@ describe("provider editor hooks", () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: queryKeys.provider("prov-9"),
     });
+  });
+});
+
+describe("MCP server hooks", () => {
+  it("useMcpServers reads the server list via list_mcp_servers", async () => {
+    const { result } = renderHook(() => useMcpServers(), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.listMcpServers).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual([MCP_SERVER]);
+  });
+
+  it("useSaveMcpServer upserts via save_mcp_server and invalidates the list", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useSaveMcpServer(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync(MCP_INPUT);
+    });
+
+    expect(ipc.saveMcpServer).toHaveBeenCalledWith(MCP_INPUT);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.mcpServers });
+  });
+
+  it("useDeleteMcpServer deletes by name and invalidates the list", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useDeleteMcpServer(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync("context7");
+    });
+
+    expect(ipc.deleteMcpServer).toHaveBeenCalledWith("context7");
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.mcpServers });
+  });
+
+  it("useToggleMcpServer moves a server via set_mcp_enabled and invalidates the list", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useToggleMcpServer(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ name: "context7", on: false });
+    });
+
+    expect(ipc.setMcpEnabled).toHaveBeenCalledWith("context7", false);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.mcpServers });
   });
 });
