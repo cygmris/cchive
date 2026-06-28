@@ -64,6 +64,87 @@ export interface ProviderMeta {
   model: string | null;
 }
 
+/**
+ * The `env`-block half of a provider config — the `ANTHROPIC_*` / proxy /
+ * telemetry vars Clavis writes into `settings.json` on apply.
+ *
+ * SAFETY: there is deliberately NO token field here. The auth token
+ * (`ANTHROPIC_AUTH_TOKEN`) lives only in the OS-keyring vault and is composed in
+ * by Rust at apply time; it never rides on this struct across IPC. Optional Rust
+ * fields serialize as `null`, so they are typed `T | null` to match the wire shape.
+ */
+export interface ProviderEnv {
+  /** `ANTHROPIC_BASE_URL`. */
+  baseUrl: string;
+  /** `ANTHROPIC_MODEL`. */
+  model: string;
+  /** `ANTHROPIC_DEFAULT_SONNET_MODEL`. */
+  defaultSonnet: string;
+  /** `ANTHROPIC_DEFAULT_HAIKU_MODEL`. */
+  defaultHaiku: string;
+  /** `MAX_THINKING_TOKENS`. */
+  maxThinkingTokens: number | null;
+  /** `CLAUDE_CODE_MAX_OUTPUT_TOKENS`. */
+  maxOutputTokens: number | null;
+  /** `HTTPS_PROXY`. */
+  httpsProxy: string | null;
+  /** `DISABLE_TELEMETRY`. */
+  disableTelemetry: boolean | null;
+}
+
+/** The non-`env` half of a provider config: top-level `settings.json` keys. */
+export interface ProviderSettings {
+  /** `cleanupPeriodDays`. */
+  cleanupPeriodDays: number | null;
+  /** `includeCoAuthoredBy`. */
+  includeCoAuthoredBy: boolean | null;
+  /** `outputStyle`. */
+  outputStyle: string | null;
+  /** `forceLoginMethod`. */
+  forceLoginMethod: string | null;
+  /** `forceLoginOrgUUID` (serialized from `forceLoginOrgUuid`). */
+  forceLoginOrgUuid: string | null;
+  /** `enableAllProjectMcpServers`. */
+  enableAllProjectMcpServers: boolean | null;
+  /** `enabledMcpjsonServers` (comma-separated in the UI, split to an array on apply). */
+  enabledMcpServers: string | null;
+}
+
+/**
+ * One saved API-provider config: non-secret metadata + the full settings payload.
+ * Carries NO token value (the secret lives in the vault).
+ */
+export interface ProviderConfig {
+  id: string;
+  title: string;
+  /** Brand key driving the chip (e.g. `anthropic`, `zai`, `kimi`). */
+  brand: string;
+  env: ProviderEnv;
+  config: ProviderSettings;
+}
+
+/**
+ * View handed to the editor: the full payload (flattened) plus a `hasToken` flag.
+ * NEVER the token value — the editor renders the auth token only as set/not-set.
+ */
+export interface ProviderConfigView extends ProviderConfig {
+  /** Whether a token exists in the vault for this provider. */
+  hasToken: boolean;
+}
+
+/**
+ * Upsert input mirror of {@link ProviderConfig}. `id` is absent for a brand-new
+ * provider (the core mints one) and present when editing. The token never travels
+ * here — it is passed to `save_provider` as a separate argument.
+ */
+export interface ProviderConfigInput {
+  id?: string;
+  title: string;
+  brand: string;
+  env: ProviderEnv;
+  config: ProviderSettings;
+}
+
 /** Who the active session currently is, for the HUD. Never includes a token. */
 export interface ActiveIdentity {
   /** "account" | "provider" | "none". */

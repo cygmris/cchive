@@ -34,6 +34,91 @@ pub struct ProviderMeta {
     pub model: Option<String>,
 }
 
+/// The `env`-block half of a provider config. Maps 1:1 to the `ANTHROPIC_*` /
+/// proxy / telemetry env vars Clavis writes into `settings.json` on apply.
+///
+/// SAFETY: there is deliberately NO token field here. The auth token
+/// (`ANTHROPIC_AUTH_TOKEN`) lives only in the OS keyring vault and is composed in
+/// at apply time; it never rides on this struct (so it never crosses IPC).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderEnv {
+    /// `ANTHROPIC_BASE_URL`.
+    pub base_url: String,
+    /// `ANTHROPIC_MODEL`.
+    pub model: String,
+    /// `ANTHROPIC_DEFAULT_SONNET_MODEL`.
+    pub default_sonnet: String,
+    /// `ANTHROPIC_DEFAULT_HAIKU_MODEL`.
+    pub default_haiku: String,
+    /// `MAX_THINKING_TOKENS`.
+    pub max_thinking_tokens: Option<i64>,
+    /// `CLAUDE_CODE_MAX_OUTPUT_TOKENS`.
+    pub max_output_tokens: Option<i64>,
+    /// `HTTPS_PROXY`.
+    pub https_proxy: Option<String>,
+    /// `DISABLE_TELEMETRY`.
+    pub disable_telemetry: Option<bool>,
+}
+
+/// The non-`env` half of a provider config: top-level `settings.json` keys.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderSettings {
+    /// `cleanupPeriodDays`.
+    pub cleanup_period_days: Option<i64>,
+    /// `includeCoAuthoredBy`.
+    pub include_co_authored_by: Option<bool>,
+    /// `outputStyle`.
+    pub output_style: Option<String>,
+    /// `forceLoginMethod`.
+    pub force_login_method: Option<String>,
+    /// `forceLoginOrgUUID`.
+    pub force_login_org_uuid: Option<String>,
+    /// `enableAllProjectMcpServers`.
+    pub enable_all_project_mcp_servers: Option<bool>,
+    /// `enabledMcpjsonServers` (comma-separated in the UI, split to an array on apply).
+    pub enabled_mcp_servers: Option<String>,
+}
+
+/// One saved API-provider config: non-secret metadata + the full settings payload.
+/// Persisted in the Clavis-managed provider index; the token is kept separately in
+/// the vault. Carries no token value.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderConfig {
+    pub id: String,
+    pub title: String,
+    /// Brand key driving the chip (e.g. `anthropic`, `zai`, `kimi`).
+    pub brand: String,
+    pub env: ProviderEnv,
+    pub config: ProviderSettings,
+}
+
+/// View model handed to the webview: the full payload plus a `hasToken` flag.
+/// NEVER the token value — the editor renders the auth token only as set/not-set.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderConfigView {
+    #[serde(flatten)]
+    pub config: ProviderConfig,
+    /// Whether a token exists in the vault for this provider.
+    pub has_token: bool,
+}
+
+/// Upsert input mirror of `ProviderConfig`. `id` is absent for a brand-new
+/// provider (the core mints one) and present when editing an existing one. The
+/// token never travels here — it is passed as a separate `Option<String>`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderConfigInput {
+    pub id: Option<String>,
+    pub title: String,
+    pub brand: String,
+    pub env: ProviderEnv,
+    pub config: ProviderSettings,
+}
+
 /// Who the active session currently is, for the HUD. Never includes a token.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

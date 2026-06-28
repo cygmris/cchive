@@ -18,6 +18,8 @@ import type {
   AccountMeta,
   ActiveIdentity,
   EnvOverrides,
+  ProviderConfigInput,
+  ProviderConfigView,
   ProviderMeta,
   SettingsSummary,
   SwitchResult,
@@ -66,6 +68,32 @@ export function removeAccount(id: string): Promise<void> {
 export function listProviders(): Promise<ProviderMeta[]> {
   ensureTauri("list_providers");
   return invoke<ProviderMeta[]>("list_providers");
+}
+
+/** Read one saved provider as a token-free view (full payload + `hasToken`). */
+export function getProvider(id: string): Promise<ProviderConfigView> {
+  ensureTauri("get_provider");
+  return invoke<ProviderConfigView>("get_provider", { id });
+}
+
+/**
+ * Create or replace a provider (upsert), returning the saved token-free view.
+ * `token` is the only secret-bearing value here: pass it ONLY when the user
+ * (re)types it; omit it to leave any existing vaulted token untouched. It travels
+ * webview → Rust (input only, written to the vault) and is never echoed back.
+ */
+export function saveProvider(
+  input: ProviderConfigInput,
+  token?: string,
+): Promise<ProviderConfigView> {
+  ensureTauri("save_provider");
+  return invoke<ProviderConfigView>("save_provider", { input, token });
+}
+
+/** Delete a provider from the index and its vaulted token (idempotent). */
+export function deleteProvider(id: string): Promise<void> {
+  ensureTauri("delete_provider");
+  return invoke<void>("delete_provider", { id });
 }
 
 /**

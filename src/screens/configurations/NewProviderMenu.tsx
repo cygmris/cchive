@@ -88,6 +88,7 @@ function ItemTitle({ title, sub }: { title: string; sub: string }) {
 
 export function NewProviderMenu() {
   const go = useShellStore((s) => s.go);
+  const setEditingProvider = useShellStore((s) => s.setEditingProvider);
   const [open, setOpen] = useState(false);
   const [preset, setPreset] = useState<ProviderPreset | null>(null);
 
@@ -112,6 +113,7 @@ export function NewProviderMenu() {
               style={menuItemStyle}
               onClick={() => {
                 close();
+                setEditingProvider(null);
                 go("editor");
               }}
             >
@@ -159,6 +161,7 @@ export function NewProviderMenu() {
                   setPreset({
                     id: p.id,
                     name: p.name,
+                    brand: p.brand,
                     baseUrl: p.baseUrl,
                     model: p.model,
                   });

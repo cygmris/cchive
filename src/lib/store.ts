@@ -57,6 +57,13 @@ export interface ShellState {
   // --- Thin active-identity cache (hydrated by the queries layer) ---
   activeIdentity: ActiveIdentityCache;
 
+  /**
+   * Which provider the Config Editor is editing. An id edits that saved provider;
+   * `null` means a brand-new, unsaved draft. Set by the Configurations edit/new
+   * actions; read by the editor to seed its form. Never a secret.
+   */
+  editingProviderId: string | null;
+
   // --- Actions ---
   go: (screen: Screen) => void;
   openPalette: () => void;
@@ -69,6 +76,8 @@ export interface ShellState {
   closeAddAccount: () => void;
   /** Merge a partial active-identity snapshot into the cache (queries layer). */
   setActiveIdentity: (patch: Partial<ActiveIdentityCache>) => void;
+  /** Set the provider the editor edits (`null` = a new, unsaved draft). */
+  setEditingProvider: (id: string | null) => void;
 }
 
 export const useShellStore = create<ShellState>((set) => ({
@@ -78,6 +87,7 @@ export const useShellStore = create<ShellState>((set) => ({
   addAccountOpen: false,
 
   activeIdentity: INITIAL_IDENTITY,
+  editingProviderId: null,
 
   go: (screen) => set({ activeScreen: screen }),
   openPalette: () => set({ paletteOpen: true }),
@@ -90,6 +100,7 @@ export const useShellStore = create<ShellState>((set) => ({
   closeAddAccount: () => set({ addAccountOpen: false }),
   setActiveIdentity: (patch) =>
     set((s) => ({ activeIdentity: { ...s.activeIdentity, ...patch } })),
+  setEditingProvider: (id) => set({ editingProviderId: id }),
 }));
 
 /** Values the status bar renders, derived from the active-identity cache. */

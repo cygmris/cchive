@@ -5,20 +5,25 @@
  * Reuses {@link Modal} (~380px). Fields name / base URL / model are prefilled
  * from the chosen preset; the secret key is a masked {@link Input}. A key and a
  * base URL are required before submit. On submit the values go straight to
- * {@link useCreateProvider} (metadata to the store, secret to the Rust vault);
- * the secret is then wiped from component state — it never lingers in React.
+ * {@link useSaveProvider} (the upsert path: metadata + payload persisted to the
+ * provider index, secret to the Rust vault — so the provider survives a
+ * `list_providers` refresh); the secret is then wiped from component state — it
+ * never lingers in React.
  */
 import { useState } from "react";
 import { Button } from "@/ui/Button";
 import { Input } from "@/ui/Input";
 import { Modal } from "@/ui/Modal";
 import { useToast } from "@/ui/Toast";
-import { useCreateProvider } from "@/lib/queries";
+import { useSaveProvider } from "@/lib/queries";
+import type { ProviderConfigInput } from "@/lib/types";
 
 /** A provider preset (or a blank seed) to prefill the form. */
 export interface ProviderPreset {
   id: string;
   name: string;
+  /** Brand key driving the chip + the persisted provider's `brand`. */
+  brand: string;
   baseUrl: string;
   model: string;
 }
@@ -61,7 +66,7 @@ function Field({
 
 export function CreateProviderForm({ preset, onClose }: CreateProviderFormProps) {
   const { toast } = useToast();
-  const createProvider = useCreateProvider();
+  const saveProvider = useSaveProvider();
 
   const [name, setName] = useState(preset.name);
   const [baseUrl, setBaseUrl] = useState(preset.baseUrl);
@@ -75,14 +80,32 @@ export function CreateProviderForm({ preset, onClose }: CreateProviderFormProps)
   function submit() {
     setSubmitted(true);
     if (key.trim() === "" || baseUrl.trim() === "") return;
-    createProvider.mutate(
-      {
-        id: preset.id,
-        label: name.trim() || preset.name,
+    const input: ProviderConfigInput = {
+      id: preset.id,
+      title: name.trim() || preset.name,
+      brand: preset.brand,
+      env: {
         baseUrl: baseUrl.trim(),
-        model: model.trim() === "" ? null : model.trim(),
-        key,
+        model: model.trim(),
+        defaultSonnet: "",
+        defaultHaiku: "",
+        maxThinkingTokens: null,
+        maxOutputTokens: null,
+        httpsProxy: null,
+        disableTelemetry: null,
       },
+      config: {
+        cleanupPeriodDays: null,
+        includeCoAuthoredBy: null,
+        outputStyle: null,
+        forceLoginMethod: null,
+        forceLoginOrgUuid: null,
+        enableAllProjectMcpServers: null,
+        enabledMcpServers: null,
+      },
+    };
+    saveProvider.mutate(
+      { input, token: key },
       {
         onSuccess: () => {
           // Wipe the secret from state the instant it has been handed off.
@@ -117,7 +140,7 @@ export function CreateProviderForm({ preset, onClose }: CreateProviderFormProps)
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit} loading={createProvider.isPending}>
+          <Button onClick={submit} loading={saveProvider.isPending}>
             Add provider
           </Button>
         </>

@@ -9,4 +9,5 @@ pub mod credentials;
 pub mod keyring_store;
 pub mod claude_json;
 pub mod settings;
+pub mod providers;
 pub mod switch;

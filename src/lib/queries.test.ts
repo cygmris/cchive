@@ -21,6 +21,9 @@ vi.mock("./ipc", () => ({
   switchAccount: vi.fn(),
   removeAccount: vi.fn(),
   listProviders: vi.fn(),
+  getProvider: vi.fn(),
+  saveProvider: vi.fn(),
+  deleteProvider: vi.fn(),
   applyProvider: vi.fn(),
   clearProvider: vi.fn(),
   readSettingsSummary: vi.fn(),
@@ -36,13 +39,20 @@ import {
   useApplyProvider,
   useClearProvider,
   useCreateProvider,
+  useDeleteProvider,
   useEnvOverrides,
+  useProvider,
   useProviders,
   useRemoveAccount,
+  useSaveProvider,
   useSettingsSummary,
   useSwitchAccount,
 } from "./queries";
-import type { ActiveIdentity } from "./types";
+import type {
+  ActiveIdentity,
+  ProviderConfigInput,
+  ProviderConfigView,
+} from "./types";
 
 const ACTIVE: ActiveIdentity = {
   kind: "account",
@@ -51,6 +61,39 @@ const ACTIVE: ActiveIdentity = {
   tier: "Max 5×",
   model: "claude-sonnet-4-5",
   expiresAt: null,
+};
+
+const PROVIDER_VIEW: ProviderConfigView = {
+  id: "prov-1",
+  title: "Z.ai",
+  brand: "zai",
+  env: {
+    baseUrl: "https://api.z.ai/api/anthropic",
+    model: "glm-4.6",
+    defaultSonnet: "",
+    defaultHaiku: "",
+    maxThinkingTokens: null,
+    maxOutputTokens: null,
+    httpsProxy: null,
+    disableTelemetry: null,
+  },
+  config: {
+    cleanupPeriodDays: null,
+    includeCoAuthoredBy: null,
+    outputStyle: null,
+    forceLoginMethod: null,
+    forceLoginOrgUuid: null,
+    enableAllProjectMcpServers: null,
+    enabledMcpServers: null,
+  },
+  hasToken: true,
+};
+
+const PROVIDER_INPUT: ProviderConfigInput = {
+  title: "Z.ai",
+  brand: "zai",
+  env: PROVIDER_VIEW.env,
+  config: PROVIDER_VIEW.config,
 };
 
 function newClient(): QueryClient {
@@ -96,6 +139,9 @@ beforeEach(() => {
   });
   (ipc.applyProvider as Mock).mockResolvedValue(undefined);
   (ipc.clearProvider as Mock).mockResolvedValue(undefined);
+  (ipc.getProvider as Mock).mockResolvedValue(PROVIDER_VIEW);
+  (ipc.saveProvider as Mock).mockResolvedValue(PROVIDER_VIEW);
+  (ipc.deleteProvider as Mock).mockResolvedValue(undefined);
 });
 
 describe("query hooks call the matching IPC command", () => {
@@ -266,6 +312,79 @@ describe("other mutations invalidate on success", () => {
       ANTHROPIC_BASE_URL: "https://api.moonshot.cn/anthropic",
       ANTHROPIC_AUTH_TOKEN: "sk-secret",
       ANTHROPIC_MODEL: "kimi-k2-turbo",
+    });
+  });
+});
+
+describe("provider editor hooks", () => {
+  it("useProvider fetches get_provider with the id and stays disabled when null", async () => {
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string | null }) => useProvider(id),
+      {
+        wrapper: wrapperFor(newClient()),
+        initialProps: { id: null as string | null },
+      },
+    );
+
+    // A brand-new draft has no row to load → the query never fires.
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(ipc.getProvider).not.toHaveBeenCalled();
+
+    rerender({ id: "prov-1" });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(ipc.getProvider).toHaveBeenCalledWith("prov-1");
+    expect(result.current.data).toEqual(PROVIDER_VIEW);
+  });
+
+  it("useSaveProvider passes input + token to save_provider and invalidates", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useSaveProvider(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        input: PROVIDER_INPUT,
+        token: "sk-fresh",
+      });
+    });
+
+    expect(ipc.saveProvider).toHaveBeenCalledWith(PROVIDER_INPUT, "sk-fresh");
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.providers });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.provider("prov-1"),
+    });
+  });
+
+  it("useSaveProvider omits the token when none is supplied", async () => {
+    const { result } = renderHook(() => useSaveProvider(), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ input: PROVIDER_INPUT });
+    });
+
+    expect(ipc.saveProvider).toHaveBeenCalledWith(PROVIDER_INPUT, undefined);
+  });
+
+  it("useDeleteProvider deletes by id and invalidates the list + that provider", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useDeleteProvider(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync("prov-9");
+    });
+
+    expect(ipc.deleteProvider).toHaveBeenCalledWith("prov-9");
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.providers });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.provider("prov-9"),
     });
   });
 });

@@ -1,8 +1,11 @@
-//! Clavis's own account vault in the OS keyring.
+//! Clavis's own vaults in the OS keyring.
 //!
-//! Service namespace `app.clavis.accounts`, entry key = account id. This is the
-//! ONLY place that touches the Clavis vault namespace; the live Claude Code
-//! credential (`Claude Code-credentials`) is handled separately in
+//! Two sibling service namespaces, each keyed by entry id:
+//! - `app.clavis.accounts` — saved-account secret blobs (subscription switch).
+//! - `app.clavis.providers` — per-provider auth tokens (API-provider mode).
+//!
+//! This is the ONLY place that touches the Clavis vault namespaces; the live
+//! Claude Code credential (`Claude Code-credentials`) is handled separately in
 //! `core::credentials`. Secret blobs are opaque strings here and are NEVER
 //! logged — only ids and outcomes ever appear in any diagnostic.
 //!
@@ -13,15 +16,19 @@
 use crate::model::CoreError;
 
 /// Keyring service under which every saved-account secret blob is stored.
-const SERVICE: &str = "app.clavis.accounts";
+const ACCOUNTS_SERVICE: &str = "app.clavis.accounts";
+
+/// Keyring service under which every provider auth token is stored.
+const PROVIDERS_SERVICE: &str = "app.clavis.providers";
 
 /// Backend the vault dispatches to. `Sync` so the `'static` trait object can be
-/// shared across cargo's parallel test threads.
+/// shared across cargo's parallel test threads. Every call is namespaced by
+/// `service` so accounts and providers never collide.
 trait VaultBackend: Sync {
-    fn put(&self, id: &str, blob: &str) -> Result<(), CoreError>;
-    fn get(&self, id: &str) -> Result<String, CoreError>;
-    fn delete(&self, id: &str) -> Result<(), CoreError>;
-    fn has(&self, id: &str) -> Result<bool, CoreError>;
+    fn put(&self, service: &str, id: &str, blob: &str) -> Result<(), CoreError>;
+    fn get(&self, service: &str, id: &str) -> Result<String, CoreError>;
+    fn delete(&self, service: &str, id: &str) -> Result<(), CoreError>;
+    fn has(&self, service: &str, id: &str) -> Result<bool, CoreError>;
 }
 
 /// Map a keyring crate error to `CoreError`, never embedding a secret value.
@@ -36,30 +43,30 @@ fn map_err(e: keyring::Error) -> CoreError {
 struct KeyringBackend;
 
 impl KeyringBackend {
-    fn entry(&self, id: &str) -> Result<keyring::Entry, CoreError> {
-        keyring::Entry::new(SERVICE, id).map_err(map_err)
+    fn entry(&self, service: &str, id: &str) -> Result<keyring::Entry, CoreError> {
+        keyring::Entry::new(service, id).map_err(map_err)
     }
 }
 
 impl VaultBackend for KeyringBackend {
-    fn put(&self, id: &str, blob: &str) -> Result<(), CoreError> {
-        self.entry(id)?.set_password(blob).map_err(map_err)
+    fn put(&self, service: &str, id: &str, blob: &str) -> Result<(), CoreError> {
+        self.entry(service, id)?.set_password(blob).map_err(map_err)
     }
 
-    fn get(&self, id: &str) -> Result<String, CoreError> {
-        self.entry(id)?.get_password().map_err(map_err)
+    fn get(&self, service: &str, id: &str) -> Result<String, CoreError> {
+        self.entry(service, id)?.get_password().map_err(map_err)
     }
 
-    fn delete(&self, id: &str) -> Result<(), CoreError> {
+    fn delete(&self, service: &str, id: &str) -> Result<(), CoreError> {
         // Idempotent: deleting an absent entry is not an error.
-        match self.entry(id)?.delete_credential() {
+        match self.entry(service, id)?.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
             Err(e) => Err(map_err(e)),
         }
     }
 
-    fn has(&self, id: &str) -> Result<bool, CoreError> {
-        match self.entry(id)?.get_password() {
+    fn has(&self, service: &str, id: &str) -> Result<bool, CoreError> {
+        match self.entry(service, id)?.get_password() {
             Ok(_) => Ok(true),
             Err(keyring::Error::NoEntry) => Ok(false),
             Err(e) => Err(map_err(e)),
@@ -77,36 +84,68 @@ fn backend() -> &'static dyn VaultBackend {
     &MOCK
 }
 
-/// Store (or replace) the secret blob for `id`.
+/// Store (or replace) the secret blob for account `id`.
 pub fn vault_put(id: &str, blob: &str) -> Result<(), CoreError> {
     if id.is_empty() {
         return Err(CoreError::InvalidInput("empty account id".to_string()));
     }
-    backend().put(id, blob)
+    backend().put(ACCOUNTS_SERVICE, id, blob)
 }
 
-/// Read the secret blob for `id`. Absent entry -> `CoreError::NotFound`.
+/// Read the secret blob for account `id`. Absent entry -> `CoreError::NotFound`.
 pub fn vault_get(id: &str) -> Result<String, CoreError> {
     if id.is_empty() {
         return Err(CoreError::InvalidInput("empty account id".to_string()));
     }
-    backend().get(id)
+    backend().get(ACCOUNTS_SERVICE, id)
 }
 
-/// Delete the secret blob for `id`. Absent entry is a no-op (idempotent).
+/// Delete the secret blob for account `id`. Absent entry is a no-op (idempotent).
 pub fn vault_delete(id: &str) -> Result<(), CoreError> {
     if id.is_empty() {
         return Err(CoreError::InvalidInput("empty account id".to_string()));
     }
-    backend().delete(id)
+    backend().delete(ACCOUNTS_SERVICE, id)
 }
 
-/// Whether a secret blob exists for `id`.
+/// Whether a secret blob exists for account `id`.
 pub fn vault_has(id: &str) -> Result<bool, CoreError> {
     if id.is_empty() {
         return Err(CoreError::InvalidInput("empty account id".to_string()));
     }
-    backend().has(id)
+    backend().has(ACCOUNTS_SERVICE, id)
+}
+
+/// Store (or replace) the auth token for provider `id`.
+pub fn provider_vault_put(id: &str, token: &str) -> Result<(), CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty provider id".to_string()));
+    }
+    backend().put(PROVIDERS_SERVICE, id, token)
+}
+
+/// Read the auth token for provider `id`. Absent entry -> `CoreError::NotFound`.
+pub fn provider_vault_get(id: &str) -> Result<String, CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty provider id".to_string()));
+    }
+    backend().get(PROVIDERS_SERVICE, id)
+}
+
+/// Delete the auth token for provider `id`. Absent entry is a no-op (idempotent).
+pub fn provider_vault_delete(id: &str) -> Result<(), CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty provider id".to_string()));
+    }
+    backend().delete(PROVIDERS_SERVICE, id)
+}
+
+/// Whether an auth token exists for provider `id`.
+pub fn provider_vault_has(id: &str) -> Result<bool, CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty provider id".to_string()));
+    }
+    backend().has(PROVIDERS_SERVICE, id)
 }
 
 // ---------------------------------------------------------------------------
@@ -128,31 +167,39 @@ static MOCK: MockBackend = MockBackend {
 };
 
 #[cfg(test)]
+impl MockBackend {
+    /// Compose the namespaced map key so the two services never collide.
+    fn key(service: &str, id: &str) -> String {
+        format!("{service}\u{1f}{id}")
+    }
+}
+
+#[cfg(test)]
 impl VaultBackend for MockBackend {
-    fn put(&self, id: &str, blob: &str) -> Result<(), CoreError> {
+    fn put(&self, service: &str, id: &str, blob: &str) -> Result<(), CoreError> {
         self.store
             .lock()
             .unwrap()
-            .insert(id.to_string(), blob.to_string());
+            .insert(Self::key(service, id), blob.to_string());
         Ok(())
     }
 
-    fn get(&self, id: &str) -> Result<String, CoreError> {
+    fn get(&self, service: &str, id: &str) -> Result<String, CoreError> {
         self.store
             .lock()
             .unwrap()
-            .get(id)
+            .get(&Self::key(service, id))
             .cloned()
             .ok_or_else(|| CoreError::NotFound("vault entry".to_string()))
     }
 
-    fn delete(&self, id: &str) -> Result<(), CoreError> {
-        self.store.lock().unwrap().remove(id);
+    fn delete(&self, service: &str, id: &str) -> Result<(), CoreError> {
+        self.store.lock().unwrap().remove(&Self::key(service, id));
         Ok(())
     }
 
-    fn has(&self, id: &str) -> Result<bool, CoreError> {
-        Ok(self.store.lock().unwrap().contains_key(id))
+    fn has(&self, service: &str, id: &str) -> Result<bool, CoreError> {
+        Ok(self.store.lock().unwrap().contains_key(&Self::key(service, id)))
     }
 }
 

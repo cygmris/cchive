@@ -41,6 +41,7 @@ export function ProviderRow({ provider, active, divider }: ProviderRowProps) {
   const { toast } = useToast();
   const applyProvider = useApplyProvider();
   const go = useShellStore((s) => s.go);
+  const setEditingProvider = useShellStore((s) => s.setEditingProvider);
 
   function select() {
     if (active || applyProvider.isPending) return;
@@ -140,6 +141,7 @@ export function ProviderRow({ provider, active, divider }: ProviderRowProps) {
         icon={<Pencil size={15} />}
         onClick={(e) => {
           e.stopPropagation();
+          setEditingProvider(provider.id);
           go("editor");
         }}
       />

@@ -31,6 +31,8 @@ import type {
   AccountMeta,
   ActiveIdentity,
   EnvOverrides,
+  ProviderConfigInput,
+  ProviderConfigView,
   ProviderMeta,
   SettingsSummary,
   SwitchResult,
@@ -42,6 +44,8 @@ import type {
 export const queryKeys = {
   accounts: ["accounts"] as const,
   providers: ["providers"] as const,
+  /** One provider's full editor view, keyed by id (`provider:<id>`). */
+  provider: (id: string) => ["provider", id] as const,
   activeIdentity: ["activeIdentity"] as const,
   envOverrides: ["envOverrides"] as const,
   settingsSummary: ["settingsSummary"] as const,
@@ -82,6 +86,40 @@ const DEMO_PROVIDERS: ProviderMeta[] = [
     model: "kimi-k2-turbo",
   },
 ];
+
+/**
+ * A labelled demo provider view for off-Tauri rendering (the gallery / plain
+ * browser). Seeded from the matching {@link DEMO_PROVIDERS} entry when the id is
+ * known, else an empty draft. `hasToken` is always false — there is no vault here.
+ */
+function demoProviderView(id: string): ProviderConfigView {
+  const seed = DEMO_PROVIDERS.find((p) => p.id === id);
+  return {
+    id: id || "demo-new",
+    title: seed?.label ?? "DEMO · New provider",
+    brand: "anthropic",
+    env: {
+      baseUrl: seed?.baseUrl ?? "",
+      model: seed?.model ?? "",
+      defaultSonnet: "",
+      defaultHaiku: "",
+      maxThinkingTokens: null,
+      maxOutputTokens: null,
+      httpsProxy: null,
+      disableTelemetry: null,
+    },
+    config: {
+      cleanupPeriodDays: null,
+      includeCoAuthoredBy: null,
+      outputStyle: null,
+      forceLoginMethod: null,
+      forceLoginOrgUuid: null,
+      enableAllProjectMcpServers: null,
+      enabledMcpServers: null,
+    },
+    hasToken: false,
+  };
+}
 
 const DEMO_ACTIVE_IDENTITY: ActiveIdentity = {
   kind: "account",
@@ -162,6 +200,21 @@ export function useProviders(): UseQueryResult<ProviderMeta[], Error> {
   return useQuery({
     queryKey: queryKeys.providers,
     queryFn: () => runQuery(DEMO_PROVIDERS, ipc.listProviders),
+  });
+}
+
+/**
+ * One provider's full editor view (payload + `hasToken`, never the token value).
+ * Disabled when `id` is null (a brand-new draft has no row to load yet).
+ */
+export function useProvider(
+  id: string | null,
+): UseQueryResult<ProviderConfigView, Error> {
+  return useQuery({
+    queryKey: queryKeys.provider(id ?? ""),
+    queryFn: () =>
+      runQuery(demoProviderView(id ?? ""), () => ipc.getProvider(id as string)),
+    enabled: id != null,
   });
 }
 
@@ -252,6 +305,46 @@ export function useApplyProvider(): UseMutationResult<
       void qc.invalidateQueries({ queryKey: queryKeys.providers });
       void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
       void qc.invalidateQueries({ queryKey: queryKeys.settingsSummary });
+    },
+  });
+}
+
+/**
+ * Input for {@link useSaveProvider}: the upsert payload + an optional new token.
+ * The `token` is the only secret-bearing value; it is passed straight to the
+ * mutation, sent ONLY when the user (re)types it, and never stored in state or
+ * the query cache. Omit it to leave the existing vaulted token untouched.
+ */
+export interface SaveProviderInput {
+  input: ProviderConfigInput;
+  token?: string;
+}
+
+/** Create or replace a provider (upsert); invalidates the list + that provider. */
+export function useSaveProvider(): UseMutationResult<
+  ProviderConfigView,
+  Error,
+  SaveProviderInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ input, token }: SaveProviderInput) =>
+      runMutation(() => ipc.saveProvider(input, token)),
+    onSuccess: (view) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.providers });
+      void qc.invalidateQueries({ queryKey: queryKeys.provider(view.id) });
+    },
+  });
+}
+
+/** Delete a provider (index + vaulted token); invalidates the list + that provider. */
+export function useDeleteProvider(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => runMutation(() => ipc.deleteProvider(id)),
+    onSuccess: (_data, id) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.providers });
+      void qc.invalidateQueries({ queryKey: queryKeys.provider(id) });
     },
   });
 }
