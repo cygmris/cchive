@@ -391,6 +391,29 @@ pub struct ActivityEntry {
     pub timestamp: i64,
 }
 
+/// Which desktop-notification event a toggle controls. Serializes to the
+/// camelCase string the webview passes back, and maps (in `core::notify_hook`)
+/// to a `settings.json` `hooks` event: Completion→Stop, General→Notification,
+/// ToolUse→PreToolUse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum NotificationKind {
+    Completion,
+    General,
+    ToolUse,
+}
+
+/// Whether each Clavis-marked notification hook is currently installed in
+/// `~/.claude/settings.json`. Derived by scanning for the `clavis-notify`
+/// marker; carries no secret.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationState {
+    pub completion: bool,
+    pub general: bool,
+    pub tool_use: bool,
+}
+
 /// The single error type returned to the frontend. Serializes to a stable
 /// `{ code, message }` shape so the UI can branch on `code` without parsing
 /// human text.

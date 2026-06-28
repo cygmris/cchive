@@ -45,6 +45,8 @@ vi.mock("./ipc", () => ({
   writeProjectSettings: vi.fn(),
   appendActivity: vi.fn(),
   readActivity: vi.fn(),
+  readNotificationState: vi.fn(),
+  setNotification: vi.fn(),
 }));
 
 import * as ipc from "./ipc";
@@ -62,6 +64,7 @@ import {
   useEnvOverrides,
   useMcpServers,
   useMemory,
+  useNotifications,
   useProjects,
   useProjectSettings,
   useProvider,
@@ -73,6 +76,7 @@ import {
   useSaveProjectSettings,
   useSaveProvider,
   useSaveResource,
+  useSetNotification,
   useSettingsSummary,
   useSkillEnabled,
   useSwitchAccount,
@@ -87,6 +91,7 @@ import type {
   McpServerInput,
   MemoryDoc,
   MemoryScope,
+  NotificationState,
   Project,
   ProjectSettings,
   ProviderConfigInput,
@@ -207,6 +212,12 @@ const ACTIVITY: ActivityEntry[] = [
   { kind: "skill", message: "Enabled skill pdf-forms", timestamp: 1_717_100_000_000 },
 ];
 
+const NOTIFICATION_STATE: NotificationState = {
+  completion: true,
+  general: false,
+  toolUse: false,
+};
+
 function newClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -270,6 +281,8 @@ beforeEach(() => {
   (ipc.writeProjectSettings as Mock).mockResolvedValue(undefined);
   (ipc.readActivity as Mock).mockResolvedValue([]);
   (ipc.appendActivity as Mock).mockResolvedValue(undefined);
+  (ipc.readNotificationState as Mock).mockResolvedValue(NOTIFICATION_STATE);
+  (ipc.setNotification as Mock).mockResolvedValue(undefined);
 });
 
 describe("query hooks call the matching IPC command", () => {
@@ -825,5 +838,34 @@ describe("projects hooks", () => {
       queryKey: queryKeys.projectSettings("/home/me/code/alpha"),
     });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.projects });
+  });
+});
+
+describe("notification hooks", () => {
+  it("useNotifications reads the derived state via read_notification_state", async () => {
+    const { result } = renderHook(() => useNotifications(), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.readNotificationState).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual(NOTIFICATION_STATE);
+  });
+
+  it("useSetNotification installs/removes via set_notification and invalidates the state", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useSetNotification(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ kind: "toolUse", on: true });
+    });
+
+    expect(ipc.setNotification).toHaveBeenCalledWith("toolUse", true);
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.notifications,
+    });
   });
 });

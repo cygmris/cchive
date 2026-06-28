@@ -29,6 +29,8 @@ pub fn run() {
     builder
         // Non-secret key/value store (UI prefs, account metadata, ordering).
         .plugin(tauri_plugin_store::Builder::new().build())
+        // Desktop notifications for the Notifications screen's Test action.
+        .plugin(tauri_plugin_notification::init())
         // The narrow, typed command surface. Every return carries labels +
         // non-secret metadata only; tokens never cross IPC to the webview.
         .invoke_handler(tauri::generate_handler![
@@ -62,6 +64,9 @@ pub fn run() {
             commands::projects::write_project_settings,
             commands::activity::append_activity,
             commands::activity::read_activity,
+            commands::notifications::read_notification_state,
+            commands::notifications::set_notification,
+            commands::notifications::test_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Clavis application");

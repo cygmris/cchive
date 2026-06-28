@@ -13,6 +13,11 @@
  * never returned.
  */
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from "@tauri-apps/plugin-notification";
 
 import type {
   AccountMeta,
@@ -23,6 +28,8 @@ import type {
   McpServerInput,
   MemoryDoc,
   MemoryScope,
+  NotificationKind,
+  NotificationState,
   Project,
   ProjectSettings,
   ProviderConfigInput,
@@ -298,4 +305,50 @@ export function writeProjectSettings(
 ): Promise<void> {
   ensureTauri("write_project_settings");
   return invoke<void>("write_project_settings", { path, raw });
+}
+
+/**
+ * Derive which Clavis-marked notification hooks are installed in
+ * `~/.claude/settings.json` `hooks` (booleans only; reads, never writes).
+ */
+export function readNotificationState(): Promise<NotificationState> {
+  ensureTauri("read_notification_state");
+  return invoke<NotificationState>("read_notification_state");
+}
+
+/**
+ * Install (`on`) or remove (`!on`) the Clavis-marked hook for `kind`, touching
+ * ONLY the mapped `hooks` event in `settings.json` (the user's hooks + every
+ * other key are preserved; atomic write).
+ */
+export function setNotification(
+  kind: NotificationKind,
+  on: boolean,
+): Promise<void> {
+  ensureTauri("set_notification");
+  return invoke<void>("set_notification", { kind, on });
+}
+
+/** Human-readable body fired by the Test action, per kind (matches the hook). */
+const NOTIFICATION_BODIES: Record<NotificationKind, string> = {
+  completion: "Claude Code finished a task",
+  general: "Claude Code sent a message",
+  toolUse: "Claude Code is running a tool",
+};
+
+/**
+ * Fire a live desktop notification previewing `kind` via the Tauri notification
+ * plugin. Requests permission first; throws when permission is denied so the
+ * caller can surface a hint. Writes nothing.
+ */
+export async function testNotification(kind: NotificationKind): Promise<void> {
+  ensureTauri("test_notification");
+  let granted = await isPermissionGranted();
+  if (!granted) {
+    granted = (await requestPermission()) === "granted";
+  }
+  if (!granted) {
+    throw new Error("Notification permission was denied.");
+  }
+  sendNotification({ title: "Clavis", body: NOTIFICATION_BODIES[kind] });
 }

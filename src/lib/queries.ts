@@ -39,6 +39,8 @@ import type {
   McpServerInput,
   MemoryDoc,
   MemoryScope,
+  NotificationKind,
+  NotificationState,
   Project,
   ProjectSettings,
   ProviderConfigInput,
@@ -76,6 +78,8 @@ export const queryKeys = {
   projectSettings: (path: string) => ["projectSettings", path] as const,
   /** The capped recent-activity feed (mutations invalidate this on append). */
   activity: ["activity"] as const,
+  /** The installed notification-hook state (toggles invalidate this). */
+  notifications: ["notifications"] as const,
 };
 
 /** Stable key fragment for a memory scope (so invalidation can target one doc). */
@@ -475,6 +479,16 @@ const DEMO_ACTIVITY: ActivityEntry[] = [
   },
 ];
 
+/**
+ * A demo notification-hook state for off-Tauri rendering (the gallery / a plain
+ * browser). Mirrors the design defaults: Completion + General on, Tool-use off.
+ */
+const DEMO_NOTIFICATION_STATE: NotificationState = {
+  completion: true,
+  general: true,
+  toolUse: false,
+};
+
 /** Deterministic pseudo-random in `[0, 1)` so the demo series stays stable. */
 function demoNoise(n: number): number {
   const x = Math.sin(n * 99.13 + 7.7) * 43758.5453;
@@ -833,6 +847,19 @@ export function useActivity(
     queryKey: queryKeys.activity,
     queryFn: () =>
       runQuery(DEMO_ACTIVITY.slice(0, limit), () => ipc.readActivity(limit)),
+  });
+}
+
+/**
+ * The installed notification-hook state (which Clavis-marked hooks live in
+ * `~/.claude/settings.json`). Off-Tauri it resolves to a demo state so the
+ * gallery renders.
+ */
+export function useNotifications(): UseQueryResult<NotificationState, Error> {
+  return useQuery({
+    queryKey: queryKeys.notifications,
+    queryFn: () =>
+      runQuery(DEMO_NOTIFICATION_STATE, ipc.readNotificationState),
   });
 }
 
@@ -1220,6 +1247,32 @@ export function useSaveProjectSettings(): UseMutationResult<
     onSuccess: (_data, { path }) => {
       void qc.invalidateQueries({ queryKey: queryKeys.projectSettings(path) });
       void qc.invalidateQueries({ queryKey: queryKeys.projects });
+    },
+  });
+}
+
+/** Input for {@link useSetNotification}: the kind + the desired state. */
+export interface SetNotificationInput {
+  kind: NotificationKind;
+  on: boolean;
+}
+
+/**
+ * Install/remove the Clavis-marked notification hook for `kind` (surgical edit
+ * of `~/.claude/settings.json` `hooks`); invalidates the notification state so
+ * the toggle re-derives from disk.
+ */
+export function useSetNotification(): UseMutationResult<
+  void,
+  Error,
+  SetNotificationInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ kind, on }: SetNotificationInput) =>
+      runMutation(() => ipc.setNotification(kind, on)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.notifications });
     },
   });
 }

@@ -397,3 +397,23 @@ export interface ActivityEntry {
   /** Epoch milliseconds the entry was recorded. */
   timestamp: number;
 }
+
+/* ------------------------------------------------------------------------- *
+ * Notification-hook DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`,
+ * `NotificationKind` lowerCamel).
+ *
+ * A Clavis-marked `command` hook in `~/.claude/settings.json` `hooks` fires a
+ * desktop notification on a Claude Code event. Each kind maps to one event
+ * (in `core::notify_hook`): completion→Stop, general→Notification,
+ * toolUse→PreToolUse. Booleans/labels only — never a credential.
+ * ------------------------------------------------------------------------- */
+
+/** Which desktop-notification event a toggle controls (mirrors the Rust enum). */
+export type NotificationKind = "completion" | "general" | "toolUse";
+
+/** Whether each Clavis-marked notification hook is currently installed. */
+export interface NotificationState {
+  completion: boolean;
+  general: boolean;
+  toolUse: boolean;
+}
