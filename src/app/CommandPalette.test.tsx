@@ -17,7 +17,6 @@ beforeEach(() => {
     activeScreen: "overview",
     paletteOpen: true,
     switcherOpen: false,
-    activeConfigId: "claude-personal",
   });
 });
 

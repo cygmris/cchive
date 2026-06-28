@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar } from "./Sidebar";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/ui/Toast";
@@ -18,17 +19,23 @@ beforeEach(() => {
     activeScreen: "overview",
     paletteOpen: false,
     switcherOpen: false,
-    activeConfigId: "claude-personal",
   });
 });
 
 function renderSidebar() {
+  // The footer's AccountSwitcher reads the query layer, so the tree needs a
+  // QueryClient just like the real app (queries resolve to the demo seed here).
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <ThemeProvider>
-      <ToastProvider>
-        <Sidebar />
-      </ToastProvider>
-    </ThemeProvider>,
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ToastProvider>
+          <Sidebar />
+        </ToastProvider>
+      </ThemeProvider>
+    </QueryClientProvider>,
   );
 }
 

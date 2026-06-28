@@ -1,84 +1,61 @@
 /**
- * The single source of truth for ephemeral shell state.
+ * The single source of truth for ephemeral shell UI state.
  *
- * Holds the active screen, overlay open-states, the active config id and the
- * seeded mock domain data (accounts, providers, MCP/Skills counts, today's
- * tokens, model). Every shell component reads from / dispatches to this store;
- * nothing else holds cross-cutting shell state. The seed is shaped exactly like
- * the real domain types so S4 can replace the source without touching the UI.
+ * Holds navigation (`activeScreen`), the overlay open-states (command palette,
+ * account switcher, add-account modal) and a thin cached `activeIdentity`
+ * (label/email/tier/model + the MCP/Skills/tokens display values) that the
+ * queries layer hydrates via {@link ShellState.setActiveIdentity} so the Sidebar
+ * card and StatusBar render instantly.
+ *
+ * The real account / provider lists are NOT held here — they live in the
+ * TanStack Query cache (`lib/queries.ts`), the single source of backend truth.
+ * This store only mirrors the *active* identity so the chrome has something to
+ * paint before (and between) queries. No secret ever enters this store.
  */
 import { create } from "zustand";
-import type { Account, Provider, Screen } from "@/lib/shell-types";
+import type { Screen } from "@/lib/shell-types";
 
-/** Mock Claude accounts. `claude-personal` (Max 5×) is active by default. */
-const SEED_ACCOUNTS: Account[] = [
-  {
-    id: "claude-personal",
-    name: "Alex Rivera",
-    org: "Personal",
-    email: "alex@gmail.com",
-    tier: "Max 5×",
-    avatarSeed: "AR",
-  },
-  {
-    id: "claude-northwind",
-    name: "Alex Rivera",
-    org: "Northwind",
-    email: "alex@northwind.io",
-    tier: "Max 20×",
-    avatarSeed: "AR",
-  },
-];
+/** Which kind of credential the active session is using. */
+export type ActiveKind = "account" | "provider" | "none";
 
-/** Mock API providers (the custom-endpoint half of the keyring). */
-const SEED_PROVIDERS: Provider[] = [
-  {
-    id: "prov-zai",
-    title: "GLM-4.6 · Z.ai",
-    brand: "zai",
-    baseUrl: "https://api.z.ai/api/anthropic",
-    model: "glm-4.6",
-  },
-  {
-    id: "prov-kimi",
-    title: "Kimi K2 Turbo",
-    brand: "kimi",
-    baseUrl: "https://api.moonshot.cn/anthropic",
-    model: "kimi-k2-turbo",
-  },
-  {
-    id: "prov-aws",
-    title: "AWS Bedrock",
-    brand: "aws",
-    baseUrl: "us-west-2 · Bedrock gateway",
-    model: "claude-sonnet-4-5",
-  },
-  {
-    id: "prov-deepseek",
-    title: "DeepSeek V4",
-    brand: "deepseek",
-    baseUrl: "https://api.deepseek.com/anthropic",
-    model: "deepseek-v4",
-  },
-];
+/**
+ * The thin, instantly-readable snapshot of the active session. Hydrated from the
+ * `useActiveIdentity` query (which remains the source of truth); never a secret.
+ * The counts/tokens are display-only values the status bar shows.
+ */
+export interface ActiveIdentityCache {
+  kind: ActiveKind;
+  /** Display name (account holder or provider title). */
+  label: string;
+  email: string | null;
+  tier: string | null;
+  model: string | null;
+  mcpEnabledCount: number;
+  skillsEnabledCount: number;
+  tokensToday: string;
+}
+
+/** Pre-hydration placeholder so the chrome renders before the first query. */
+const INITIAL_IDENTITY: ActiveIdentityCache = {
+  kind: "none",
+  label: "No active config",
+  email: null,
+  tier: null,
+  model: "—",
+  mcpEnabledCount: 0,
+  skillsEnabledCount: 0,
+  tokensToday: "0",
+};
 
 export interface ShellState {
   // --- Navigation + overlays ---
   activeScreen: Screen;
   paletteOpen: boolean;
   switcherOpen: boolean;
+  addAccountOpen: boolean;
 
-  // --- Active config + seeded domain data ---
-  activeConfigId: string;
-  accounts: Account[];
-  providers: Provider[];
-
-  // --- Status / overview counters (mock now, real in S4) ---
-  mcpEnabledCount: number;
-  skillsEnabledCount: number;
-  tokensToday: string;
-  /** Model id reported for the active *account* (providers report their own). */
-  model: string;
+  // --- Thin active-identity cache (hydrated by the queries layer) ---
+  activeIdentity: ActiveIdentityCache;
 
   // --- Actions ---
   go: (screen: Screen) => void;
@@ -88,23 +65,19 @@ export interface ShellState {
   openSwitcher: () => void;
   closeSwitcher: () => void;
   toggleSwitcher: () => void;
-  /** Make the account/provider with `id` the active config; closes the switcher. */
-  switchTo: (id: string) => void;
+  openAddAccount: () => void;
+  closeAddAccount: () => void;
+  /** Merge a partial active-identity snapshot into the cache (queries layer). */
+  setActiveIdentity: (patch: Partial<ActiveIdentityCache>) => void;
 }
 
 export const useShellStore = create<ShellState>((set) => ({
   activeScreen: "overview",
   paletteOpen: false,
   switcherOpen: false,
+  addAccountOpen: false,
 
-  activeConfigId: "claude-personal",
-  accounts: SEED_ACCOUNTS,
-  providers: SEED_PROVIDERS,
-
-  mcpEnabledCount: 5,
-  skillsEnabledCount: 5,
-  tokensToday: "246.1K",
-  model: "claude-sonnet-4-5",
+  activeIdentity: INITIAL_IDENTITY,
 
   go: (screen) => set({ activeScreen: screen }),
   openPalette: () => set({ paletteOpen: true }),
@@ -113,46 +86,30 @@ export const useShellStore = create<ShellState>((set) => ({
   openSwitcher: () => set({ switcherOpen: true }),
   closeSwitcher: () => set({ switcherOpen: false }),
   toggleSwitcher: () => set((s) => ({ switcherOpen: !s.switcherOpen })),
-  switchTo: (id) => set({ activeConfigId: id, switcherOpen: false }),
+  openAddAccount: () => set({ addAccountOpen: true }),
+  closeAddAccount: () => set({ addAccountOpen: false }),
+  setActiveIdentity: (patch) =>
+    set((s) => ({ activeIdentity: { ...s.activeIdentity, ...patch } })),
 }));
 
-/** The active config, discriminated by kind. Falls back to the first account. */
-export type ActiveConfig =
-  | { kind: "account"; config: Account }
-  | { kind: "provider"; config: Provider };
-
-/** Resolve the active config (account or provider) from the store state. */
-export function selectActiveConfig(state: ShellState): ActiveConfig {
-  const account = state.accounts.find((a) => a.id === state.activeConfigId);
-  if (account) return { kind: "account", config: account };
-  const provider = state.providers.find((p) => p.id === state.activeConfigId);
-  if (provider) return { kind: "provider", config: provider };
-  return { kind: "account", config: state.accounts[0] };
-}
-
-/** Values the status bar renders, derived from the active config + counters. */
+/** Values the status bar renders, derived from the active-identity cache. */
 export interface StatusValues {
-  /** Active config display name (account name or provider title). */
+  /** Active config display name. */
   name: string;
-  /** Model id (account → store.model; provider → its own model). */
   model: string;
   mcpEnabledCount: number;
   skillsEnabledCount: number;
   tokensToday: string;
 }
 
-/** Derive the status-bar values from store state. */
+/** Derive the status-bar values from the active-identity cache. */
 export function selectStatus(state: ShellState): StatusValues {
-  const active = selectActiveConfig(state);
-  const name =
-    active.kind === "account" ? active.config.name : active.config.title;
-  const model =
-    active.kind === "account" ? state.model : active.config.model;
+  const id = state.activeIdentity;
   return {
-    name,
-    model,
-    mcpEnabledCount: state.mcpEnabledCount,
-    skillsEnabledCount: state.skillsEnabledCount,
-    tokensToday: state.tokensToday,
+    name: id.label,
+    model: id.model ?? "—",
+    mcpEnabledCount: id.mcpEnabledCount,
+    skillsEnabledCount: id.skillsEnabledCount,
+    tokensToday: id.tokensToday,
   };
 }

@@ -1,23 +1,32 @@
 /**
- * Shell store tests — navigation and active-config selectors.
+ * Shell store tests — navigation, overlay open-states, and the active-identity
+ * cache the queries layer hydrates.
  *
- * `go()` moves the active screen; `switchTo()` re-points the active config and
- * closes the switcher, which the derived `selectActiveConfig` / `selectStatus`
- * selectors must reflect (account → store model, provider → its own model).
+ * `go()` moves the active screen; the palette / switcher / add-account toggles
+ * flip their booleans; `setActiveIdentity()` merges a partial snapshot that the
+ * derived `selectStatus` selector reflects (so Sidebar/StatusBar paint from it).
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  selectActiveConfig,
-  selectStatus,
-  useShellStore,
-} from "./store";
+import { selectStatus, useShellStore, type ActiveIdentityCache } from "./store";
+
+const DEFAULT_IDENTITY: ActiveIdentityCache = {
+  kind: "none",
+  label: "No active config",
+  email: null,
+  tier: null,
+  model: "—",
+  mcpEnabledCount: 0,
+  skillsEnabledCount: 0,
+  tokensToday: "0",
+};
 
 beforeEach(() => {
   useShellStore.setState({
     activeScreen: "overview",
     paletteOpen: false,
     switcherOpen: false,
-    activeConfigId: "claude-personal",
+    addAccountOpen: false,
+    activeIdentity: { ...DEFAULT_IDENTITY },
   });
 });
 
@@ -31,41 +40,66 @@ describe("go", () => {
   });
 });
 
-describe("switchTo", () => {
-  it("re-points the active config and closes the switcher", () => {
-    useShellStore.setState({ switcherOpen: true });
-    useShellStore.getState().switchTo("prov-zai");
-    expect(useShellStore.getState().activeConfigId).toBe("prov-zai");
-    expect(useShellStore.getState().switcherOpen).toBe(false);
+describe("overlay open-states", () => {
+  const s = () => useShellStore.getState();
+
+  it("opens, closes and toggles the command palette", () => {
+    s().openPalette();
+    expect(s().paletteOpen).toBe(true);
+    s().closePalette();
+    expect(s().paletteOpen).toBe(false);
+    s().togglePalette();
+    expect(s().paletteOpen).toBe(true);
+    s().togglePalette();
+    expect(s().paletteOpen).toBe(false);
   });
 
-  it("updates the derived active config to the chosen provider", () => {
-    useShellStore.getState().switchTo("prov-zai");
-    const active = selectActiveConfig(useShellStore.getState());
-    expect(active.kind).toBe("provider");
-    expect(active.config.id).toBe("prov-zai");
+  it("opens, closes and toggles the account switcher", () => {
+    s().openSwitcher();
+    expect(s().switcherOpen).toBe(true);
+    s().toggleSwitcher();
+    expect(s().switcherOpen).toBe(false);
+    s().toggleSwitcher();
+    expect(s().switcherOpen).toBe(true);
+    s().closeSwitcher();
+    expect(s().switcherOpen).toBe(false);
   });
 
-  it("updates the derived status values (provider reports its own model)", () => {
-    useShellStore.getState().switchTo("prov-zai");
-    const status = selectStatus(useShellStore.getState());
-    expect(status.name).toBe("GLM-4.6 · Z.ai");
-    expect(status.model).toBe("glm-4.6");
-  });
-
-  it("status uses the account name + store model when an account is active", () => {
-    useShellStore.getState().switchTo("claude-northwind");
-    const status = selectStatus(useShellStore.getState());
-    expect(status.name).toBe("Alex Rivera");
-    expect(status.model).toBe(useShellStore.getState().model);
+  it("opens and closes the add-account modal", () => {
+    expect(s().addAccountOpen).toBe(false);
+    s().openAddAccount();
+    expect(s().addAccountOpen).toBe(true);
+    s().closeAddAccount();
+    expect(s().addAccountOpen).toBe(false);
   });
 });
 
-describe("selectActiveConfig", () => {
-  it("falls back to the first account for an unknown active id", () => {
-    useShellStore.setState({ activeConfigId: "nope" });
-    const active = selectActiveConfig(useShellStore.getState());
-    expect(active.kind).toBe("account");
-    expect(active.config.id).toBe("claude-personal");
+describe("setActiveIdentity + selectStatus", () => {
+  it("derives the status values from the default cache", () => {
+    const status = selectStatus(useShellStore.getState());
+    expect(status.name).toBe("No active config");
+    expect(status.model).toBe("—");
+    expect(status.mcpEnabledCount).toBe(0);
+    expect(status.tokensToday).toBe("0");
+  });
+
+  it("hydrates the cache and reflects it in the status values", () => {
+    useShellStore.getState().setActiveIdentity({
+      kind: "account",
+      label: "Alex Rivera",
+      tier: "Max 20×",
+      model: "claude-sonnet-4-5",
+    });
+    const status = selectStatus(useShellStore.getState());
+    expect(status.name).toBe("Alex Rivera");
+    expect(status.model).toBe("claude-sonnet-4-5");
+  });
+
+  it("merges partials without clobbering untouched fields", () => {
+    useShellStore.getState().setActiveIdentity({ label: "Demo" });
+    const identity = useShellStore.getState().activeIdentity;
+    expect(identity.label).toBe("Demo");
+    expect(identity.kind).toBe("none");
+    expect(identity.model).toBe("—");
   });
 });

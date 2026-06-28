@@ -4,7 +4,7 @@
  *
  * It flattens three groups of actions into one ordered list:
  *  - **Go to** — every router `NAV` destination (12 screens) → `go(screen)`.
- *  - **Account** — switch to each store account + a "Sign in with Claude" stub.
+ *  - **Account** — "Sign in with Claude" (opens the add-account modal).
  *  - **Theme** — toggle light/dark through `useTheme`.
  *
  * A substring query filters that flat list; `selectedIndex` walks the *filtered*
@@ -17,7 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/ui/Modal";
 import { Input } from "@/ui/Input";
-import { Key, Moon, Sun, User, type IconComponent } from "@/ui/icons";
+import { Key, Moon, Sun, type IconComponent } from "@/ui/icons";
 import { NAV } from "@/app/router";
 import { useShellStore } from "@/lib/store";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -36,8 +36,7 @@ export function CommandPalette() {
   const open = useShellStore((s) => s.paletteOpen);
   const closePalette = useShellStore((s) => s.closePalette);
   const go = useShellStore((s) => s.go);
-  const switchTo = useShellStore((s) => s.switchTo);
-  const accounts = useShellStore((s) => s.accounts);
+  const openAddAccount = useShellStore((s) => s.openAddAccount);
   const { theme, setTheme } = useTheme();
 
   const [query, setQuery] = useState("");
@@ -58,22 +57,14 @@ export function CommandPalette() {
         run: () => go(item.screen),
       });
     }
-    for (const account of accounts) {
-      list.push({
-        id: `account:${account.id}`,
-        group: "Account",
-        label: `Switch to ${account.org} · ${account.tier}`,
-        Icon: User,
-        run: () => switchTo(account.id),
-      });
-    }
     list.push({
       id: "account:signin",
       group: "Account",
       label: "Sign in with Claude",
       Icon: Key,
-      // OAuth flow is wired in S4; the palette only closes for now.
-      run: () => {},
+      // Opens the add-account capture modal. The per-account switch actions are
+      // re-added from the queries layer in the "rewire switcher" S4 task.
+      run: () => openAddAccount(),
     });
     const nextTheme = theme === "dark" ? "light" : "dark";
     list.push({
@@ -84,7 +75,7 @@ export function CommandPalette() {
       run: () => setTheme(nextTheme),
     });
     return list;
-  }, [accounts, go, switchTo, theme, setTheme]);
+  }, [go, openAddAccount, theme, setTheme]);
 
   const q = query.trim().toLowerCase();
   const filtered = useMemo(
