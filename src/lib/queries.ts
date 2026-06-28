@@ -32,9 +32,12 @@ import type {
   AccountMeta,
   ActiveIdentity,
   ActivityEntry,
+  BackupEntry,
   DayPoint,
   EnvOverrides,
   HeatCell,
+  ImportSummary,
+  LatencyResult,
   McpServer,
   McpServerInput,
   MemoryDoc,
@@ -82,6 +85,8 @@ export const queryKeys = {
   notifications: ["notifications"] as const,
   /** Whether the app is registered to launch at login (the toggle invalidates this). */
   autostart: ["autostart"] as const,
+  /** The rotating Claude-file backups (restore + import invalidate this). */
+  backups: ["backups"] as const,
 };
 
 /** Stable key fragment for a memory scope (so invalidation can target one doc). */
@@ -491,6 +496,36 @@ const DEMO_NOTIFICATION_STATE: NotificationState = {
   toolUse: false,
 };
 
+/**
+ * A clearly-LABELLED demo set of Claude-file backups for off-Tauri rendering (the
+ * gallery / a plain browser). Newest-first (matching the real `list` order) so the
+ * Settings backups list renders its timestamp + size rows. Metadata only — a
+ * backup holds file CONTENT on disk; nothing secret is ever in this seed.
+ */
+const DEMO_BACKUPS: BackupEntry[] = [
+  {
+    id: "settings.json.1717200000000.bak",
+    original: "settings.json",
+    timestamp: Date.now() - 6 * 60_000,
+    size: 2_048,
+  },
+  {
+    id: ".credentials.json.1717100000000.bak",
+    original: ".credentials.json",
+    timestamp: Date.now() - 3 * 3_600_000,
+    size: 512,
+  },
+  {
+    id: "settings.json.1716990000000.bak",
+    original: "settings.json",
+    timestamp: Date.now() - 28 * 3_600_000,
+    size: 1_920,
+  },
+];
+
+/** A labelled demo latency result for off-Tauri rendering (a healthy round-trip). */
+const DEMO_LATENCY: LatencyResult = { ms: 128, ok: true, status: 200 };
+
 /** Deterministic pseudo-random in `[0, 1)` so the demo series stays stable. */
 function demoNoise(n: number): number {
   const x = Math.sin(n * 99.13 + 7.7) * 43758.5453;
@@ -873,6 +908,18 @@ export function useAutostart(): UseQueryResult<boolean, Error> {
   return useQuery({
     queryKey: queryKeys.autostart,
     queryFn: () => runQuery(false, ipc.getAutostart),
+  });
+}
+
+/**
+ * The rotating Claude-file backups, newest-first (timestamp + size + name).
+ * Off-Tauri it resolves to a labelled demo set so the gallery renders; a restore
+ * or an import invalidates this so the list refreshes.
+ */
+export function useBackups(): UseQueryResult<BackupEntry[], Error> {
+  return useQuery({
+    queryKey: queryKeys.backups,
+    queryFn: () => runQuery(DEMO_BACKUPS, ipc.listBackups),
   });
 }
 
@@ -1301,6 +1348,78 @@ export function useSetAutostart(): UseMutationResult<void, Error, boolean> {
     mutationFn: (on: boolean) => runMutation(() => ipc.setAutostart(on)),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.autostart });
+    },
+  });
+}
+
+/**
+ * Export the Clavis setup to a JSON file the user picks via the native save
+ * dialog. Resolves to the chosen path, or `null` when the dialog was cancelled (a
+ * no-op). Off-Tauri it rejects with the desktop-only message so the caller toasts
+ * it. The written document is secret-free (providers carry no key).
+ */
+export function useExportConfig(): UseMutationResult<string | null, Error, void> {
+  return useMutation({
+    mutationFn: () => runMutation(() => ipc.exportConfig()),
+  });
+}
+
+/**
+ * Import a Clavis setup from a JSON file the user picks via the native open
+ * dialog, merging it back KEYLESS. Resolves to the {@link ImportSummary} counts, or
+ * `null` when cancelled. On a real (non-cancelled) import it invalidates the
+ * providers + settings-summary + active-identity queries so the merged shells +
+ * applied prefs surface. Off-Tauri it rejects with the desktop-only message.
+ */
+export function useImportConfig(): UseMutationResult<
+  ImportSummary | null,
+  Error,
+  void
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => runMutation(() => ipc.importConfig()),
+    onSuccess: (summary) => {
+      if (summary == null) return; // dialog cancelled — nothing changed
+      void qc.invalidateQueries({ queryKey: queryKeys.providers });
+      void qc.invalidateQueries({ queryKey: queryKeys.settingsSummary });
+      void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
+      recordActivity(qc, "provider", "Imported configuration");
+    },
+  });
+}
+
+/**
+ * Restore a backup `id` back to its original Claude file (the core snapshots the
+ * current state first). Invalidates the backups list (the pre-restore snapshot is
+ * a new entry) plus the settings-summary / active-identity / providers queries so
+ * the restored content surfaces. Off-Tauri it rejects with the desktop-only message.
+ */
+export function useRestoreBackup(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => runMutation(() => ipc.restoreBackup(id)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.backups });
+      void qc.invalidateQueries({ queryKey: queryKeys.settingsSummary });
+      void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
+      void qc.invalidateQueries({ queryKey: queryKeys.providers });
+    },
+  });
+}
+
+/**
+ * Probe a provider `baseUrl`'s round-trip latency (no auth header). Resolves to a
+ * {@link LatencyResult} (timing + optional status). Off-Tauri it resolves to a
+ * labelled demo value so the editor's action renders instead of rejecting.
+ */
+export function useTestLatency(): UseMutationResult<LatencyResult, Error, string> {
+  return useMutation({
+    mutationFn: (baseUrl: string) => {
+      if (!isTauri()) return Promise.resolve(DEMO_LATENCY);
+      return ipc.testLatency(baseUrl).catch((error: unknown) => {
+        throw new Error(coreErrorMessage(error));
+      });
     },
   });
 }

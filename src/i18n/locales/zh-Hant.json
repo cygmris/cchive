@@ -49,6 +49,38 @@
       "title": "聯絡與支援",
       "description": "發現問題或有意見回饋？在 GitHub 上告訴我們。",
       "reportIssue": "回報問題"
+    },
+    "dataBackups": {
+      "title": "資料與備份",
+      "description": "匯出你的設定以便分享或遷移，再匯入回來，或從自動備份中還原某個 Claude 檔案。",
+      "export": {
+        "label": "匯出設定",
+        "description": "儲存一份包含服務商與偏好設定的可攜 JSON。",
+        "button": "匯出…",
+        "note": "不會匯出任何機密——金鑰與權杖始終保留在你的保險庫中。",
+        "success": "已匯出設定",
+        "successDetail": "已儲存至 {{path}}",
+        "error": "無法匯出設定"
+      },
+      "import": {
+        "label": "匯入設定",
+        "description": "從匯出的 JSON 合併服務商與偏好設定。",
+        "button": "匯入…",
+        "success": "已匯入設定",
+        "successDetail": "新增 {{added}} 項，更新 {{updated}} 項，套用 {{prefs}} 項偏好設定。",
+        "error": "無法匯入設定"
+      },
+      "backups": {
+        "label": "備份",
+        "description": "每次切換前自動建立的快照，最新的在前。",
+        "empty": "尚無備份。",
+        "restore": "還原",
+        "confirmTitle": "還原此備份？",
+        "confirmBody": "這會覆寫目前的 {{name}}。系統會先對目前狀態建立快照，因此可以復原。",
+        "restoreSuccess": "已還原備份",
+        "restoreDetail": "已還原 {{name}}。",
+        "restoreError": "無法還原備份"
+      }
     }
   },
   "experimental": {
@@ -66,5 +98,10 @@
       "inProcess": "行程內",
       "splitPanes": "分割窗格（tmux / iTerm2）"
     }
+  },
+  "configEditor": {
+    "testLatency": "測試延遲",
+    "latencyMs": "{{ms}} ms",
+    "latencyTimeout": "逾時"
   }
 }

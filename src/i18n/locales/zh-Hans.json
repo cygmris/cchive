@@ -49,6 +49,38 @@
       "title": "联系与支持",
       "description": "发现问题或有反馈？在 GitHub 上告诉我们。",
       "reportIssue": "报告问题"
+    },
+    "dataBackups": {
+      "title": "数据与备份",
+      "description": "导出你的配置以便分享或迁移，再导入回来，或从自动备份中恢复某个 Claude 文件。",
+      "export": {
+        "label": "导出配置",
+        "description": "保存一份包含服务商和偏好设置的便携 JSON。",
+        "button": "导出…",
+        "note": "不会导出任何机密——密钥和令牌始终保留在你的保险库中。",
+        "success": "已导出配置",
+        "successDetail": "已保存到 {{path}}",
+        "error": "无法导出配置"
+      },
+      "import": {
+        "label": "导入配置",
+        "description": "从导出的 JSON 合并服务商和偏好设置。",
+        "button": "导入…",
+        "success": "已导入配置",
+        "successDetail": "新增 {{added}} 项，更新 {{updated}} 项，应用 {{prefs}} 项偏好设置。",
+        "error": "无法导入配置"
+      },
+      "backups": {
+        "label": "备份",
+        "description": "每次切换前自动创建的快照，最新的在前。",
+        "empty": "暂无备份。",
+        "restore": "恢复",
+        "confirmTitle": "恢复此备份？",
+        "confirmBody": "这将覆盖当前的 {{name}}。系统会先对当前状态创建快照，因此可以撤销。",
+        "restoreSuccess": "已恢复备份",
+        "restoreDetail": "已恢复 {{name}}。",
+        "restoreError": "无法恢复备份"
+      }
     }
   },
   "experimental": {
@@ -66,5 +98,10 @@
       "inProcess": "进程内",
       "splitPanes": "分屏（tmux / iTerm2）"
     }
+  },
+  "configEditor": {
+    "testLatency": "测试延迟",
+    "latencyMs": "{{ms}} 毫秒",
+    "latencyTimeout": "超时"
   }
 }

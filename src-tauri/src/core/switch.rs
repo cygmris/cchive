@@ -67,6 +67,12 @@ pub fn add_account_from_active() -> Result<AccountMeta, CoreError> {
 /// Writes `~/.claude/.credentials.json` (or the macOS Keychain) and
 /// `~/.claude.json`; backs both up first and rolls back on any failure.
 pub fn switch_account(target_id: &str) -> Result<SwitchResult, CoreError> {
+    // Auto-snapshot the Claude files into the rotating backups store BEFORE any
+    // mutation, so every switch is recoverable (best-effort; never blocks).
+    // Skipped under unit tests, which drive the path-injectable `*_inner`.
+    #[cfg(not(test))]
+    super::backups::auto_snapshot();
+
     let backend = credentials::active_backend();
     switch_account_inner(target_id, &SwitchPaths::live(), backend.as_ref(), false)
 }

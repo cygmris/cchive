@@ -16,16 +16,19 @@
  * vaulted key untouched. Save does not switch the active config.
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { IconButton } from "@/ui/IconButton";
 import { Input } from "@/ui/Input";
 import { Popover } from "@/ui/Popover";
-import { ChevronLeft, Trash } from "@/ui/icons";
+import { ChevronLeft, Trash, Zap } from "@/ui/icons";
 import { useToast } from "@/ui/Toast";
 import {
   useDeleteProvider,
   useProvider,
   useSaveProvider,
+  useTestLatency,
 } from "@/lib/queries";
 import { useShellStore } from "@/lib/store";
 import type {
@@ -254,6 +257,52 @@ function CenteredNote({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Test-latency action for the editor header: a Button that probes the provider's
+ * current base URL via {@link useTestLatency} (no auth header sent) and a result
+ * Badge showing the round-trip ms on success or a "timeout" pill when no response
+ * arrived / the probe errored. Disabled until a base URL is entered.
+ */
+function LatencyAction({ baseUrl }: { baseUrl: string }) {
+  const { t } = useTranslation();
+  const testLatency = useTestLatency();
+  const url = baseUrl.trim();
+
+  const result = testLatency.data;
+  const reachable =
+    testLatency.isSuccess && result != null && result.ok && result.ms != null;
+  const failed =
+    testLatency.isError ||
+    (testLatency.isSuccess && result != null && (!result.ok || result.ms == null));
+
+  return (
+    <div
+      style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}
+    >
+      {reachable && (
+        <Badge variant="success" dot>
+          {t("configEditor.latencyMs", { ms: result.ms })}
+        </Badge>
+      )}
+      {failed && (
+        <Badge variant="danger" dot>
+          {t("configEditor.latencyTimeout")}
+        </Badge>
+      )}
+      <Button
+        variant="secondary"
+        size="sm"
+        icon={<Zap size={14} aria-hidden />}
+        disabled={url === ""}
+        loading={testLatency.isPending}
+        onClick={() => testLatency.mutate(url)}
+      >
+        {t("configEditor.testLatency")}
+      </Button>
+    </div>
+  );
+}
+
 /** The editor form body — mounted only once the view (or a draft) is ready. */
 function EditorBody({
   view,
@@ -400,6 +449,7 @@ function EditorBody({
         <div
           style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}
         >
+          <LatencyAction baseUrl={values[ENV_KEYS.baseUrl] ?? ""} />
           <Popover
             open={confirmDelete}
             onOpenChange={setConfirmDelete}

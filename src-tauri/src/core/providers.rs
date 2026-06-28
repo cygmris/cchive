@@ -89,6 +89,12 @@ pub fn delete(index: &Path, id: &str) -> Result<(), CoreError> {
 /// Apply a provider to `settings.json`: compose its `env` block (incl. the vaulted
 /// token) + top-level config keys and merge them in, preserving every other key.
 pub fn apply(index: &Path, settings_path: &Path, id: &str) -> Result<(), CoreError> {
+    // Auto-snapshot the Claude files into the rotating backups store BEFORE any
+    // mutation, so every apply is recoverable (best-effort; never blocks).
+    // Skipped under unit tests, which drive temp settings paths.
+    #[cfg(not(test))]
+    super::backups::auto_snapshot();
+
     let config = find(index, id)?;
 
     // 1. Compose + merge the env block (incl. the vaulted token). `merge_env_at`

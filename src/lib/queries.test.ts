@@ -47,6 +47,8 @@ vi.mock("./ipc", () => ({
   readActivity: vi.fn(),
   readNotificationState: vi.fn(),
   setNotification: vi.fn(),
+  listBackups: vi.fn(),
+  testLatency: vi.fn(),
 }));
 
 import * as ipc from "./ipc";
@@ -57,6 +59,7 @@ import {
   useActivity,
   useAddCurrentAccount,
   useApplyProvider,
+  useBackups,
   useClearProvider,
   useCreateProvider,
   useDeleteMcpServer,
@@ -80,6 +83,7 @@ import {
   useSettingsSummary,
   useSkillEnabled,
   useSwitchAccount,
+  useTestLatency,
   useToggleMcpServer,
   useDeleteResource,
   useUsage,
@@ -87,6 +91,8 @@ import {
 import type {
   ActiveIdentity,
   ActivityEntry,
+  BackupEntry,
+  LatencyResult,
   McpServer,
   McpServerInput,
   MemoryDoc,
@@ -218,6 +224,23 @@ const NOTIFICATION_STATE: NotificationState = {
   toolUse: false,
 };
 
+const BACKUPS: BackupEntry[] = [
+  {
+    id: "settings.json.1717200000000.bak",
+    original: "settings.json",
+    timestamp: 1_717_200_000_000,
+    size: 2_048,
+  },
+  {
+    id: ".claude.json.1717100000000.bak",
+    original: ".claude.json",
+    timestamp: 1_717_100_000_000,
+    size: 512,
+  },
+];
+
+const LATENCY: LatencyResult = { ms: 128, ok: true, status: 200 };
+
 function newClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -283,6 +306,8 @@ beforeEach(() => {
   (ipc.appendActivity as Mock).mockResolvedValue(undefined);
   (ipc.readNotificationState as Mock).mockResolvedValue(NOTIFICATION_STATE);
   (ipc.setNotification as Mock).mockResolvedValue(undefined);
+  (ipc.listBackups as Mock).mockResolvedValue([]);
+  (ipc.testLatency as Mock).mockResolvedValue(LATENCY);
 });
 
 describe("query hooks call the matching IPC command", () => {
@@ -867,5 +892,55 @@ describe("notification hooks", () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: queryKeys.notifications,
     });
+  });
+});
+
+describe("backups + latency hooks", () => {
+  it("useBackups reads the rotating snapshots via list_backups", async () => {
+    (ipc.listBackups as Mock).mockResolvedValue(BACKUPS);
+    const { result } = renderHook(() => useBackups(), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.listBackups).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual(BACKUPS);
+  });
+
+  it("useTestLatency probes the base url via test_latency and returns the result", async () => {
+    const { result } = renderHook(() => useTestLatency(), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    let returned: LatencyResult | undefined;
+    await act(async () => {
+      returned = await result.current.mutateAsync(
+        "https://api.z.ai/api/anthropic",
+      );
+    });
+
+    expect(ipc.testLatency).toHaveBeenCalledWith(
+      "https://api.z.ai/api/anthropic",
+    );
+    expect(returned).toEqual(LATENCY);
+  });
+
+  it("useTestLatency surfaces the CoreError message on failure", async () => {
+    (ipc.testLatency as Mock).mockRejectedValueOnce({
+      code: "probe_failed",
+      message: "connect timeout",
+    });
+    const { result } = renderHook(() => useTestLatency(), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync("https://10.255.255.1"),
+      ).rejects.toThrow("connect timeout");
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toBe("connect timeout");
   });
 });

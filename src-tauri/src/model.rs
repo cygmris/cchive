@@ -121,6 +121,93 @@ pub struct ProviderConfigInput {
     pub config: ProviderSettings,
 }
 
+/// One provider in a portable export: its non-secret identity only.
+///
+/// SAFETY: there is deliberately NO key/token field — a portable export carries
+/// the label + base URL + model so a fresh profile can recreate the provider
+/// shell, but the auth token never leaves the vault.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportProvider {
+    pub label: String,
+    pub base_url: Option<String>,
+    pub model: Option<String>,
+}
+
+/// One account label in a portable export: a display label + non-secret meta.
+/// SAFETY: no secret blob/token — accounts are listed for reference only; an
+/// import does not (and cannot) recreate a signed-in account from this.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportAccount {
+    pub label: String,
+    pub email: Option<String>,
+    pub tier: Option<String>,
+}
+
+/// A portable, SECRET-FREE snapshot of the Clavis setup, written to / read from a
+/// single JSON file via the export/import flow. `app` is always `"clavis"`; an
+/// import rejects any other identity. Providers carry no key, accounts carry no
+/// token, and `prefs` is the non-secret app-preference subset only.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportDoc {
+    /// Identity tag; always `"clavis"` (a foreign value is rejected on import).
+    pub app: String,
+    /// Export schema version (bumped if the shape ever changes).
+    pub schema: u32,
+    /// Epoch milliseconds the export was produced.
+    pub exported_at: i64,
+    /// Saved providers, key-free (label + base URL + model).
+    pub providers: Vec<ExportProvider>,
+    /// Non-secret app preferences (theme / language / experimental flags only).
+    pub prefs: serde_json::Value,
+    /// Saved-account labels, token-free.
+    pub accounts: Vec<ExportAccount>,
+}
+
+/// Outcome of applying an import: how many providers were created/updated and how
+/// many preference keys were applied. Counts only — never a secret.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportSummary {
+    pub providers_added: u32,
+    pub providers_updated: u32,
+    pub prefs_applied: u32,
+}
+
+/// One rotating snapshot of a Claude file in the Clavis backups store. Plain
+/// metadata for the Settings backups list — never a secret (the backup holds the
+/// file CONTENT on disk; the OS keyring is never part of a backup).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupEntry {
+    /// Stable id = the backup file name `<name>.<timestamp>.bak` (what `restore` takes).
+    pub id: String,
+    /// The original file's display name (e.g. `settings.json`, `.credentials.json`).
+    pub original: String,
+    /// Epoch milliseconds the snapshot was taken.
+    pub timestamp: i64,
+    /// Size in bytes of the backed-up content.
+    pub size: u64,
+}
+
+/// Outcome of probing a provider endpoint's round-trip latency. The probe sends
+/// NO auth header and never carries a secret — it only reports timing and the
+/// (optional) HTTP status of the response that came back.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LatencyResult {
+    /// Median round-trip in milliseconds across the timed samples; `None` when no
+    /// response arrived (timeout / connect error).
+    pub ms: Option<u64>,
+    /// `true` when at least one response arrived (even a non-2xx one); `false` on
+    /// timeout / connect error.
+    pub ok: bool,
+    /// HTTP status of the last response, when one arrived.
+    pub status: Option<u16>,
+}
+
 /// One global MCP server, normalized from `~/.claude.json` `mcpServers` (or from
 /// the Clavis disabled stash). `transport` is `"stdio" | "http" | "sse"` (missing
 /// `type` normalizes to `"stdio"`); `scope` is `"user" | "project"` (global

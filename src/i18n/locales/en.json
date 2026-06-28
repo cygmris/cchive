@@ -49,6 +49,38 @@
       "title": "Contact & support",
       "description": "Found a bug or have feedback? Let us know on GitHub.",
       "reportIssue": "Report an issue"
+    },
+    "dataBackups": {
+      "title": "Data & backups",
+      "description": "Export your setup to share or move it, import it back, and restore a Claude file from an automatic backup.",
+      "export": {
+        "label": "Export configuration",
+        "description": "Save a portable JSON of your providers and preferences.",
+        "button": "Export…",
+        "note": "No secrets are exported — keys and tokens stay in your vault.",
+        "success": "Configuration exported",
+        "successDetail": "Saved to {{path}}",
+        "error": "Couldn't export configuration"
+      },
+      "import": {
+        "label": "Import configuration",
+        "description": "Merge providers and preferences from an exported JSON.",
+        "button": "Import…",
+        "success": "Configuration imported",
+        "successDetail": "{{added}} added, {{updated}} updated, {{prefs}} preferences applied.",
+        "error": "Couldn't import configuration"
+      },
+      "backups": {
+        "label": "Backups",
+        "description": "Snapshots taken automatically before each switch. Newest first.",
+        "empty": "No backups yet.",
+        "restore": "Restore",
+        "confirmTitle": "Restore this backup?",
+        "confirmBody": "This overwrites the current {{name}}. The current state is snapshotted first, so you can undo it.",
+        "restoreSuccess": "Backup restored",
+        "restoreDetail": "Restored {{name}}.",
+        "restoreError": "Couldn't restore backup"
+      }
     }
   },
   "experimental": {
@@ -66,5 +98,10 @@
       "inProcess": "In-process",
       "splitPanes": "Split panes (tmux / iTerm2)"
     }
+  },
+  "configEditor": {
+    "testLatency": "Test latency",
+    "latencyMs": "{{ms}} ms",
+    "latencyTimeout": "Timeout"
   }
 }

@@ -13,6 +13,7 @@
  * never returned.
  */
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   isPermissionGranted,
   requestPermission,
@@ -23,7 +24,10 @@ import type {
   AccountMeta,
   ActiveIdentity,
   ActivityEntry,
+  BackupEntry,
   EnvOverrides,
+  ImportSummary,
+  LatencyResult,
   McpServer,
   McpServerInput,
   MemoryDoc,
@@ -143,6 +147,72 @@ export function readSettingsSummary(): Promise<SettingsSummary> {
 export function detectEnvOverrides(): Promise<EnvOverrides> {
   ensureTauri("detect_env_overrides");
   return invoke<EnvOverrides>("detect_env_overrides");
+}
+
+/**
+ * Export the Clavis setup to a single JSON file the user picks via the native
+ * save dialog, then atomically write it through `export_config`. Returns the
+ * chosen path, or `null` when the dialog was cancelled (a no-op).
+ *
+ * SAFETY: the written document is secret-free — providers carry no key, accounts
+ * no token. No secret crosses this boundary (the core never reads the keyring).
+ */
+export async function exportConfig(): Promise<string | null> {
+  ensureTauri("export_config");
+  const path = await save({
+    title: "Export Clavis configuration",
+    defaultPath: "clavis-config.json",
+    filters: [{ name: "JSON", extensions: ["json"] }],
+  });
+  if (path == null) return null;
+  await invoke<void>("export_config", { path });
+  return path;
+}
+
+/**
+ * Import a Clavis setup from a JSON file the user picks via the native open
+ * dialog, merging it back through `import_config`. Returns the {@link ImportSummary}
+ * counts, or `null` when the dialog was cancelled (a no-op).
+ *
+ * SAFETY: the core writes providers KEYLESS and applies only allow-listed prefs;
+ * no secret is ever written. A foreign/invalid header is rejected pre-apply.
+ */
+export async function importConfig(): Promise<ImportSummary | null> {
+  ensureTauri("import_config");
+  const selected = await open({
+    title: "Import Clavis configuration",
+    multiple: false,
+    directory: false,
+    filters: [{ name: "JSON", extensions: ["json"] }],
+  });
+  const path = Array.isArray(selected) ? selected[0] : selected;
+  if (path == null) return null;
+  return invoke<ImportSummary>("import_config", { path });
+}
+
+/** List the rotating Claude-file backups newest-first (timestamp + size + name). */
+export function listBackups(): Promise<BackupEntry[]> {
+  ensureTauri("list_backups");
+  return invoke<BackupEntry[]>("list_backups");
+}
+
+/**
+ * Restore the backup `id` back to its original Claude file (snapshotting the
+ * current state first so it stays recoverable). Touches only Claude file content.
+ */
+export function restoreBackup(id: string): Promise<void> {
+  ensureTauri("restore_backup");
+  return invoke<void>("restore_backup", { id });
+}
+
+/**
+ * Measure the round-trip latency to a provider `baseUrl`. The probe sends NO auth
+ * header, so nothing secret crosses this boundary — only timing + the (optional)
+ * HTTP status come back.
+ */
+export function testLatency(baseUrl: string): Promise<LatencyResult> {
+  ensureTauri("test_latency");
+  return invoke<LatencyResult>("test_latency", { baseUrl });
 }
 
 /**

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capability for the Clavis main window. Narrow by design: core + non-secret store + the window controls the frameless chrome drives (minimize/maximize/unmaximize/close/drag/is-maximized) + the launch-at-login toggle (autostart enable/disable/is-enabled) + opening the Report-an-issue link (github.com over https only).",
+  "description": "Default capability for the Clavis main window. Narrow by design: core + non-secret store + the window controls the frameless chrome drives (minimize/maximize/unmaximize/close/drag/is-maximized) + the launch-at-login toggle (autostart enable/disable/is-enabled) + the export/import open/save file dialogs (dialog open/save only) + opening the Report-an-issue link (github.com over https only).",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -18,6 +18,8 @@
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled",
+    "dialog:allow-open",
+    "dialog:allow-save",
     {
       "identifier": "opener:allow-open-url",
       "allow": [{ "url": "https://github.com/*" }]

@@ -49,6 +49,38 @@
       "title": "Contact et assistance",
       "description": "Un bug ou un commentaire ? Dites-le-nous sur GitHub.",
       "reportIssue": "Signaler un problème"
+    },
+    "dataBackups": {
+      "title": "Données et sauvegardes",
+      "description": "Exportez votre configuration pour la partager ou la déplacer, réimportez-la, et restaurez un fichier Claude depuis une sauvegarde automatique.",
+      "export": {
+        "label": "Exporter la configuration",
+        "description": "Enregistrez un JSON portable de vos fournisseurs et préférences.",
+        "button": "Exporter…",
+        "note": "Aucun secret n'est exporté — les clés et jetons restent dans votre coffre.",
+        "success": "Configuration exportée",
+        "successDetail": "Enregistré dans {{path}}",
+        "error": "Échec de l'export de la configuration"
+      },
+      "import": {
+        "label": "Importer la configuration",
+        "description": "Fusionnez les fournisseurs et préférences depuis un JSON exporté.",
+        "button": "Importer…",
+        "success": "Configuration importée",
+        "successDetail": "{{added}} ajoutés, {{updated}} mis à jour, {{prefs}} préférences appliquées.",
+        "error": "Échec de l'import de la configuration"
+      },
+      "backups": {
+        "label": "Sauvegardes",
+        "description": "Instantanés pris automatiquement avant chaque changement. Le plus récent en premier.",
+        "empty": "Aucune sauvegarde pour l'instant.",
+        "restore": "Restaurer",
+        "confirmTitle": "Restaurer cette sauvegarde ?",
+        "confirmBody": "Cela remplace le fichier {{name}} actuel. L'état actuel est sauvegardé au préalable, vous pouvez donc annuler.",
+        "restoreSuccess": "Sauvegarde restaurée",
+        "restoreDetail": "{{name}} restauré.",
+        "restoreError": "Échec de la restauration de la sauvegarde"
+      }
     }
   },
   "experimental": {
@@ -66,5 +98,10 @@
       "inProcess": "Dans le processus",
       "splitPanes": "Volets divisés (tmux / iTerm2)"
     }
+  },
+  "configEditor": {
+    "testLatency": "Tester la latence",
+    "latencyMs": "{{ms}} ms",
+    "latencyTimeout": "Délai dépassé"
   }
 }

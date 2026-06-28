@@ -24,6 +24,16 @@ fn home_dir() -> PathBuf {
     dirs::home_dir().expect("home directory could not be resolved")
 }
 
+/// The Clavis app config dir (`<config_dir>/app.clavis`) — where the provider/pref
+/// index files and the rotating backups store live. This mirrors Tauri's
+/// `app_config_dir()` for the `app.clavis` identifier, so the secret-free backup
+/// hook (which has no `AppHandle`) and the command layer resolve the SAME directory.
+pub fn clavis_config_dir() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| home_dir().join(".config"))
+        .join("app.clavis")
+}
+
 /// `<claude_dir>/.credentials.json` — the live credential on Linux/Windows.
 pub fn credentials_path() -> PathBuf {
     claude_dir().join(".credentials.json")

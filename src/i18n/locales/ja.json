@@ -49,6 +49,38 @@
       "title": "お問い合わせ・サポート",
       "description": "不具合の報告やご意見は GitHub までお知らせください。",
       "reportIssue": "問題を報告"
+    },
+    "dataBackups": {
+      "title": "データとバックアップ",
+      "description": "設定をエクスポートして共有・移動したり、再インポートしたり、自動バックアップから Claude ファイルを復元したりできます。",
+      "export": {
+        "label": "設定をエクスポート",
+        "description": "プロバイダーと環境設定のポータブル JSON を保存します。",
+        "button": "エクスポート…",
+        "note": "シークレットはエクスポートされません。キーやトークンはボールトに残ります。",
+        "success": "設定をエクスポートしました",
+        "successDetail": "{{path}} に保存しました",
+        "error": "設定をエクスポートできませんでした"
+      },
+      "import": {
+        "label": "設定をインポート",
+        "description": "エクスポートした JSON からプロバイダーと環境設定をマージします。",
+        "button": "インポート…",
+        "success": "設定をインポートしました",
+        "successDetail": "{{added}} 件追加、{{updated}} 件更新、{{prefs}} 件の環境設定を適用しました。",
+        "error": "設定をインポートできませんでした"
+      },
+      "backups": {
+        "label": "バックアップ",
+        "description": "切り替えの前に自動で取得されたスナップショット。新しい順。",
+        "empty": "まだバックアップはありません。",
+        "restore": "復元",
+        "confirmTitle": "このバックアップを復元しますか？",
+        "confirmBody": "現在の {{name}} を上書きします。先に現在の状態がスナップショットされるため、元に戻せます。",
+        "restoreSuccess": "バックアップを復元しました",
+        "restoreDetail": "{{name}} を復元しました。",
+        "restoreError": "バックアップを復元できませんでした"
+      }
     }
   },
   "experimental": {
@@ -66,5 +98,10 @@
       "inProcess": "プロセス内",
       "splitPanes": "分割ペイン（tmux / iTerm2）"
     }
+  },
+  "configEditor": {
+    "testLatency": "レイテンシをテスト",
+    "latencyMs": "{{ms}} ms",
+    "latencyTimeout": "タイムアウト"
   }
 }

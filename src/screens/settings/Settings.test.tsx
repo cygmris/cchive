@@ -44,6 +44,7 @@ vi.mock("@tauri-apps/api/app", () => ({
 import { setLanguage } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { ToastProvider } from "@/ui/Toast";
 import { SettingsScreen } from "./index";
 
 const ISSUE_URL = "https://github.com/clavis-app/clavis/issues/new";
@@ -77,7 +78,9 @@ function renderScreen() {
   });
   return render(
     <QueryClientProvider client={qc}>
-      <SettingsScreen />
+      <ToastProvider>
+        <SettingsScreen />
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }

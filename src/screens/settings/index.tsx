@@ -21,15 +21,24 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
+import { Popover } from "@/ui/Popover";
 import { SegmentedControl } from "@/ui/SegmentedControl";
 import { Select } from "@/ui/Select";
 import { Switch } from "@/ui/Switch";
-import { Check, ExternalLink, Moon, Sun } from "@/ui/icons";
+import { useToast } from "@/ui/Toast";
+import { Check, ExternalLink, Moon, Refresh, Sun } from "@/ui/icons";
 import { ScreenHeader } from "@/app/ScreenHeader";
 import { useTheme } from "@/theme/ThemeProvider";
-import { useAutostart, useSetAutostart } from "@/lib/queries";
+import {
+  useAutostart,
+  useBackups,
+  useExportConfig,
+  useImportConfig,
+  useRestoreBackup,
+  useSetAutostart,
+} from "@/lib/queries";
 import { SUPPORTED_LANGUAGES, setLanguage, type Language } from "@/i18n";
-import type { AccentName, Density, Theme } from "@/lib/types";
+import type { AccentName, BackupEntry, Density, Theme } from "@/lib/types";
 
 /** Where the "Report an issue" button sends the user (github.com per capability). */
 const ISSUE_URL = "https://github.com/clavis-app/clavis/issues/new";
@@ -296,7 +305,10 @@ export function SettingsScreen() {
           </SettingRow>
         </Card>
 
-        {/* Card 2 — contact & support. */}
+        {/* Card 2 — data & backups. */}
+        <DataBackupsCard />
+
+        {/* Card 3 — contact & support. */}
         <Card>
           <SettingRow
             title={t("settings.support.title")}
@@ -313,6 +325,319 @@ export function SettingsScreen() {
           </SettingRow>
         </Card>
       </div>
+    </div>
+  );
+}
+
+/** Human byte size for a backup entry (e.g. `512 B` / `2.0 KB` / `1.3 MB`). */
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Full local timestamp for a backup entry (locale-formatted). */
+function formatTimestamp(ts: number): string {
+  return new Date(ts).toLocaleString();
+}
+
+/**
+ * Card 2 — Data & backups. Export writes a secret-free portable JSON via the
+ * native save dialog (with a standing "no secrets are exported" note); Import
+ * merges one back via the open dialog and toasts the {@link ImportSummary} counts;
+ * the Backups list shows the rotating Claude-file snapshots newest-first, each with
+ * a confirm-guarded Restore. All three flow through the queries layer (demo-noop /
+ * demo list off-Tauri); nothing secret crosses the boundary.
+ */
+function DataBackupsCard() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const backups = useBackups();
+  const exportConfig = useExportConfig();
+  const importConfig = useImportConfig();
+
+  function handleExport() {
+    exportConfig.mutate(undefined, {
+      onSuccess: (path) => {
+        if (path == null) return; // dialog cancelled — nothing written
+        toast({
+          title: t("settings.dataBackups.export.success"),
+          description: t("settings.dataBackups.export.successDetail", { path }),
+          variant: "success",
+        });
+      },
+      onError: (error) =>
+        toast({
+          title: t("settings.dataBackups.export.error"),
+          description: error.message,
+          variant: "danger",
+        }),
+    });
+  }
+
+  function handleImport() {
+    importConfig.mutate(undefined, {
+      onSuccess: (summary) => {
+        if (summary == null) return; // dialog cancelled — nothing merged
+        toast({
+          title: t("settings.dataBackups.import.success"),
+          description: t("settings.dataBackups.import.successDetail", {
+            added: summary.providersAdded,
+            updated: summary.providersUpdated,
+            prefs: summary.prefsApplied,
+          }),
+          variant: "success",
+        });
+      },
+      onError: (error) =>
+        toast({
+          title: t("settings.dataBackups.import.error"),
+          description: error.message,
+          variant: "danger",
+        }),
+    });
+  }
+
+  const entries = backups.data ?? [];
+
+  return (
+    <Card>
+      <SettingRow
+        title={t("settings.dataBackups.export.label")}
+        description={t("settings.dataBackups.export.description")}
+      >
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={exportConfig.isPending}
+          onClick={handleExport}
+        >
+          {t("settings.dataBackups.export.button")}
+        </Button>
+      </SettingRow>
+
+      {/* Standing "no secrets are exported" reassurance. */}
+      <div
+        style={{
+          marginTop: "var(--space-3)",
+          padding: "var(--space-2_5) var(--space-3_5)",
+          borderRadius: "var(--radius-lg)",
+          background: "var(--accent-tint)",
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-body-sm)",
+          lineHeight: "var(--lh-body-sm)",
+          color: "var(--text-2)",
+        }}
+      >
+        {t("settings.dataBackups.export.note")}
+      </div>
+
+      <SettingRow
+        divider
+        title={t("settings.dataBackups.import.label")}
+        description={t("settings.dataBackups.import.description")}
+      >
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={importConfig.isPending}
+          onClick={handleImport}
+        >
+          {t("settings.dataBackups.import.button")}
+        </Button>
+      </SettingRow>
+
+      {/* Backups list — newest-first, each with a confirm-guarded Restore. */}
+      <div
+        style={{
+          marginTop: 16,
+          paddingTop: 16,
+          borderTop: "1px solid var(--border)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-1)",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body)",
+            fontWeight: "var(--weight-semibold)",
+            color: "var(--text)",
+          }}
+        >
+          {t("settings.dataBackups.backups.label")}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body-sm)",
+            color: "var(--text-2)",
+          }}
+        >
+          {t("settings.dataBackups.backups.description")}
+        </span>
+
+        <div style={{ marginTop: "var(--space-2)" }}>
+          {entries.length === 0 ? (
+            <span
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-body-sm)",
+                color: "var(--text-3)",
+              }}
+            >
+              {t("settings.dataBackups.backups.empty")}
+            </span>
+          ) : (
+            entries.map((entry, i) => (
+              <BackupRow key={entry.id} entry={entry} divider={i > 0} />
+            ))
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * One backup row: the original file name + a timestamp/size meta line on the left,
+ * a confirm-guarded Restore on the right. Restore opens a Popover (mirroring the
+ * config-editor delete confirm) before calling {@link useRestoreBackup}; the core
+ * snapshots the current state first, so a restore is itself undoable.
+ */
+function BackupRow({ entry, divider }: { entry: BackupEntry; divider: boolean }) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const restoreBackup = useRestoreBackup();
+  const [confirm, setConfirm] = useState(false);
+
+  function handleRestore() {
+    setConfirm(false);
+    restoreBackup.mutate(entry.id, {
+      onSuccess: () =>
+        toast({
+          title: t("settings.dataBackups.backups.restoreSuccess"),
+          description: t("settings.dataBackups.backups.restoreDetail", {
+            name: entry.original,
+          }),
+          variant: "success",
+        }),
+      onError: (error) =>
+        toast({
+          title: t("settings.dataBackups.backups.restoreError"),
+          description: error.message,
+          variant: "danger",
+        }),
+    });
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-4)",
+        ...(divider
+          ? { marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }
+          : {}),
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          minWidth: 0,
+          flex: 1,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--fs-body-sm)",
+            fontWeight: "var(--weight-medium)",
+            color: "var(--text)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {entry.original}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body-sm)",
+            color: "var(--text-2)",
+          }}
+        >
+          {formatTimestamp(entry.timestamp)} · {formatBytes(entry.size)}
+        </span>
+      </div>
+
+      <Popover
+        open={confirm}
+        onOpenChange={setConfirm}
+        placement="bottom-end"
+        style={{ width: 264, padding: "var(--space-3)" }}
+        trigger={
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={restoreBackup.isPending}
+            icon={<Refresh size={14} aria-hidden />}
+          >
+            {t("settings.dataBackups.backups.restore")}
+          </Button>
+        }
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-3)",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body-sm)",
+              fontWeight: "var(--weight-semibold)",
+              color: "var(--text)",
+            }}
+          >
+            {t("settings.dataBackups.backups.confirmTitle")}
+          </span>
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body-sm)",
+              lineHeight: "var(--lh-body-sm)",
+              color: "var(--text-2)",
+            }}
+          >
+            {t("settings.dataBackups.backups.confirmBody", {
+              name: entry.original,
+            })}
+          </p>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "var(--space-2)",
+            }}
+          >
+            <Button variant="ghost" size="sm" onClick={() => setConfirm(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button size="sm" onClick={handleRestore}>
+              {t("settings.dataBackups.backups.restore")}
+            </Button>
+          </div>
+        </div>
+      </Popover>
     </div>
   );
 }

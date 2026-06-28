@@ -37,6 +37,8 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         // Opens the "Report an issue" link (Settings) in the default browser.
         .plugin(tauri_plugin_opener::init())
+        // Native open/save dialogs for the Settings export/import flow.
+        .plugin(tauri_plugin_dialog::init())
         // Build the system tray (icon + dynamic quick-switch menu) once the app
         // is ready. Desktop only; tray actions reuse the safe core::switch path.
         .setup(|app| {
@@ -58,6 +60,11 @@ pub fn run() {
             commands::providers::delete_provider,
             commands::providers::apply_provider,
             commands::providers::clear_provider,
+            commands::portable::export_config,
+            commands::portable::import_config,
+            commands::backups::list_backups,
+            commands::backups::restore_backup,
+            commands::latency::test_latency,
             commands::mcp::list_mcp_servers,
             commands::mcp::save_mcp_server,
             commands::mcp::delete_mcp_server,

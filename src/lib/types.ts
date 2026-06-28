@@ -183,6 +183,85 @@ export interface SettingsSummary {
 }
 
 /* ------------------------------------------------------------------------- *
+ * Portable export / import + backups + latency DTOs — mirror
+ * `src-tauri/src/model.rs` (serde `camelCase`).
+ *
+ * SAFETY CONTRACT: none of these carry a secret. An {@link ExportDoc} lists
+ * providers WITHOUT a key and accounts WITHOUT a token; a {@link BackupEntry} is
+ * file metadata only (the backup holds Claude file CONTENT on disk, never the
+ * keyring); a {@link LatencyResult} is timing only (the probe sends no auth
+ * header). Optional Rust fields serialize as `null`, so they are typed `T | null`
+ * here to match the wire shape exactly.
+ * ------------------------------------------------------------------------- */
+
+/** One provider in a portable export: its non-secret identity only (no key). */
+export interface ExportProvider {
+  label: string;
+  baseUrl: string | null;
+  model: string | null;
+}
+
+/** One saved-account label in a portable export: display meta only (no token). */
+export interface ExportAccount {
+  label: string;
+  email: string | null;
+  tier: string | null;
+}
+
+/**
+ * A portable, SECRET-FREE snapshot of the Clavis setup written to / read from a
+ * single JSON file. `app` is always `"clavis"` (an import rejects any other
+ * identity); providers carry no key, accounts carry no token, and `prefs` is the
+ * non-secret app-preference subset only.
+ */
+export interface ExportDoc {
+  /** Identity tag; always `"clavis"`. */
+  app: string;
+  /** Export schema version. */
+  schema: number;
+  /** Epoch milliseconds the export was produced. */
+  exportedAt: number;
+  /** Saved providers, key-free. */
+  providers: ExportProvider[];
+  /** Non-secret app preferences (theme / language / experimental flags only). */
+  prefs: Record<string, unknown>;
+  /** Saved-account labels, token-free. */
+  accounts: ExportAccount[];
+}
+
+/** Outcome of applying an import: how many providers/prefs changed. Counts only. */
+export interface ImportSummary {
+  providersAdded: number;
+  providersUpdated: number;
+  prefsApplied: number;
+}
+
+/** One rotating snapshot of a Claude file in the backups store. Metadata only. */
+export interface BackupEntry {
+  /** Stable id = the backup file name `<name>.<timestamp>.bak` (what restore takes). */
+  id: string;
+  /** The original file's display name (e.g. `settings.json`). */
+  original: string;
+  /** Epoch milliseconds the snapshot was taken. */
+  timestamp: number;
+  /** Size in bytes of the backed-up content. */
+  size: number;
+}
+
+/**
+ * Outcome of probing a provider endpoint's round-trip latency. The probe sends
+ * NO auth header — it reports timing + the (optional) HTTP status only.
+ */
+export interface LatencyResult {
+  /** Median round-trip in milliseconds; `null` when no response arrived. */
+  ms: number | null;
+  /** `true` when at least one response arrived (even a non-2xx one). */
+  ok: boolean;
+  /** HTTP status of the last response, when one arrived. */
+  status: number | null;
+}
+
+/* ------------------------------------------------------------------------- *
  * MCP-server DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`).
  *
  * One global MCP server normalized from `~/.claude.json` `mcpServers` (or the
