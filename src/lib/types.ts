@@ -331,3 +331,51 @@ export interface ResourceDetail extends Resource {
   /** The raw `.md` contents (frontmatter + body), edited as-is. */
   raw: string;
 }
+
+/* ------------------------------------------------------------------------- *
+ * Memory + Projects DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`).
+ *
+ * Memory edits a `CLAUDE.md` for a scope (global user memory or a project's);
+ * Projects are discovered from `~/.claude.json` `projects` and each carries a
+ * per-project `.claude/settings.local.json` (raw JSON text round-tripped).
+ * Plain markdown / the user's own local settings only — never a credential.
+ * Optional Rust fields serialize as `null`, so they are typed `T | null` here to
+ * match the wire shape exactly.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Which `CLAUDE.md` the Memory screen is editing. Mirrors the adjacently-tagged
+ * Rust `MemoryScope` enum on the wire: `{ kind: "global" }` (→ `~/.claude/CLAUDE.md`)
+ * or `{ kind: "project", path }` (→ `<path>/CLAUDE.md`).
+ */
+export type MemoryScope =
+  | { kind: "global" }
+  | { kind: "project"; path: string };
+
+/** One memory document: the resolved `CLAUDE.md` path + its verbatim contents. */
+export interface MemoryDoc {
+  /** Absolute path of the `CLAUDE.md` being edited. */
+  path: string;
+  /** The file's markdown contents (`""` when absent). */
+  content: string;
+}
+
+/** One project discovered from `~/.claude.json` `projects` (paths + flags only). */
+export interface Project {
+  /** Absolute project root (the `projects` map key). */
+  path: string;
+  /** Display name: the last path segment. */
+  name: string;
+  /** Whether `<path>/.claude/settings.local.json` exists on disk. */
+  hasLocalSettings: boolean;
+  /** Epoch milliseconds of last activity, if the entry carries one. */
+  lastActivity: number | null;
+}
+
+/** One project's `.claude/settings.local.json`, round-tripped as raw JSON text. */
+export interface ProjectSettings {
+  /** Absolute project root the settings belong to. */
+  path: string;
+  /** The verbatim `.claude/settings.local.json` text (`"{}"` if absent). */
+  raw: string;
+}

@@ -20,6 +20,10 @@ import type {
   EnvOverrides,
   McpServer,
   McpServerInput,
+  MemoryDoc,
+  MemoryScope,
+  Project,
+  ProjectSettings,
   ProviderConfigInput,
   ProviderConfigView,
   ProviderMeta,
@@ -229,4 +233,52 @@ export function deleteResource(
 export function setSkillEnabled(name: string, on: boolean): Promise<void> {
   ensureTauri("set_skill_enabled");
   return invoke<void>("set_skill_enabled", { name, on });
+}
+
+/**
+ * Read the `CLAUDE.md` for `scope` → `{ path, content }` (`content` empty when the
+ * file is absent). Touches ONLY `~/.claude/CLAUDE.md` or `<project>/CLAUDE.md` —
+ * plain markdown, never a credential.
+ */
+export function readMemory(scope: MemoryScope): Promise<MemoryDoc> {
+  ensureTauri("read_memory");
+  return invoke<MemoryDoc>("read_memory", { scope });
+}
+
+/**
+ * Atomically write `content` to the `CLAUDE.md` for `scope` (create if absent).
+ * `content` is plain markdown the user edits as-is — never a credential.
+ */
+export function writeMemory(scope: MemoryScope, content: string): Promise<void> {
+  ensureTauri("write_memory");
+  return invoke<void>("write_memory", { scope, content });
+}
+
+/**
+ * List the projects discovered in `~/.claude.json` `projects` (empty when the file
+ * is absent or malformed). Reads ONLY the `projects` map + probes each
+ * `<project>/.claude/settings.local.json` for existence — credentials untouched.
+ */
+export function listProjects(): Promise<Project[]> {
+  ensureTauri("list_projects");
+  return invoke<Project[]>("list_projects");
+}
+
+/** Read a project's `.claude/settings.local.json` raw text (`"{}"` if absent). */
+export function readProjectSettings(path: string): Promise<ProjectSettings> {
+  ensureTauri("read_project_settings");
+  return invoke<ProjectSettings>("read_project_settings", { path });
+}
+
+/**
+ * Validate `raw` is JSON, then atomically write it to the project's
+ * `.claude/settings.local.json` (creating `.claude/`). Rejects invalid JSON. The
+ * raw text is the user's own per-project settings — never a credential.
+ */
+export function writeProjectSettings(
+  path: string,
+  raw: string,
+): Promise<void> {
+  ensureTauri("write_project_settings");
+  return invoke<void>("write_project_settings", { path, raw });
 }

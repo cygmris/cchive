@@ -35,6 +35,10 @@ import type {
   HeatCell,
   McpServer,
   McpServerInput,
+  MemoryDoc,
+  MemoryScope,
+  Project,
+  ProjectSettings,
   ProviderConfigInput,
   ProviderConfigView,
   ProviderMeta,
@@ -62,7 +66,18 @@ export const queryKeys = {
   mcpServers: ["mcpServers"] as const,
   /** Markdown resources of one kind (`resources:<kind>`). */
   resources: (kind: ResourceKind) => ["resources", kind] as const,
+  /** One `CLAUDE.md` keyed by scope (`memory:global` or `memory:project:<path>`). */
+  memory: (scope: MemoryScope) => ["memory", scopeKey(scope)] as const,
+  /** The projects discovered from `~/.claude.json`. */
+  projects: ["projects"] as const,
+  /** One project's `.claude/settings.local.json` (`projectSettings:<path>`). */
+  projectSettings: (path: string) => ["projectSettings", path] as const,
 };
+
+/** Stable key fragment for a memory scope (so invalidation can target one doc). */
+function scopeKey(scope: MemoryScope): string {
+  return scope.kind === "global" ? "global" : `project:${scope.path}`;
+}
 
 /* ------------------------------------------------------------------------- *
  * Demo seed — shown ONLY when not under Tauri. Every label is prefixed "DEMO"
@@ -331,6 +346,94 @@ function demoResources(kind: ResourceKind): Resource[] {
     case "skill":
       return DEMO_SKILLS;
   }
+}
+
+/**
+ * A clearly-LABELLED sample global `CLAUDE.md` for off-Tauri rendering (the
+ * gallery / a plain browser). The leading comment marks it DEMO so it can never be
+ * mistaken for a real `~/.claude/CLAUDE.md`.
+ */
+const DEMO_GLOBAL_MEMORY = `# DEMO · User memory (CLAUDE.md)
+
+<!-- This is labelled demo content shown only outside the Clavis desktop app. -->
+
+## Coding style
+- Prefer the smallest change that solves the problem.
+- Match the surrounding code; do not reformat untouched lines.
+
+## Workflow
+- Read the relevant files before editing.
+- Run the tests after a change and report what passed.
+`;
+
+/**
+ * A clearly-LABELLED sample project `CLAUDE.md` for off-Tauri rendering. Marked
+ * DEMO in its heading so it cannot be mistaken for a real project memory file.
+ */
+const DEMO_PROJECT_MEMORY = `# DEMO · Project memory (CLAUDE.md)
+
+<!-- This is labelled demo content shown only outside the Clavis desktop app. -->
+
+## This project
+- Frontend in \`src/\`, tests alongside the code they cover.
+- Use the package scripts; do not invent new build commands.
+`;
+
+/**
+ * Clearly-LABELLED demo projects for off-Tauri rendering (the gallery / a plain
+ * browser). The \`/home/demo\` root + \`demo-\` folder names make them obviously not
+ * real \`~/.claude.json\` entries. Mixes \`hasLocalSettings\` and \`lastActivity\` so
+ * both display paths render.
+ */
+const DEMO_PROJECTS: Project[] = [
+  {
+    path: "/home/demo/code/demo-api-gateway",
+    name: "demo-api-gateway",
+    hasLocalSettings: true,
+    lastActivity: 1_717_200_000_000,
+  },
+  {
+    path: "/home/demo/code/demo-clavis",
+    name: "demo-clavis",
+    hasLocalSettings: true,
+    lastActivity: 1_716_000_000_000,
+  },
+  {
+    path: "/home/demo/code/demo-marketing-site",
+    name: "demo-marketing-site",
+    hasLocalSettings: false,
+    lastActivity: null,
+  },
+];
+
+/**
+ * A clearly-LABELLED sample `.claude/settings.local.json` (pretty-printed raw
+ * text) returned for demo projects that have local settings. The `_demo` marker
+ * key makes it obvious this is not a real settings file.
+ */
+const DEMO_PROJECT_SETTINGS_RAW = `{
+  "_demo": "labelled demo content — shown only outside the Clavis desktop app",
+  "permissions": {
+    "allow": ["Bash(pnpm test:*)", "Read(./src/**)"],
+    "deny": []
+  }
+}`;
+
+/** The labelled demo `CLAUDE.md` backing {@link useMemory} for a scope. */
+function demoMemory(scope: MemoryScope): MemoryDoc {
+  if (scope.kind === "global") {
+    return { path: "/home/demo/.claude/CLAUDE.md", content: DEMO_GLOBAL_MEMORY };
+  }
+  return { path: `${scope.path}/CLAUDE.md`, content: DEMO_PROJECT_MEMORY };
+}
+
+/** The labelled demo settings backing {@link useProjectSettings} for a path. */
+function demoProjectSettings(path: string): ProjectSettings {
+  const project = DEMO_PROJECTS.find((p) => p.path === path);
+  return {
+    path,
+    raw: project?.hasLocalSettings ? DEMO_PROJECT_SETTINGS_RAW : "{}",
+  };
 }
 
 /** Deterministic pseudo-random in `[0, 1)` so the demo series stays stable. */
@@ -619,6 +722,44 @@ export function useResources(
   }, [kind, data, setActiveIdentity]);
 
   return query;
+}
+
+/**
+ * The `CLAUDE.md` for `scope` (global user memory or a project's), `{ path,
+ * content }` with `content` empty when the file is absent. Off-Tauri it resolves
+ * to a labelled demo doc so the gallery renders.
+ */
+export function useMemory(scope: MemoryScope): UseQueryResult<MemoryDoc, Error> {
+  return useQuery({
+    queryKey: queryKeys.memory(scope),
+    queryFn: () => runQuery(demoMemory(scope), () => ipc.readMemory(scope)),
+  });
+}
+
+/** The projects discovered from `~/.claude.json` (labelled demo set off-Tauri). */
+export function useProjects(): UseQueryResult<Project[], Error> {
+  return useQuery({
+    queryKey: queryKeys.projects,
+    queryFn: () => runQuery(DEMO_PROJECTS, ipc.listProjects),
+  });
+}
+
+/**
+ * One project's `.claude/settings.local.json` raw text (`"{}"` when absent).
+ * Disabled when `path` is null (no project selected yet). Off-Tauri it resolves to
+ * a labelled demo settings doc so the gallery renders.
+ */
+export function useProjectSettings(
+  path: string | null,
+): UseQueryResult<ProjectSettings, Error> {
+  return useQuery({
+    queryKey: queryKeys.projectSettings(path ?? ""),
+    queryFn: () =>
+      runQuery(demoProjectSettings(path ?? ""), () =>
+        ipc.readProjectSettings(path as string),
+      ),
+    enabled: path != null,
+  });
 }
 
 /* ------------------------------------------------------------------------- *
@@ -936,6 +1077,56 @@ export function useSkillEnabled(): UseMutationResult<
       runMutation(() => ipc.setSkillEnabled(name, on)),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.resources("skill") });
+    },
+  });
+}
+
+/** Input for {@link useSaveMemory}: the scope + the markdown to write. */
+export interface SaveMemoryInput {
+  scope: MemoryScope;
+  /** Plain markdown the user edits as-is — never a credential. */
+  content: string;
+}
+
+/**
+ * Atomically write a scope's `CLAUDE.md` (create if absent); invalidates that
+ * scope's memory query so the editor re-reads the persisted text.
+ */
+export function useSaveMemory(): UseMutationResult<void, Error, SaveMemoryInput> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ scope, content }: SaveMemoryInput) =>
+      runMutation(() => ipc.writeMemory(scope, content)),
+    onSuccess: (_data, { scope }) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.memory(scope) });
+    },
+  });
+}
+
+/** Input for {@link useSaveProjectSettings}: the project root + raw JSON text. */
+export interface SaveProjectSettingsInput {
+  path: string;
+  /** The user's own `.claude/settings.local.json` text — never a credential. */
+  raw: string;
+}
+
+/**
+ * Validate + atomically write a project's `.claude/settings.local.json`;
+ * invalidates that project's settings query and the projects list (writing can
+ * flip `hasLocalSettings` from `false` to `true`).
+ */
+export function useSaveProjectSettings(): UseMutationResult<
+  void,
+  Error,
+  SaveProjectSettingsInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ path, raw }: SaveProjectSettingsInput) =>
+      runMutation(() => ipc.writeProjectSettings(path, raw)),
+    onSuccess: (_data, { path }) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.projectSettings(path) });
+      void qc.invalidateQueries({ queryKey: queryKeys.projects });
     },
   });
 }

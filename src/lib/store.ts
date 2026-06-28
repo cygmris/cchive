@@ -64,6 +64,14 @@ export interface ShellState {
    */
   editingProviderId: string | null;
 
+  /**
+   * Which project's `CLAUDE.md` the Memory screen should open on mount. Set by the
+   * Projects screen's "Edit CLAUDE.md" link (alongside `go("memory")`); consumed +
+   * cleared by the Memory screen so a later manual visit defaults to Global. A
+   * project root path, or `null` for none. Never a secret.
+   */
+  editingMemoryProject: string | null;
+
   // --- Actions ---
   go: (screen: Screen) => void;
   openPalette: () => void;
@@ -78,6 +86,8 @@ export interface ShellState {
   setActiveIdentity: (patch: Partial<ActiveIdentityCache>) => void;
   /** Set the provider the editor edits (`null` = a new, unsaved draft). */
   setEditingProvider: (id: string | null) => void;
+  /** Set the project whose `CLAUDE.md` the Memory screen should open (`null` = none). */
+  setEditingMemoryProject: (path: string | null) => void;
 }
 
 export const useShellStore = create<ShellState>((set) => ({
@@ -88,6 +98,7 @@ export const useShellStore = create<ShellState>((set) => ({
 
   activeIdentity: INITIAL_IDENTITY,
   editingProviderId: null,
+  editingMemoryProject: null,
 
   go: (screen) => set({ activeScreen: screen }),
   openPalette: () => set({ paletteOpen: true }),
@@ -101,6 +112,7 @@ export const useShellStore = create<ShellState>((set) => ({
   setActiveIdentity: (patch) =>
     set((s) => ({ activeIdentity: { ...s.activeIdentity, ...patch } })),
   setEditingProvider: (id) => set({ editingProviderId: id }),
+  setEditingMemoryProject: (path) => set({ editingMemoryProject: path }),
 }));
 
 /** Values the status bar renders, derived from the active-identity cache. */

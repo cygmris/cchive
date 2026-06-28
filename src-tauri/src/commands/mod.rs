@@ -8,6 +8,8 @@
 
 pub mod accounts;
 pub mod mcp;
+pub mod memory;
+pub mod projects;
 pub mod providers;
 pub mod resources;
 pub mod settings;

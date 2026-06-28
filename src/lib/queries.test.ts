@@ -38,6 +38,11 @@ vi.mock("./ipc", () => ({
   saveResource: vi.fn(),
   deleteResource: vi.fn(),
   setSkillEnabled: vi.fn(),
+  readMemory: vi.fn(),
+  writeMemory: vi.fn(),
+  listProjects: vi.fn(),
+  readProjectSettings: vi.fn(),
+  writeProjectSettings: vi.fn(),
 }));
 
 import * as ipc from "./ipc";
@@ -53,11 +58,16 @@ import {
   useDeleteProvider,
   useEnvOverrides,
   useMcpServers,
+  useMemory,
+  useProjects,
+  useProjectSettings,
   useProvider,
   useProviders,
   useRemoveAccount,
   useResources,
   useSaveMcpServer,
+  useSaveMemory,
+  useSaveProjectSettings,
   useSaveProvider,
   useSaveResource,
   useSettingsSummary,
@@ -71,6 +81,10 @@ import type {
   ActiveIdentity,
   McpServer,
   McpServerInput,
+  MemoryDoc,
+  MemoryScope,
+  Project,
+  ProjectSettings,
   ProviderConfigInput,
   ProviderConfigView,
   Resource,
@@ -165,6 +179,25 @@ const SKILL: Resource = {
   tools: null,
 };
 
+const MEMORY_DOC: MemoryDoc = {
+  path: "/home/me/.claude/CLAUDE.md",
+  content: "# My memory\n",
+};
+
+const PROJECTS: Project[] = [
+  {
+    path: "/home/me/code/alpha",
+    name: "alpha",
+    hasLocalSettings: true,
+    lastActivity: null,
+  },
+];
+
+const PROJECT_SETTINGS: ProjectSettings = {
+  path: "/home/me/code/alpha",
+  raw: `{ "permissions": { "allow": [], "deny": [] } }`,
+};
+
 function newClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -221,6 +254,11 @@ beforeEach(() => {
   (ipc.saveResource as Mock).mockResolvedValue(undefined);
   (ipc.deleteResource as Mock).mockResolvedValue(undefined);
   (ipc.setSkillEnabled as Mock).mockResolvedValue(undefined);
+  (ipc.readMemory as Mock).mockResolvedValue(MEMORY_DOC);
+  (ipc.writeMemory as Mock).mockResolvedValue(undefined);
+  (ipc.listProjects as Mock).mockResolvedValue(PROJECTS);
+  (ipc.readProjectSettings as Mock).mockResolvedValue(PROJECT_SETTINGS);
+  (ipc.writeProjectSettings as Mock).mockResolvedValue(undefined);
 });
 
 describe("query hooks call the matching IPC command", () => {
@@ -633,5 +671,112 @@ describe("markdown resource hooks", () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: queryKeys.resources("skill"),
     });
+  });
+});
+
+describe("memory hooks", () => {
+  it("useMemory reads the scope's CLAUDE.md via read_memory and returns it", async () => {
+    const scope = { kind: "global" } as const;
+    const { result } = renderHook(() => useMemory(scope), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.readMemory).toHaveBeenCalledWith(scope);
+    expect(result.current.data).toEqual(MEMORY_DOC);
+  });
+
+  it("useMemory re-queries with the new scope when it changes", async () => {
+    const { result, rerender } = renderHook(
+      ({ scope }: { scope: MemoryScope }) => useMemory(scope),
+      {
+        wrapper: wrapperFor(newClient()),
+        initialProps: { scope: { kind: "global" } as MemoryScope },
+      },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.readMemory).toHaveBeenCalledWith({ kind: "global" });
+
+    const projectScope: MemoryScope = {
+      kind: "project",
+      path: "/home/me/code/alpha",
+    };
+    rerender({ scope: projectScope });
+    await waitFor(() =>
+      expect(ipc.readMemory).toHaveBeenCalledWith(projectScope),
+    );
+  });
+
+  it("useSaveMemory writes via write_memory and invalidates that scope's memory", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useSaveMemory(), {
+      wrapper: wrapperFor(qc),
+    });
+    const scope = { kind: "global" } as const;
+
+    await act(async () => {
+      await result.current.mutateAsync({ scope, content: "# Updated\n" });
+    });
+
+    expect(ipc.writeMemory).toHaveBeenCalledWith(scope, "# Updated\n");
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.memory(scope),
+    });
+  });
+});
+
+describe("projects hooks", () => {
+  it("useProjects reads the project list via list_projects", async () => {
+    const { result } = renderHook(() => useProjects(), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.listProjects).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual(PROJECTS);
+  });
+
+  it("useProjectSettings stays idle when null and reads with the path otherwise", async () => {
+    const { result, rerender } = renderHook(
+      ({ path }: { path: string | null }) => useProjectSettings(path),
+      {
+        wrapper: wrapperFor(newClient()),
+        initialProps: { path: null as string | null },
+      },
+    );
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(ipc.readProjectSettings).not.toHaveBeenCalled();
+
+    rerender({ path: "/home/me/code/alpha" });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.readProjectSettings).toHaveBeenCalledWith("/home/me/code/alpha");
+    expect(result.current.data).toEqual(PROJECT_SETTINGS);
+  });
+
+  it("useSaveProjectSettings writes + invalidates that project's settings and the list", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useSaveProjectSettings(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        path: "/home/me/code/alpha",
+        raw: "{}",
+      });
+    });
+
+    expect(ipc.writeProjectSettings).toHaveBeenCalledWith(
+      "/home/me/code/alpha",
+      "{}",
+    );
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.projectSettings("/home/me/code/alpha"),
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.projects });
   });
 });

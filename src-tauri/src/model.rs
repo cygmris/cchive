@@ -325,6 +325,56 @@ pub struct ResourceDetail {
     pub raw: String,
 }
 
+/// Which `CLAUDE.md` the Memory screen is editing: the global user memory or a
+/// specific project's. Serializes adjacently-tagged so the webview can pass
+/// `{ kind: "global" }` or `{ kind: "project", path: "/abs/project" }`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "kind", content = "path")]
+pub enum MemoryScope {
+    /// `~/.claude/CLAUDE.md`.
+    Global,
+    /// `<path>/CLAUDE.md`.
+    Project(String),
+}
+
+/// One memory document: the resolved `CLAUDE.md` path + its verbatim contents
+/// (empty string when the file does not yet exist). Plain markdown — no secrets.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemoryDoc {
+    /// Absolute path of the `CLAUDE.md` being edited.
+    pub path: String,
+    /// The file's markdown contents (`""` when absent).
+    pub content: String,
+}
+
+/// One project Claude Code has been run in, discovered from `~/.claude.json`
+/// `projects` keys. Paths + a name + flags only — never a secret.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Project {
+    /// Absolute project root (the `projects` map key).
+    pub path: String,
+    /// Display name: the last path segment.
+    pub name: String,
+    /// Whether `<path>/.claude/settings.local.json` exists on disk.
+    pub has_local_settings: bool,
+    /// Epoch milliseconds of last activity, if the entry carries one.
+    pub last_activity: Option<i64>,
+}
+
+/// One project's `.claude/settings.local.json`, round-tripped as raw JSON text
+/// (`"{}"` when the file is absent) so the editor preserves the user's exact
+/// formatting. Per-project local settings only — never credentials.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectSettings {
+    /// Absolute project root the settings belong to.
+    pub path: String,
+    /// The verbatim `.claude/settings.local.json` text (`"{}"` if absent).
+    pub raw: String,
+}
+
 /// The single error type returned to the frontend. Serializes to a stable
 /// `{ code, message }` shape so the UI can branch on `code` without parsing
 /// human text.

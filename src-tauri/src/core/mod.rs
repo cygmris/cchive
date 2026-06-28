@@ -8,6 +8,8 @@ pub mod atomic_fs;
 pub mod credentials;
 pub mod keyring_store;
 pub mod claude_json;
+pub mod memory;
+pub mod projects;
 pub mod mcp;
 pub mod resources;
 pub mod settings;
