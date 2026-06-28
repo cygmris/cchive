@@ -5,6 +5,10 @@
 //! Privileged services (atomic FS, OS keyring, Claude config editing, tray)
 //! arrive in later specs.
 
+mod commands;
+mod core;
+mod model;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -25,6 +29,20 @@ pub fn run() {
     builder
         // Non-secret key/value store (UI prefs, account metadata, ordering).
         .plugin(tauri_plugin_store::Builder::new().build())
+        // The narrow, typed command surface. Every return carries labels +
+        // non-secret metadata only; tokens never cross IPC to the webview.
+        .invoke_handler(tauri::generate_handler![
+            commands::accounts::list_accounts,
+            commands::accounts::get_active_identity,
+            commands::accounts::add_account_from_active,
+            commands::accounts::switch_account,
+            commands::accounts::remove_account,
+            commands::providers::list_providers,
+            commands::providers::apply_provider,
+            commands::providers::clear_provider,
+            commands::settings::read_settings_summary,
+            commands::settings::detect_env_overrides,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running the Clavis application");
 }

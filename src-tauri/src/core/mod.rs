@@ -1,0 +1,12 @@
+//! Privileged Clavis core: path resolution, atomic file I/O, the OS-keyring
+//! account vault, per-OS credential access, key-preserving JSON editors, and
+//! the switch algorithms. All token I/O lives here; nothing above this layer
+//! (commands, the webview) ever holds a secret.
+
+pub mod paths;
+pub mod atomic_fs;
+pub mod credentials;
+pub mod keyring_store;
+pub mod claude_json;
+pub mod settings;
+pub mod switch;

@@ -33,3 +33,70 @@ export const DEFAULT_THEME_PREFS: ThemePrefs = {
   accent: "clay",
   density: "comfortable",
 };
+
+/* ------------------------------------------------------------------------- *
+ * Core IPC DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`).
+ *
+ * SAFETY CONTRACT: none of these carry a token. The webview only ever sees
+ * labels + non-secret metadata (email, plan tier, expiry, model id). Optional
+ * Rust fields serialize as `null` (no `skip_serializing_if`), so they are typed
+ * `T | null` here to match the wire shape exactly.
+ * ------------------------------------------------------------------------- */
+
+/** Non-secret metadata for one saved account (the secret blob lives in the vault). */
+export interface AccountMeta {
+  id: string;
+  label: string;
+  email: string | null;
+  /** Plan/rate-limit label, e.g. "Max 20x". */
+  tier: string | null;
+  /** Epoch milliseconds of the last switch-in, if ever used. */
+  lastUsed: number | null;
+}
+
+/** Non-secret metadata for one API-provider preset (env-block switch mode). */
+export interface ProviderMeta {
+  id: string;
+  label: string;
+  /** `ANTHROPIC_BASE_URL` target (non-secret). */
+  baseUrl: string | null;
+  /** `ANTHROPIC_MODEL` override, if any. */
+  model: string | null;
+}
+
+/** Who the active session currently is, for the HUD. Never includes a token. */
+export interface ActiveIdentity {
+  /** "account" | "provider" | "none". */
+  kind: string;
+  label: string;
+  email: string | null;
+  tier: string | null;
+  model: string | null;
+  /** Epoch milliseconds the credential expires at. */
+  expiresAt: number | null;
+}
+
+/** Result of a successful switch: the new identity + a per-OS apply note. */
+export interface SwitchResult {
+  identity: ActiveIdentity;
+  applyNote: string;
+}
+
+/** Auth-relevant environment variables that can override what Clavis writes. */
+export interface EnvOverrides {
+  /** `CLAUDE_CODE_OAUTH_TOKEN` is set — it bypasses the credential file/keychain. */
+  oauthTokenSet: boolean;
+  /** Sorted names of any `ANTHROPIC_*` vars present (values never captured). */
+  anthropicVars: string[];
+  /** `CLAUDE_CONFIG_DIR` value, if it relocates the config directory. */
+  configDirOverride: string | null;
+}
+
+/** Non-secret summary of `settings.json` for the settings screen. */
+export interface SettingsSummary {
+  model: string | null;
+  /** Whether an `env` provider-override block is present. */
+  hasEnv: boolean;
+  /** Top-level key names only. */
+  topLevelKeys: string[];
+}
