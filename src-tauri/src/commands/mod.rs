@@ -8,6 +8,9 @@
 
 pub mod accounts;
 pub mod activity;
+// Desktop-only: launch-at-login over tauri-plugin-autostart (no mobile backend).
+#[cfg(desktop)]
+pub mod app_prefs;
 pub mod mcp;
 pub mod memory;
 pub mod notifications;

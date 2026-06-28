@@ -34,6 +34,10 @@
         "compact": "紧凑"
       }
     },
+    "launchAtLogin": {
+      "label": "登录时启动",
+      "description": "登录后自动启动 Clavis。"
+    },
     "version": {
       "label": "版本",
       "value": "Clavis v{{version}}",

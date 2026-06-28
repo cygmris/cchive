@@ -34,6 +34,10 @@
         "compact": "Compact"
       }
     },
+    "launchAtLogin": {
+      "label": "Lancer à la connexion",
+      "description": "Démarrer Clavis automatiquement à votre connexion."
+    },
     "version": {
       "label": "Version",
       "value": "Clavis v{{version}}",

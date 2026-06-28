@@ -48,6 +48,8 @@ keyring = { version = "3", default-features = false, features = [
 [dev-dependencies]
 tempfile = "3"
 
-# Single-instance is desktop-only; registered first in the builder.
+# Single-instance + autostart are desktop-only. Single-instance is registered
+# first in the builder; autostart powers the Settings "Launch at login" toggle.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2.4.2"
+tauri-plugin-autostart = "2.5.1"

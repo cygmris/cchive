@@ -34,6 +34,10 @@
         "compact": "Compact"
       }
     },
+    "launchAtLogin": {
+      "label": "Launch at login",
+      "description": "Start Clavis automatically when you sign in."
+    },
     "version": {
       "label": "Version",
       "value": "Clavis v{{version}}",

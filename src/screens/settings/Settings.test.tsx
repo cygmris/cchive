@@ -20,6 +20,7 @@ import {
 } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 vi.mock("@/i18n", async (importOriginal) => {
@@ -66,10 +67,25 @@ beforeEach(() => {
   });
 });
 
+/**
+ * The screen reads the autostart query (added in S14), so it needs a
+ * QueryClientProvider — off-Tauri that query resolves to the demo `false`.
+ */
+function renderScreen() {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={qc}>
+      <SettingsScreen />
+    </QueryClientProvider>,
+  );
+}
+
 describe("SettingsScreen", () => {
   it("the language select calls setLanguage with the chosen tag", async () => {
     const user = userEvent.setup();
-    render(<SettingsScreen />);
+    renderScreen();
 
     await user.selectOptions(screen.getByLabelText("Language"), "fr");
 
@@ -78,7 +94,7 @@ describe("SettingsScreen", () => {
 
   it("clicking an accent swatch calls setAccent with that accent", async () => {
     const user = userEvent.setup();
-    render(<SettingsScreen />);
+    renderScreen();
 
     await user.click(screen.getByRole("radio", { name: "Blue" }));
 
@@ -87,7 +103,7 @@ describe("SettingsScreen", () => {
 
   it("the density toggle calls setDensity", async () => {
     const user = userEvent.setup();
-    render(<SettingsScreen />);
+    renderScreen();
 
     await user.click(screen.getByRole("radio", { name: "Compact" }));
 
@@ -96,7 +112,7 @@ describe("SettingsScreen", () => {
 
   it('"Report an issue" opens the issue URL via the opener', async () => {
     const user = userEvent.setup();
-    render(<SettingsScreen />);
+    renderScreen();
 
     await user.click(screen.getByRole("button", { name: /Report an issue/ }));
 
@@ -104,7 +120,7 @@ describe("SettingsScreen", () => {
   });
 
   it("renders the resolved app version", async () => {
-    render(<SettingsScreen />);
+    renderScreen();
 
     expect(await screen.findByText("Clavis v1.2.3")).toBeInTheDocument();
   });

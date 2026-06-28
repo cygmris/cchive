@@ -7,15 +7,40 @@ and review usage without anything leaving your device.
 
 The application identity is `app.clavis`.
 
+## What it does
+
+- **Account switching** — capture the active Claude Code subscription credential and switch
+  between saved accounts. Switches are atomic and reversible (capture → backup → write →
+  verify → rollback on failure) and preserve your per-MCP OAuth tokens (`mcpOAuth`).
+- **Provider switching** — apply a saved provider profile (the `env` block in
+  `settings.json`) for Anthropic-compatible endpoints, via a shallow merge that leaves your
+  other settings untouched.
+- **Config editing** — view and edit Claude Code config surfaces (settings, MCP servers,
+  agents, commands, memory) and review token usage.
+- **System tray** — a tray icon with a dynamic quick-switch menu listing your saved accounts
+  and providers (the active one is checked). Selecting one runs the **same** safe switch core
+  as the in-app UI, fires a desktop notification, and refreshes the window. Left-click toggles
+  the main window; a single-instance guard focuses the existing window on relaunch.
+- **Launch at login** — an optional autostart toggle in Settings (powered by
+  `tauri-plugin-autostart`) registers only Clavis's own launch.
+
+## Identity
+
+Clavis is its own application with its own identity — `app.clavis`, product name **Clavis**,
+its own icon set generated from the C-Key gradient mark, its own storage namespace, and no
+telemetry. It does not carry over any third-party identifiers, storage directories, hook
+markers, analytics keys, or update endpoints from any other tool.
+
 ## Stack
 
-- **Shell:** Tauri v2 (Rust 2021), `tauri-plugin-store`, `tauri-plugin-single-instance`
+- **Shell:** Tauri v2 (Rust 2021), `tauri-plugin-store`, `tauri-plugin-single-instance`,
+  `tauri-plugin-autostart`, `tauri-plugin-notification`, OS keyring (`keyring`) for the
+  account vault
 - **UI:** React 19 + TypeScript, built with Vite 7
-- **Styling:** Tailwind v4 with a CSS-variable design-token layer (light/dark, accent presets, density), self-hosted Geist / Geist Mono fonts
-- **Tests:** Vitest + Testing Library (jsdom)
-
-This repository currently contains the **design-system foundation (S1)**: the token layer,
-theme engine, the core UI component library under `src/ui/`, and a developer-only gallery.
+- **Styling:** Tailwind v4 with a CSS-variable design-token layer (light/dark, accent presets,
+  density), self-hosted Geist / Geist Mono fonts
+- **Data:** TanStack Query v5 for server state
+- **Tests:** Vitest + Testing Library (jsdom) on the frontend, `cargo test` on the Rust shell
 
 ## Prerequisites
 
@@ -47,7 +72,7 @@ the shipped user navigation.
 # Type-check + bundle the frontend
 pnpm build
 
-# Build the native app
+# Build the native app + installers
 pnpm tauri build
 ```
 
@@ -55,8 +80,9 @@ pnpm tauri build
 
 ```bash
 pnpm exec tsc --noEmit        # type-check (zero errors)
-pnpm test                     # unit tests (Vitest)
+pnpm test                     # frontend unit tests (Vitest)
 pnpm exec vite build          # frontend production bundle
+cd src-tauri && cargo test    # Rust unit tests
 cd src-tauri && cargo build   # native shell
 ```
 
@@ -66,7 +92,49 @@ cd src-tauri && cargo build   # native shell
 src/
   theme/      design tokens, fonts, ThemeProvider + theme engine
   ui/         core components (Button, Badge, Card, Input, Modal, …)
-  lib/        cn(), typed prefs store, shared types
-  screens/    _gallery/ dev-only component showcase
-src-tauri/    Rust Tauri shell, capabilities, config
+  lib/        cn(), typed prefs store, IPC bindings, query hooks, shared types
+  screens/    accounts/providers, config editor, MCP, agents, usage, settings, …
+src-tauri/
+  src/core/   account/provider switch core (capture/atomic/rollback/keyring)
+  src/tray.rs system tray icon + quick-switch menu (reuses the switch core)
+  icons/      app icon set generated from the C-Key mark
+  capabilities/ Tauri v2 ACL
+  tauri.conf.json
 ```
+
+## Enabling updates
+
+Clavis is built to support signed in-app updates via `tauri-plugin-updater`, but **no signing
+key or update endpoint is committed to this repository** — those are supplied at release time
+so each maintainer controls their own signing identity and hosting. To enable updates for your
+own builds:
+
+1. **Generate a minisign keypair** with the Tauri CLI:
+   ```bash
+   pnpm tauri signer generate -w ~/.tauri/clavis-updater.key
+   ```
+   Keep the **private** key secret (store it in your CI secrets, e.g.
+   `TAURI_SIGNING_PRIVATE_KEY` + its password); the command also prints the matching **public**
+   key.
+
+2. **Add the updater plugin** to the desktop dependencies (`src-tauri/Cargo.toml`,
+   desktop-only target) and register it in the builder, then add the updater config to
+   `tauri.conf.json`:
+   ```jsonc
+   // plugins.updater — values shown as placeholders; fill in at release time
+   "plugins": {
+     "updater": {
+       "pubkey": "<YOUR_MINISIGN_PUBLIC_KEY>",
+       "endpoints": ["https://<your-host>/clavis/latest.json"]
+     }
+   }
+   ```
+   Also set `"createUpdaterArtifacts": true` under `bundle` so the build emits signed
+   artifacts.
+
+3. **Host a `latest.json`** describing the newest release (version, notes, per-platform signed
+   artifact URLs + signatures). The build/CI signs each artifact with the private key; the app
+   verifies the download against the embedded public key before installing.
+
+Until you complete those steps, the app simply ships without an update channel — there are no
+placeholder keys or endpoints baked into the source.

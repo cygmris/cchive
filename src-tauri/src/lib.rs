@@ -2,12 +2,13 @@
 //!
 //! S1 keeps the Rust side intentionally minimal: open the window, register the
 //! single-instance guard (first) and the store plugin (for non-secret prefs).
-//! Privileged services (atomic FS, OS keyring, Claude config editing, tray)
-//! arrive in later specs.
+//! S14 adds the system-tray quick-switch (desktop only).
 
 mod commands;
 mod core;
 mod model;
+#[cfg(desktop)]
+mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -17,13 +18,16 @@ pub fn run() {
     // it focuses the existing window instead of spawning a duplicate.
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            use tauri::Manager;
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
-        }));
+        builder = builder
+            .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+                tray::show_main_window(app);
+            }))
+            // Launch-at-login: a LaunchAgent on macOS (the default launcher);
+            // `--autostart` lets the app tell a login-triggered start apart later.
+            .plugin(tauri_plugin_autostart::init(
+                tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                Some(vec!["--autostart"]),
+            ));
     }
 
     builder
@@ -33,6 +37,13 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         // Opens the "Report an issue" link (Settings) in the default browser.
         .plugin(tauri_plugin_opener::init())
+        // Build the system tray (icon + dynamic quick-switch menu) once the app
+        // is ready. Desktop only; tray actions reuse the safe core::switch path.
+        .setup(|app| {
+            #[cfg(desktop)]
+            tray::build_tray(app.handle())?;
+            Ok(())
+        })
         // The narrow, typed command surface. Every return carries labels +
         // non-secret metadata only; tokens never cross IPC to the webview.
         .invoke_handler(tauri::generate_handler![
@@ -69,6 +80,10 @@ pub fn run() {
             commands::notifications::read_notification_state,
             commands::notifications::set_notification,
             commands::notifications::test_notification,
+            #[cfg(desktop)]
+            commands::app_prefs::get_autostart,
+            #[cfg(desktop)]
+            commands::app_prefs::set_autostart,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Clavis application");

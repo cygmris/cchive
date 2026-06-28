@@ -28,7 +28,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["deb", "appimage", "app", "dmg", "nsis"],
+    "category": "DeveloperTool",
+    "shortDescription": "A calm, local manager for your Claude Code accounts and configuration.",
+    "longDescription": "Clavis is an offline-first desktop app for switching between Claude Code provider accounts, editing Claude Code configuration, and reviewing token usage — entirely on your own machine. It lives in the system tray with a quick account-switch menu, supports launch-at-login, and keeps every credential local: nothing leaves your device.",
+    "copyright": "Copyright © 2026 Chris",
+    "publisher": "Chris",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

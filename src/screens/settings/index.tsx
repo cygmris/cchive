@@ -23,9 +23,11 @@ import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { SegmentedControl } from "@/ui/SegmentedControl";
 import { Select } from "@/ui/Select";
+import { Switch } from "@/ui/Switch";
 import { Check, ExternalLink, Moon, Sun } from "@/ui/icons";
 import { ScreenHeader } from "@/app/ScreenHeader";
 import { useTheme } from "@/theme/ThemeProvider";
+import { useAutostart, useSetAutostart } from "@/lib/queries";
 import { SUPPORTED_LANGUAGES, setLanguage, type Language } from "@/i18n";
 import type { AccentName, Density, Theme } from "@/lib/types";
 
@@ -59,6 +61,8 @@ type UpdateStatus = "upToDate" | "notConfigured";
 export function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const { theme, accent, density, setTheme, setAccent, setDensity } = useTheme();
+  const autostart = useAutostart();
+  const setAutostart = useSetAutostart();
 
   const currentLanguage = SUPPORTED_LANGUAGES.includes(
     i18n.resolvedLanguage as Language,
@@ -242,6 +246,20 @@ export function SettingsScreen() {
                   label: t("settings.appearance.density.compact"),
                 },
               ]}
+            />
+          </SettingRow>
+
+          {/* Launch at login. */}
+          <SettingRow
+            divider
+            title={t("settings.launchAtLogin.label")}
+            description={t("settings.launchAtLogin.description")}
+          >
+            <Switch
+              aria-label={t("settings.launchAtLogin.label")}
+              checked={autostart.data ?? false}
+              disabled={autostart.data == null || setAutostart.isPending}
+              onChange={(next) => setAutostart.mutate(next)}
             />
           </SettingRow>
 

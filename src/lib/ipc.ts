@@ -329,6 +329,25 @@ export function setNotification(
   return invoke<void>("set_notification", { kind, on });
 }
 
+/**
+ * Whether Clavis is registered to launch at login. Reads the OS autostart entry
+ * (a LaunchAgent / registry entry / `.desktop` file); an unsupported environment
+ * reports `false`. Touches no credentials and no `~/.claude` files.
+ */
+export function getAutostart(): Promise<boolean> {
+  ensureTauri("get_autostart");
+  return invoke<boolean>("get_autostart");
+}
+
+/**
+ * Register (`on`) or remove (`!on`) Clavis's own launch-at-login entry. The only
+ * on-disk effect is the OS autostart entry for this app.
+ */
+export function setAutostart(on: boolean): Promise<void> {
+  ensureTauri("set_autostart");
+  return invoke<void>("set_autostart", { on });
+}
+
 /** Human-readable body fired by the Test action, per kind (matches the hook). */
 const NOTIFICATION_BODIES: Record<NotificationKind, string> = {
   completion: "Claude Code finished a task",

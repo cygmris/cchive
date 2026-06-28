@@ -80,6 +80,8 @@ export const queryKeys = {
   activity: ["activity"] as const,
   /** The installed notification-hook state (toggles invalidate this). */
   notifications: ["notifications"] as const,
+  /** Whether the app is registered to launch at login (the toggle invalidates this). */
+  autostart: ["autostart"] as const,
 };
 
 /** Stable key fragment for a memory scope (so invalidation can target one doc). */
@@ -863,6 +865,17 @@ export function useNotifications(): UseQueryResult<NotificationState, Error> {
   });
 }
 
+/**
+ * Whether Clavis is registered to launch at login (the OS autostart entry).
+ * Off-Tauri (no OS integration) it resolves to `false` so the toggle renders off.
+ */
+export function useAutostart(): UseQueryResult<boolean, Error> {
+  return useQuery({
+    queryKey: queryKeys.autostart,
+    queryFn: () => runQuery(false, ipc.getAutostart),
+  });
+}
+
 /* ------------------------------------------------------------------------- *
  * Mutations. Each invalidates the queries it can change, on success.
  * ------------------------------------------------------------------------- */
@@ -1273,6 +1286,21 @@ export function useSetNotification(): UseMutationResult<
       runMutation(() => ipc.setNotification(kind, on)),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.notifications });
+    },
+  });
+}
+
+/**
+ * Register/remove Clavis's launch-at-login entry over the OS autostart plugin;
+ * invalidates the autostart query so the toggle re-derives from the real
+ * `is_enabled` state (no optimistic flip).
+ */
+export function useSetAutostart(): UseMutationResult<void, Error, boolean> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (on: boolean) => runMutation(() => ipc.setAutostart(on)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.autostart });
     },
   });
 }

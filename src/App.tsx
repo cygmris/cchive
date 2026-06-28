@@ -11,13 +11,19 @@
  * to it; you reach it only by typing the hash.
  */
 import { useEffect, useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { isTauri } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/ui/Toast";
 import { Window } from "@/app/Window";
 import { CommandPalette } from "@/app/CommandPalette";
 import { useGlobalShortcuts } from "@/app/useGlobalShortcuts";
-import { useActiveIdentity } from "@/lib/queries";
+import { queryKeys, useActiveIdentity } from "@/lib/queries";
 import { AddAccountModal } from "@/screens/configurations/AddAccountModal";
 import { Gallery } from "@/screens/_gallery/Gallery";
 
@@ -46,12 +52,43 @@ function useHash(): string {
   return hash;
 }
 
+/**
+ * Keep the in-app UI in sync with a tray quick-switch: the tray menu reuses the
+ * same `core::switch` path and emits `clavis-switched` after it lands, so we
+ * invalidate the queries a switch can change (who's active, the account/provider
+ * lists, the recent-activity feed). Tauri-only; the listener is torn down on
+ * unmount (and if the component unmounts before `listen` resolves).
+ */
+function useTraySwitchSync(): void {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!isTauri()) return;
+    let cancelled = false;
+    let unlisten: UnlistenFn | undefined;
+    void listen("clavis-switched", () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
+      void qc.invalidateQueries({ queryKey: queryKeys.accounts });
+      void qc.invalidateQueries({ queryKey: queryKeys.providers });
+      void qc.invalidateQueries({ queryKey: queryKeys.activity });
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlisten = fn;
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [qc]);
+}
+
 /** The application shell: window chrome + screen outlet + command palette. */
 function Shell() {
   useGlobalShortcuts();
   // Hydrate the store's active-identity cache so the Sidebar card + StatusBar
   // reflect the live session (demo seed outside Tauri).
   useActiveIdentity();
+  // Mirror a tray quick-switch back into the in-app query cache.
+  useTraySwitchSync();
   return (
     <>
       <Window />
