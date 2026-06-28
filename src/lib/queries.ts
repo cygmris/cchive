@@ -38,6 +38,8 @@ import type {
   ProviderConfigInput,
   ProviderConfigView,
   ProviderMeta,
+  Resource,
+  ResourceKind,
   SettingsSummary,
   SwitchResult,
   UsageSummary,
@@ -58,6 +60,8 @@ export const queryKeys = {
   usage: (rangeDays: number) => ["usage", rangeDays] as const,
   /** Global MCP servers (enabled + disabled stash). */
   mcpServers: ["mcpServers"] as const,
+  /** Markdown resources of one kind (`resources:<kind>`). */
+  resources: (kind: ResourceKind) => ["resources", kind] as const,
 };
 
 /* ------------------------------------------------------------------------- *
@@ -192,6 +196,142 @@ const DEMO_MCP_SERVERS: McpServer[] = [
     toolsHint: "find_symbol, rename_symbol",
   },
 ];
+
+/**
+ * Clearly-LABELLED demo markdown resources for off-Tauri rendering (the gallery /
+ * a plain browser). Every name/description is prefixed "DEMO ·" so it can never be
+ * mistaken for a real `~/.claude/{agents,commands,skills}` resource. Each kind
+ * exercises its kind-specific fields (agent model badge, command leading `/` +
+ * argument-hint, skill source badge + an enabled/disabled mix for the count).
+ */
+const DEMO_AGENTS: Resource[] = [
+  {
+    kind: "agent",
+    name: "DEMO · code-reviewer",
+    description: "Reviews diffs for correctness and style.",
+    bodyLines: 42,
+    model: "sonnet",
+    source: null,
+    enabled: null,
+    path: "~/.claude/agents/code-reviewer.md",
+    argsHint: null,
+    tools: "Read, Edit, Bash",
+  },
+  {
+    kind: "agent",
+    name: "DEMO · doc-writer",
+    description: "Drafts and updates documentation.",
+    bodyLines: 27,
+    model: "haiku",
+    source: null,
+    enabled: null,
+    path: "~/.claude/agents/doc-writer.md",
+    argsHint: null,
+    tools: "Read, Edit",
+  },
+  {
+    kind: "agent",
+    name: "DEMO · security-auditor",
+    description: "Audits code for vulnerabilities.",
+    bodyLines: 64,
+    model: "opus",
+    source: null,
+    enabled: null,
+    path: "~/.claude/agents/security-auditor.md",
+    argsHint: null,
+    tools: "Read, Grep",
+  },
+];
+
+const DEMO_COMMANDS: Resource[] = [
+  {
+    kind: "command",
+    name: "/demo-write-tests",
+    description: "DEMO · Generate tests for the target file.",
+    bodyLines: 12,
+    model: null,
+    source: null,
+    enabled: null,
+    path: "~/.claude/commands/write-tests.md",
+    argsHint: "[file]",
+    tools: null,
+  },
+  {
+    kind: "command",
+    name: "/demo-review-pr",
+    description: "DEMO · Review the current pull request.",
+    bodyLines: 20,
+    model: null,
+    source: null,
+    enabled: null,
+    path: "~/.claude/commands/review-pr.md",
+    argsHint: "[pr]",
+    tools: null,
+  },
+  {
+    kind: "command",
+    name: "/demo-changelog",
+    description: "DEMO · Summarize changes into a changelog.",
+    bodyLines: 9,
+    model: null,
+    source: null,
+    enabled: null,
+    path: "~/.claude/commands/changelog.md",
+    argsHint: null,
+    tools: null,
+  },
+];
+
+const DEMO_SKILLS: Resource[] = [
+  {
+    kind: "skill",
+    name: "DEMO · pdf-forms",
+    description: "Fill and parse PDF forms.",
+    bodyLines: 30,
+    model: null,
+    source: "Personal",
+    enabled: true,
+    path: "~/.claude/skills/pdf-forms/SKILL.md",
+    argsHint: null,
+    tools: null,
+  },
+  {
+    kind: "skill",
+    name: "DEMO · design-review",
+    description: "Review UI against the design tokens.",
+    bodyLines: 24,
+    model: null,
+    source: "Project",
+    enabled: true,
+    path: "~/.claude/skills/design-review/SKILL.md",
+    argsHint: null,
+    tools: null,
+  },
+  {
+    kind: "skill",
+    name: "DEMO · slack-digest",
+    description: "Summarize Slack channels on demand.",
+    bodyLines: 18,
+    model: null,
+    source: "Plugin",
+    enabled: false,
+    path: "~/.claude/skills/slack-digest/SKILL.md",
+    argsHint: null,
+    tools: null,
+  },
+];
+
+/** The labelled demo set backing {@link useResources} for one kind. */
+function demoResources(kind: ResourceKind): Resource[] {
+  switch (kind) {
+    case "agent":
+      return DEMO_AGENTS;
+    case "command":
+      return DEMO_COMMANDS;
+    case "skill":
+      return DEMO_SKILLS;
+  }
+}
 
 /** Deterministic pseudo-random in `[0, 1)` so the demo series stays stable. */
 function demoNoise(n: number): number {
@@ -454,6 +594,33 @@ export function useMcpServers(): UseQueryResult<McpServer[], Error> {
   return query;
 }
 
+/**
+ * Markdown resources of one `kind` (agents, commands, or skills). Off-Tauri it
+ * resolves to a labelled demo set per kind so the gallery renders.
+ *
+ * As a side effect, for `kind === "skill"` it hydrates the shell store's
+ * `skillsEnabledCount` (the number of enabled skills) so the StatusBar shows the
+ * real Skills count instead of the `0` placeholder.
+ */
+export function useResources(
+  kind: ResourceKind,
+): UseQueryResult<Resource[], Error> {
+  const setActiveIdentity = useShellStore((s) => s.setActiveIdentity);
+  const query = useQuery({
+    queryKey: queryKeys.resources(kind),
+    queryFn: () => runQuery(demoResources(kind), () => ipc.listResources(kind)),
+  });
+
+  const data = query.data;
+  useEffect(() => {
+    if (kind !== "skill" || !data) return;
+    const enabled = data.reduce((n, r) => n + (r.enabled ? 1 : 0), 0);
+    setActiveIdentity({ skillsEnabledCount: enabled });
+  }, [kind, data, setActiveIdentity]);
+
+  return query;
+}
+
 /* ------------------------------------------------------------------------- *
  * Mutations. Each invalidates the queries it can change, on success.
  * ------------------------------------------------------------------------- */
@@ -694,6 +861,81 @@ export function useToggleMcpServer(): UseMutationResult<
       runMutation(() => ipc.setMcpEnabled(name, on)),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.mcpServers });
+    },
+  });
+}
+
+/** Input for {@link useSaveResource}: the kind + name + raw `.md` text. */
+export interface SaveResourceInput {
+  kind: ResourceKind;
+  name: string;
+  /** Plain markdown the user edits as-is — never a credential. */
+  raw: string;
+}
+
+/**
+ * Create or replace a markdown resource (atomic write); invalidates that kind's
+ * list so the collection refreshes.
+ */
+export function useSaveResource(): UseMutationResult<
+  void,
+  Error,
+  SaveResourceInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ kind, name, raw }: SaveResourceInput) =>
+      runMutation(() => ipc.saveResource(kind, name, raw)),
+    onSuccess: (_data, { kind }) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.resources(kind) });
+    },
+  });
+}
+
+/** Input for {@link useDeleteResource}: the kind + name to remove. */
+export interface DeleteResourceInput {
+  kind: ResourceKind;
+  name: string;
+}
+
+/** Delete a markdown resource; invalidates that kind's list. */
+export function useDeleteResource(): UseMutationResult<
+  void,
+  Error,
+  DeleteResourceInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ kind, name }: DeleteResourceInput) =>
+      runMutation(() => ipc.deleteResource(kind, name)),
+    onSuccess: (_data, { kind }) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.resources(kind) });
+    },
+  });
+}
+
+/** Input for {@link useSkillEnabled}: the skill name + the desired state. */
+export interface SetSkillEnabledInput {
+  name: string;
+  on: boolean;
+}
+
+/**
+ * Enable/disable a skill (a stash folder round-trip that never loses it);
+ * invalidates the skills list so the collection + the StatusBar Skills count both
+ * re-derive.
+ */
+export function useSkillEnabled(): UseMutationResult<
+  void,
+  Error,
+  SetSkillEnabledInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, on }: SetSkillEnabledInput) =>
+      runMutation(() => ipc.setSkillEnabled(name, on)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.resources("skill") });
     },
   });
 }

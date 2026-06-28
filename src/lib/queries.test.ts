@@ -33,6 +33,11 @@ vi.mock("./ipc", () => ({
   saveMcpServer: vi.fn(),
   deleteMcpServer: vi.fn(),
   setMcpEnabled: vi.fn(),
+  listResources: vi.fn(),
+  getResource: vi.fn(),
+  saveResource: vi.fn(),
+  deleteResource: vi.fn(),
+  setSkillEnabled: vi.fn(),
 }));
 
 import * as ipc from "./ipc";
@@ -51,11 +56,15 @@ import {
   useProvider,
   useProviders,
   useRemoveAccount,
+  useResources,
   useSaveMcpServer,
   useSaveProvider,
+  useSaveResource,
   useSettingsSummary,
+  useSkillEnabled,
   useSwitchAccount,
   useToggleMcpServer,
+  useDeleteResource,
   useUsage,
 } from "./queries";
 import type {
@@ -64,6 +73,8 @@ import type {
   McpServerInput,
   ProviderConfigInput,
   ProviderConfigView,
+  Resource,
+  ResourceKind,
   UsageSummary,
 } from "./types";
 
@@ -141,6 +152,19 @@ const MCP_INPUT: McpServerInput = {
   scope: "user",
 };
 
+const SKILL: Resource = {
+  kind: "skill",
+  name: "pdf-forms",
+  description: "Fill and parse PDF forms.",
+  bodyLines: 30,
+  model: null,
+  source: "Personal",
+  enabled: true,
+  path: "/home/me/.claude/skills/pdf-forms/SKILL.md",
+  argsHint: null,
+  tools: null,
+};
+
 function newClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -192,6 +216,11 @@ beforeEach(() => {
   (ipc.saveMcpServer as Mock).mockResolvedValue(MCP_SERVER);
   (ipc.deleteMcpServer as Mock).mockResolvedValue(undefined);
   (ipc.setMcpEnabled as Mock).mockResolvedValue(undefined);
+  (ipc.listResources as Mock).mockResolvedValue([SKILL]);
+  (ipc.getResource as Mock).mockResolvedValue({ ...SKILL, raw: "---\n---\n" });
+  (ipc.saveResource as Mock).mockResolvedValue(undefined);
+  (ipc.deleteResource as Mock).mockResolvedValue(undefined);
+  (ipc.setSkillEnabled as Mock).mockResolvedValue(undefined);
 });
 
 describe("query hooks call the matching IPC command", () => {
@@ -527,5 +556,82 @@ describe("MCP server hooks", () => {
 
     expect(ipc.setMcpEnabled).toHaveBeenCalledWith("context7", false);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.mcpServers });
+  });
+});
+
+describe("markdown resource hooks", () => {
+  const kinds: ResourceKind[] = ["agent", "command", "skill"];
+
+  it.each(kinds)(
+    "useResources(%s) reads that kind's list via list_resources",
+    async (kind) => {
+      const { result } = renderHook(() => useResources(kind), {
+        wrapper: wrapperFor(newClient()),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(ipc.listResources).toHaveBeenCalledTimes(1);
+      expect(ipc.listResources).toHaveBeenCalledWith(kind);
+      expect(result.current.data).toEqual([SKILL]);
+    },
+  );
+
+  it("useSaveResource writes via save_resource and invalidates that kind's list", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useSaveResource(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        kind: "agent",
+        name: "code-reviewer",
+        raw: "---\nname: code-reviewer\n---\n",
+      });
+    });
+
+    expect(ipc.saveResource).toHaveBeenCalledWith(
+      "agent",
+      "code-reviewer",
+      "---\nname: code-reviewer\n---\n",
+    );
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.resources("agent"),
+    });
+  });
+
+  it("useDeleteResource removes via delete_resource and invalidates that kind's list", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useDeleteResource(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ kind: "command", name: "review-pr" });
+    });
+
+    expect(ipc.deleteResource).toHaveBeenCalledWith("command", "review-pr");
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.resources("command"),
+    });
+  });
+
+  it("useSkillEnabled moves a skill via set_skill_enabled and invalidates the skills list", async () => {
+    const qc = newClient();
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const { result } = renderHook(() => useSkillEnabled(), {
+      wrapper: wrapperFor(qc),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ name: "pdf-forms", on: false });
+    });
+
+    expect(ipc.setSkillEnabled).toHaveBeenCalledWith("pdf-forms", false);
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.resources("skill"),
+    });
   });
 });

@@ -287,3 +287,47 @@ export interface UsageSummary {
   /** One cell per day for the trailing year (oldest → newest). */
   heatmap: HeatCell[];
 }
+
+/* ------------------------------------------------------------------------- *
+ * Markdown-resource DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`,
+ * `ResourceKind` lowercase).
+ *
+ * One markdown resource per family: agents (`~/.claude/agents/*.md`), commands
+ * (`~/.claude/commands/*.md`), skills (`~/.claude/skills/<name>/SKILL.md`).
+ * Strings/numbers only — the body is plain markdown prose, never a credential.
+ * Which optional fields are populated depends on `kind`: agents carry
+ * `model`/`tools`; commands carry `argsHint`; skills carry `source`/`enabled`.
+ * Optional Rust fields serialize as `null`, so they are typed `T | null` here to
+ * match the wire shape exactly.
+ * ------------------------------------------------------------------------- */
+
+/** Which markdown-resource family a {@link Resource} belongs to. */
+export type ResourceKind = "agent" | "command" | "skill";
+
+/** One markdown resource (a subagent, a slash command, or a skill), summarized. */
+export interface Resource {
+  kind: ResourceKind;
+  /** Agent name (or filename), `/`-prefixed for commands, folder name for skills. */
+  name: string;
+  description: string | null;
+  /** Number of body lines (frontmatter stripped), for the line-count meta. */
+  bodyLines: number;
+  /** Agent model badge keyword (`sonnet`/`opus`/`haiku`) or raw model id. */
+  model: string | null;
+  /** Skill source (`Personal`/`Project`/`Plugin`). */
+  source: string | null;
+  /** Skill enabled flag (`true` live in `skills/`, `false` parked in the stash). */
+  enabled: boolean | null;
+  /** Absolute on-disk path (the `.md` file, or the skill's `SKILL.md`). */
+  path: string;
+  /** Command `argument-hint` (display only). */
+  argsHint: string | null;
+  /** Agent `tools` list, comma-joined for display. */
+  tools: string | null;
+}
+
+/** A {@link Resource} plus the verbatim `.md` text, for the markdown editor. */
+export interface ResourceDetail extends Resource {
+  /** The raw `.md` contents (frontmatter + body), edited as-is. */
+  raw: string;
+}

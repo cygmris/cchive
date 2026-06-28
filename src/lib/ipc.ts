@@ -23,6 +23,9 @@ import type {
   ProviderConfigInput,
   ProviderConfigView,
   ProviderMeta,
+  Resource,
+  ResourceDetail,
+  ResourceKind,
   SettingsSummary,
   SwitchResult,
   UsageSummary,
@@ -175,4 +178,55 @@ export function deleteMcpServer(name: string): Promise<void> {
 export function setMcpEnabled(name: string, on: boolean): Promise<void> {
   ensureTauri("set_mcp_enabled");
   return invoke<void>("set_mcp_enabled", { name, on });
+}
+
+/**
+ * List markdown resources of one `kind`: agents/commands (`*.md`) or skills
+ * (`<name>/SKILL.md`, plus the Clavis stash as disabled). Each is summarized from
+ * its frontmatter + body. Touches ONLY `~/.claude/{agents,commands,skills}` + the
+ * stash — credentials/`mcpOAuth` are never read.
+ */
+export function listResources(kind: ResourceKind): Promise<Resource[]> {
+  ensureTauri("list_resources");
+  return invoke<Resource[]>("list_resources", { kind });
+}
+
+/** Read one resource's raw `.md` + parsed meta (for the markdown editor). */
+export function getResource(
+  kind: ResourceKind,
+  name: string,
+): Promise<ResourceDetail> {
+  ensureTauri("get_resource");
+  return invoke<ResourceDetail>("get_resource", { kind, name });
+}
+
+/**
+ * Atomically write a resource's `.md` to its path (skills → `<name>/SKILL.md`).
+ * `raw` is plain markdown the user edits as-is — never a credential.
+ */
+export function saveResource(
+  kind: ResourceKind,
+  name: string,
+  raw: string,
+): Promise<void> {
+  ensureTauri("save_resource");
+  return invoke<void>("save_resource", { kind, name, raw });
+}
+
+/** Delete a resource (the `.md` file, or the whole skill folder). Idempotent. */
+export function deleteResource(
+  kind: ResourceKind,
+  name: string,
+): Promise<void> {
+  ensureTauri("delete_resource");
+  return invoke<void>("delete_resource", { kind, name });
+}
+
+/**
+ * Enable/disable a skill by MOVING its folder between `~/.claude/skills/<name>/`
+ * and the Clavis stash (never deleted).
+ */
+export function setSkillEnabled(name: string, on: boolean): Promise<void> {
+  ensureTauri("set_skill_enabled");
+  return invoke<void>("set_skill_enabled", { name, on });
 }

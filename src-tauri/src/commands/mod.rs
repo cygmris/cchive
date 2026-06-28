@@ -9,6 +9,7 @@
 pub mod accounts;
 pub mod mcp;
 pub mod providers;
+pub mod resources;
 pub mod settings;
 pub mod usage;
 

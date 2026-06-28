@@ -275,6 +275,56 @@ pub struct UsageSummary {
     pub heatmap: Vec<HeatCell>,
 }
 
+/// Which markdown-resource family a `Resource` belongs to. Serializes to the
+/// lowercase string the webview passes back (`"agent" | "command" | "skill"`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ResourceKind {
+    Agent,
+    Command,
+    Skill,
+}
+
+/// One markdown resource (a subagent, a slash command, or a skill), summarized
+/// from its `.md` frontmatter + body. Strings/numbers only — no secrets. Which
+/// optional fields are populated depends on `kind`:
+/// - agents: `model`, `tools` (no `source`/`enabled`/`args_hint`);
+/// - commands: `args_hint` (no `model`/`tools`/`source`/`enabled`);
+/// - skills: `source`, `enabled` (no `model`/`tools`/`args_hint`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Resource {
+    pub kind: ResourceKind,
+    /// Display name: agent frontmatter `name` (or filename), `/`-prefixed for
+    /// commands, the folder name for skills.
+    pub name: String,
+    pub description: Option<String>,
+    /// Number of body lines (frontmatter stripped), for the line-count meta.
+    pub body_lines: u32,
+    /// Agent model badge keyword (`sonnet`/`opus`/`haiku`) or the raw model id.
+    pub model: Option<String>,
+    /// Skill source (`Personal`/`Project`/`Plugin`).
+    pub source: Option<String>,
+    /// Skill enabled flag (`true` live in `skills/`, `false` parked in the stash).
+    pub enabled: Option<bool>,
+    /// Absolute on-disk path (the `.md` file, or the skill's `SKILL.md`).
+    pub path: String,
+    /// Command `argument-hint` (display only).
+    pub args_hint: Option<String>,
+    /// Agent `tools` list, comma-joined for display.
+    pub tools: Option<String>,
+}
+
+/// A `Resource` plus the verbatim `.md` text, for the markdown editor.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceDetail {
+    #[serde(flatten)]
+    pub resource: Resource,
+    /// The raw `.md` contents (frontmatter + body), edited as-is.
+    pub raw: String,
+}
+
 /// The single error type returned to the frontend. Serializes to a stable
 /// `{ code, message }` shape so the UI can branch on `code` without parsing
 /// human text.
