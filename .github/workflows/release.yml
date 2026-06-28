@@ -60,6 +60,9 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Let linuxdeploy (an AppImage) run on runners without the fuse module.
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          NO_STRIP: true
           # --- macOS signing + notarization (set these secrets to sign) ---
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}

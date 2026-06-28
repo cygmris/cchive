@@ -84,6 +84,29 @@ attaches the installers to a draft GitHub Release. The **CI** workflow
 (`.github/workflows/ci.yml`) runs the type-check, both test suites, and the
 builds on every push.
 
+### Building the AppImage on Linux
+
+```bash
+# The .AppImage is the most portable Linux artifact (runs on any distro).
+APPIMAGE_EXTRACT_AND_RUN=1 NO_STRIP=true pnpm tauri build --bundles appimage
+# -> src-tauri/target/release/bundle/appimage/Clavis_<ver>_amd64.AppImage
+```
+
+`APPIMAGE_EXTRACT_AND_RUN=1` lets `linuxdeploy` (itself an AppImage) run on hosts
+where the `fuse` kernel module isn't loaded — common in containers/CI and on some
+desktops. Two distro notes:
+
+- **Arch Linux:** modern `gdk-pixbuf2` ships no modular loaders, so the loader
+  directory `linuxdeploy-plugin-gtk` expects is absent and the bundle step fails
+  with `cp: cannot stat '/usr/lib/gdk-pixbuf-2.0/2.10.0'`. Create the standard
+  (empty) loader dir + cache once — exactly what `pkg-config` already advertises:
+  ```bash
+  sudo mkdir -p /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders
+  sudo sh -c 'gdk-pixbuf-query-loaders > /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache'
+  ```
+- **FUSE:** to *run* an AppImage on a host without the `fuse` module, either
+  `sudo modprobe fuse` once, or launch it with `--appimage-extract-and-run`.
+
 ## Code signing & notarization
 
 The installers build **unsigned** by default — fine for local use and testing,
