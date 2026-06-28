@@ -28,6 +28,7 @@ vi.mock("./ipc", () => ({
   clearProvider: vi.fn(),
   readSettingsSummary: vi.fn(),
   detectEnvOverrides: vi.fn(),
+  readUsage: vi.fn(),
 }));
 
 import * as ipc from "./ipc";
@@ -47,11 +48,13 @@ import {
   useSaveProvider,
   useSettingsSummary,
   useSwitchAccount,
+  useUsage,
 } from "./queries";
 import type {
   ActiveIdentity,
   ProviderConfigInput,
   ProviderConfigView,
+  UsageSummary,
 } from "./types";
 
 const ACTIVE: ActiveIdentity = {
@@ -94,6 +97,16 @@ const PROVIDER_INPUT: ProviderConfigInput = {
   brand: "zai",
   env: PROVIDER_VIEW.env,
   config: PROVIDER_VIEW.config,
+};
+
+const USAGE_SUMMARY: UsageSummary = {
+  rangeDays: 7,
+  totals: { input: 1_000, output: 500, cacheCreation: 100, cacheRead: 4_000 },
+  estCostUsd: 1.23,
+  unknownModels: [],
+  perDay: [{ date: "2026-06-28", output: 500, input: 1_000, cacheRead: 4_000 }],
+  perModel: [{ model: "claude-sonnet-4-5", tokens: 5_600 }],
+  heatmap: [{ date: "2026-06-28", tokens: 5_600, level: 4 }],
 };
 
 function newClient(): QueryClient {
@@ -142,6 +155,7 @@ beforeEach(() => {
   (ipc.getProvider as Mock).mockResolvedValue(PROVIDER_VIEW);
   (ipc.saveProvider as Mock).mockResolvedValue(PROVIDER_VIEW);
   (ipc.deleteProvider as Mock).mockResolvedValue(undefined);
+  (ipc.readUsage as Mock).mockResolvedValue(USAGE_SUMMARY);
 });
 
 describe("query hooks call the matching IPC command", () => {
@@ -171,6 +185,35 @@ describe("query hooks call the matching IPC command", () => {
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useUsage", () => {
+  it("reads the usage aggregate for the given range via read_usage", async () => {
+    const { result } = renderHook(() => useUsage(7), {
+      wrapper: wrapperFor(newClient()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.readUsage).toHaveBeenCalledTimes(1);
+    expect(ipc.readUsage).toHaveBeenCalledWith(7);
+    expect(result.current.data).toEqual(USAGE_SUMMARY);
+  });
+
+  it("re-queries with the new range when it changes", async () => {
+    const { result, rerender } = renderHook(
+      ({ range }: { range: number }) => useUsage(range),
+      {
+        wrapper: wrapperFor(newClient()),
+        initialProps: { range: 30 },
+      },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(ipc.readUsage).toHaveBeenCalledWith(30);
+
+    rerender({ range: 7 });
+    await waitFor(() => expect(ipc.readUsage).toHaveBeenCalledWith(7));
   });
 });
 

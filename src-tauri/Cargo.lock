@@ -520,6 +520,7 @@ dependencies = [
 name = "clavis"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "dirs 5.0.1",
  "keyring",
  "serde",
@@ -530,6 +531,7 @@ dependencies = [
  "tauri-plugin-store",
  "tempfile",
  "thiserror 2.0.18",
+ "walkdir",
 ]
 
 [[package]]

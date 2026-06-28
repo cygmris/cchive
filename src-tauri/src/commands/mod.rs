@@ -9,6 +9,7 @@
 pub mod accounts;
 pub mod providers;
 pub mod settings;
+pub mod usage;
 
 use serde::{de::DeserializeOwned, Serialize};
 use tauri::{AppHandle, Runtime};

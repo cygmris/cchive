@@ -30,12 +30,15 @@ import { useShellStore } from "./store";
 import type {
   AccountMeta,
   ActiveIdentity,
+  DayPoint,
   EnvOverrides,
+  HeatCell,
   ProviderConfigInput,
   ProviderConfigView,
   ProviderMeta,
   SettingsSummary,
   SwitchResult,
+  UsageSummary,
 } from "./types";
 
 /* ------------------------------------------------------------------------- *
@@ -49,6 +52,8 @@ export const queryKeys = {
   activeIdentity: ["activeIdentity"] as const,
   envOverrides: ["envOverrides"] as const,
   settingsSummary: ["settingsSummary"] as const,
+  /** The usage aggregate for one range window (`usage:<rangeDays>`). */
+  usage: (rangeDays: number) => ["usage", rangeDays] as const,
 };
 
 /* ------------------------------------------------------------------------- *
@@ -141,6 +146,93 @@ const DEMO_SETTINGS_SUMMARY: SettingsSummary = {
   hasEnv: false,
   topLevelKeys: ["model", "permissions"],
 };
+
+/** Deterministic pseudo-random in `[0, 1)` so the demo series stays stable. */
+function demoNoise(n: number): number {
+  const x = Math.sin(n * 99.13 + 7.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/** Local `YYYY-MM-DD` for a date `back` days before `from`. */
+function demoDay(from: Date, back: number): string {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() - back);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/**
+ * A clearly-LABELLED demo usage aggregate for off-Tauri rendering (the gallery /
+ * a plain browser). Its model rows are prefixed "DEMO ·" so it can never be
+ * mistaken for real parsed usage. Shaped exactly like the Rust `UsageSummary`.
+ */
+function demoUsageSummary(rangeDays: number): UsageSummary {
+  const today = new Date();
+
+  const perDay: DayPoint[] = [];
+  for (let back = rangeDays - 1; back >= 0; back--) {
+    const wave = (Math.sin(back * 1.3) + 1) / 2;
+    const output = Math.round(40_000 + wave * 260_000);
+    perDay.push({
+      date: demoDay(today, back),
+      output,
+      input: output * 11,
+      cacheRead: output * 42,
+    });
+  }
+
+  // A trailing-year contribution grid (53 weeks × 7 days), oldest → newest.
+  const heatmap: HeatCell[] = [];
+  const span = 53 * 7;
+  for (let back = span - 1; back >= 0; back--) {
+    const r = demoNoise(back);
+    const level = r < 0.34 ? 0 : r < 0.56 ? 1 : r < 0.76 ? 2 : r < 0.91 ? 3 : 4;
+    heatmap.push({
+      date: demoDay(today, back),
+      tokens: level === 0 ? 0 : level * 210_000 + Math.round(r * 90_000),
+      level,
+    });
+  }
+
+  const totals = perDay.reduce(
+    (acc, p) => ({
+      input: acc.input + p.input,
+      output: acc.output + p.output,
+      cacheCreation: acc.cacheCreation + Math.round(p.output * 1.5),
+      cacheRead: acc.cacheRead + p.cacheRead,
+    }),
+    { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 },
+  );
+
+  const estCostUsd =
+    Math.round(
+      (totals.input * 3e-6 +
+        totals.output * 1.5e-5 +
+        totals.cacheRead * 3e-7) *
+        100,
+    ) / 100;
+
+  return {
+    rangeDays,
+    totals,
+    estCostUsd,
+    unknownModels: [],
+    perDay,
+    perModel: [
+      { model: "DEMO · claude-sonnet-4-5", tokens: Math.round(totals.output * 9) },
+      { model: "DEMO · claude-haiku-4-5", tokens: Math.round(totals.output * 3) },
+    ],
+    heatmap,
+  };
+}
+
+/** Compact token label for the status bar, e.g. `246.1K` / `84.2M`. */
+function formatTokensCompact(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
 
 /** Message surfaced when a mutation is attempted outside the desktop app. */
 export const DESKTOP_ONLY_MESSAGE =
@@ -261,6 +353,34 @@ export function useSettingsSummary(): UseQueryResult<SettingsSummary, Error> {
     queryKey: queryKeys.settingsSummary,
     queryFn: () => runQuery(DEMO_SETTINGS_SUMMARY, ipc.readSettingsSummary),
   });
+}
+
+/**
+ * The usage aggregate for a `rangeDays` window (30 or 7). The returned
+ * `refetch` re-parses the session logs on demand (the Usage screen's refresh
+ * button). Off-Tauri it resolves to a labelled demo summary so the gallery
+ * renders.
+ *
+ * As a side effect it hydrates the shell store's `tokensToday` from today's
+ * output tokens (the newest `perDay` entry) so the StatusBar shows the real
+ * value instead of the `0` placeholder.
+ */
+export function useUsage(rangeDays: number): UseQueryResult<UsageSummary, Error> {
+  const setActiveIdentity = useShellStore((s) => s.setActiveIdentity);
+  const query = useQuery({
+    queryKey: queryKeys.usage(rangeDays),
+    queryFn: () =>
+      runQuery(demoUsageSummary(rangeDays), () => ipc.readUsage(rangeDays)),
+  });
+
+  const data = query.data;
+  useEffect(() => {
+    if (!data) return;
+    const today = data.perDay[data.perDay.length - 1];
+    setActiveIdentity({ tokensToday: formatTokensCompact(today?.output ?? 0) });
+  }, [data, setActiveIdentity]);
+
+  return query;
 }
 
 /* ------------------------------------------------------------------------- *

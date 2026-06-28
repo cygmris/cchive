@@ -23,6 +23,7 @@ import type {
   ProviderMeta,
   SettingsSummary,
   SwitchResult,
+  UsageSummary,
 } from "./types";
 
 /** Throw a clear error when invoked outside the Tauri runtime. */
@@ -125,4 +126,15 @@ export function readSettingsSummary(): Promise<SettingsSummary> {
 export function detectEnvOverrides(): Promise<EnvOverrides> {
   ensureTauri("detect_env_overrides");
   return invoke<EnvOverrides>("detect_env_overrides");
+}
+
+/**
+ * Aggregate local token usage from `~/.claude/projects/**` over the last
+ * `rangeDays` days (0 ⇒ the core's default of 30). The core streams the session
+ * logs and returns numbers only — token counts, model ids, dates, an estimated
+ * cost — never a credential.
+ */
+export function readUsage(rangeDays: number): Promise<UsageSummary> {
+  ensureTauri("read_usage");
+  return invoke<UsageSummary>("read_usage", { rangeDays });
 }

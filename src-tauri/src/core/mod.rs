@@ -11,3 +11,4 @@ pub mod claude_json;
 pub mod settings;
 pub mod providers;
 pub mod switch;
+pub mod usage;

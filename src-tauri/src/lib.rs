@@ -45,6 +45,7 @@ pub fn run() {
             commands::providers::clear_provider,
             commands::settings::read_settings_summary,
             commands::settings::detect_env_overrides,
+            commands::usage::read_usage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Clavis application");

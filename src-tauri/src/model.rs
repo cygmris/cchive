@@ -165,6 +165,68 @@ pub struct SettingsSummary {
     pub top_level_keys: Vec<String>,
 }
 
+/// Token counts for one bucket (a day, a model, or a whole range). All four
+/// kinds are plain counts — no secrets, just numbers crossing IPC.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TokenTotals {
+    pub input: u64,
+    pub output: u64,
+    pub cache_creation: u64,
+    pub cache_read: u64,
+}
+
+/// One day of the per-day series (the output-tokens bar chart reads `output`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DayPoint {
+    /// Local calendar day, `YYYY-MM-DD`.
+    pub date: String,
+    pub output: u64,
+    pub input: u64,
+    pub cache_read: u64,
+}
+
+/// Per-model rolled-up token count (for the ranked model breakdown).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelTotal {
+    pub model: String,
+    /// Sum of all four token kinds for this model over the range.
+    pub tokens: u64,
+}
+
+/// One cell of the past-year contribution heatmap.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HeatCell {
+    /// Local calendar day, `YYYY-MM-DD`.
+    pub date: String,
+    pub tokens: u64,
+    /// Intensity bucket 0..=4 (0 = no activity), driven off daily totals.
+    pub level: u8,
+}
+
+/// The whole usage aggregate handed to the Usage screen. Numbers + model ids +
+/// dates only; never a credential. `est_cost_usd` is computed locally from the
+/// pricing table (no network), so it is just a number too.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageSummary {
+    /// The window the totals/per-day/per-model cover (e.g. 30 or 7).
+    pub range_days: u32,
+    pub totals: TokenTotals,
+    pub est_cost_usd: f64,
+    /// Model ids seen with no pricing entry (their cost contribution is 0).
+    pub unknown_models: Vec<String>,
+    /// Zero-filled day series over the range (oldest → newest).
+    pub per_day: Vec<DayPoint>,
+    /// Models ranked by token count (desc).
+    pub per_model: Vec<ModelTotal>,
+    /// One cell per day for the trailing year (oldest → newest).
+    pub heatmap: Vec<HeatCell>,
+}
+
 /// The single error type returned to the frontend. Serializes to a stable
 /// `{ code, message }` shape so the UI can branch on `code` without parsing
 /// human text.

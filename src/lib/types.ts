@@ -181,3 +181,60 @@ export interface SettingsSummary {
   /** Top-level key names only. */
   topLevelKeys: string[];
 }
+
+/* ------------------------------------------------------------------------- *
+ * Usage-analytics DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`).
+ *
+ * SAFETY: numbers + model ids + local dates only; never a credential. `u64`
+ * counts arrive as JS `number` (well within `Number.MAX_SAFE_INTEGER` for token
+ * tallies). `estCostUsd` is computed locally from a pricing table (no network).
+ * ------------------------------------------------------------------------- */
+
+/** Token counts for one bucket (a day, a model, or the whole range). */
+export interface TokenTotals {
+  input: number;
+  output: number;
+  cacheCreation: number;
+  cacheRead: number;
+}
+
+/** One day of the per-day series (the output bar chart reads `output`). */
+export interface DayPoint {
+  /** Local calendar day, `YYYY-MM-DD`. */
+  date: string;
+  output: number;
+  input: number;
+  cacheRead: number;
+}
+
+/** Per-model rolled-up token count (for the ranked model breakdown). */
+export interface ModelTotal {
+  model: string;
+  /** Sum of all four token kinds for this model over the range. */
+  tokens: number;
+}
+
+/** One cell of the past-year contribution heatmap. */
+export interface HeatCell {
+  /** Local calendar day, `YYYY-MM-DD`. */
+  date: string;
+  tokens: number;
+  /** Intensity bucket 0..4 (0 = no activity), driven off daily totals. */
+  level: number;
+}
+
+/** The whole usage aggregate handed to the Usage screen. Numbers only. */
+export interface UsageSummary {
+  /** The window the totals/per-day/per-model cover (e.g. 30 or 7). */
+  rangeDays: number;
+  totals: TokenTotals;
+  estCostUsd: number;
+  /** Model ids seen with no pricing entry (their cost contribution is 0). */
+  unknownModels: string[];
+  /** Zero-filled day series over the range (oldest → newest). */
+  perDay: DayPoint[];
+  /** Models ranked by token count (desc). */
+  perModel: ModelTotal[];
+  /** One cell per day for the trailing year (oldest → newest). */
+  heatmap: HeatCell[];
+}

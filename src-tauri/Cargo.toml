@@ -22,6 +22,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 dirs = "5"
 thiserror = "2"
+# Streaming usage parser: recursive *.jsonl walk + ISO-8601 → local-date bucketing.
+walkdir = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 # OS keyring for Clavis's own account vault.
 #   Linux  -> persistent Secret Service (GNOME Keyring / KWallet) via
 #            dbus-secret-service. `vendored` statically links libdbus from source
