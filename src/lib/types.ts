@@ -151,6 +151,9 @@ export interface ActiveIdentity {
   kind: string;
   label: string;
   email: string | null;
+  /** Organization name (non-secret label from `oauthAccount`); renders the
+   * Overview hero sub as "email · org" when present. Optional / may be absent. */
+  org?: string | null;
   tier: string | null;
   model: string | null;
   /** Epoch milliseconds the credential expires at. */

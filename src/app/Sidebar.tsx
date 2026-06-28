@@ -9,6 +9,7 @@
  * theme toggle and the version. Nav is driven entirely by `NAV` and the store —
  * no hardcoded screen list. Token-only styling.
  */
+import { useTranslation } from "react-i18next";
 import { LogoTile } from "@/ui/Logo";
 import { SegmentedControl } from "@/ui/SegmentedControl";
 import { Moon, Search, Sun } from "@/ui/icons";
@@ -21,10 +22,10 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { AccountSwitcher } from "@/app/AccountSwitcher";
 
 /** The nav groups in render order; Main has no eyebrow label. */
-const GROUPS: { group: NavGroup; label?: string }[] = [
+const GROUPS: { group: NavGroup; labelKey?: string }[] = [
   { group: "main" },
-  { group: "customize", label: "Customize" },
-  { group: "system", label: "System" },
+  { group: "customize", labelKey: "nav.groupCustomize" },
+  { group: "system", labelKey: "nav.groupSystem" },
 ];
 
 /** True when `screen` is the active nav target (Configurations owns Editor). */
@@ -34,6 +35,7 @@ function isActive(screen: Screen, activeScreen: Screen): boolean {
 }
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const activeScreen = useShellStore((s) => s.activeScreen);
   const go = useShellStore((s) => s.go);
   const openPalette = useShellStore((s) => s.openPalette);
@@ -92,7 +94,7 @@ export function Sidebar() {
       <button
         type="button"
         onClick={openPalette}
-        aria-label="Search — open command palette"
+        aria-label={t("palette.openLauncher")}
         className="hover:border-border-strong"
         style={{
           margin: "0 12px 12px",
@@ -118,7 +120,7 @@ export function Sidebar() {
             fontWeight: 450,
           }}
         >
-          Search…
+          {t("common.search")}
         </span>
         <kbd
           style={{
@@ -146,12 +148,12 @@ export function Sidebar() {
           gap: 18,
         }}
       >
-        {GROUPS.map(({ group, label }) => (
+        {GROUPS.map(({ group, labelKey }) => (
           <div
             key={group}
             style={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            {label && (
+            {labelKey && (
               <div
                 style={{
                   fontFamily: "var(--font-sans)",
@@ -163,7 +165,7 @@ export function Sidebar() {
                   padding: "0 10px 6px",
                 }}
               >
-                {label}
+                {t(labelKey)}
               </div>
             )}
             {NAV.filter((item) => item.group === group).map((item) => {
@@ -203,7 +205,7 @@ export function Sidebar() {
                     color="var(--text-3)"
                     aria-hidden
                   />
-                  <span style={{ flex: 1 }}>{item.label}</span>
+                  <span style={{ flex: 1 }}>{t(`nav.${item.screen}`)}</span>
                 </button>
               );
             })}
@@ -226,19 +228,19 @@ export function Sidebar() {
           <SegmentedControl<Theme>
             size="sm"
             className="flex-1"
-            aria-label="Theme"
+            aria-label={t("common.theme")}
             value={theme}
             onChange={setTheme}
             options={[
               {
                 value: "light",
                 icon: <Sun size={14} aria-hidden />,
-                "aria-label": "Light",
+                "aria-label": t("common.light"),
               },
               {
                 value: "dark",
                 icon: <Moon size={14} aria-hidden />,
-                "aria-label": "Dark",
+                "aria-label": t("common.dark"),
               },
             ]}
           />

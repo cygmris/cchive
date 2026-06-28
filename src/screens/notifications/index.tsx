@@ -16,6 +16,7 @@
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { Switch } from "@/ui/Switch";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/ui/Toast";
 import { ScreenHeader } from "@/app/ScreenHeader";
 import { useNotifications, useSetNotification } from "@/lib/queries";
@@ -46,6 +47,7 @@ const ROWS: ReadonlyArray<{
 ];
 
 export function NotificationsScreen() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const notifications = useNotifications();
   const setNotification = useSetNotification();
@@ -99,8 +101,8 @@ export function NotificationsScreen() {
       }}
     >
       <ScreenHeader
-        title="Notifications"
-        description="Choose when Claude Code should ping you with a system notification."
+        title={t("header.notifications.title")}
+        description={t("header.notifications.description")}
       />
 
       <div

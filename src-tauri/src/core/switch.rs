@@ -190,6 +190,7 @@ fn switch_account_inner(
         kind: "account".to_string(),
         label: email_of(target.oauth_account.as_ref()).unwrap_or_else(|| "account".to_string()),
         email: email_of(target.oauth_account.as_ref()),
+        org: org_of(target.oauth_account.as_ref()),
         tier: tier_label(descriptor.rate_limit_tier.as_deref()),
         model: None,
         expires_at: descriptor.expires_at,
@@ -215,6 +216,7 @@ fn read_active_identity_inner(
         kind: if has_cred { "account".to_string() } else { "none".to_string() },
         label: email.clone().unwrap_or_else(|| "Not signed in".to_string()),
         email,
+        org: org_of(profile.oauth_account.as_ref()),
         tier: tier_label(active.descriptor.rate_limit_tier.as_deref()),
         model: None,
         expires_at: active.descriptor.expires_at,
@@ -264,6 +266,18 @@ fn email_of(oauth_account: Option<&Value>) -> Option<String> {
         .and_then(Value::as_object)
         .and_then(|m| m.get("emailAddress"))
         .and_then(Value::as_str)
+        .map(str::to_string)
+}
+
+/// Organization name from `oauthAccount.organizationName` (non-secret label;
+/// blank/absent ⇒ `None`, so the hero falls back to email only).
+fn org_of(oauth_account: Option<&Value>) -> Option<String> {
+    oauth_account
+        .and_then(Value::as_object)
+        .and_then(|m| m.get("organizationName"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
         .map(str::to_string)
 }
 
@@ -319,7 +333,11 @@ mod tests {
 
     fn profile(uuid: &str, email: &str) -> Value {
         json!({
-            "oauthAccount": { "accountUuid": uuid, "emailAddress": email },
+            "oauthAccount": {
+                "accountUuid": uuid,
+                "emailAddress": email,
+                "organizationName": "Acme Inc"
+            },
             "userID": format!("uid-{uuid}"),
             "projects": { "/x": { "history": [] } }
         })
@@ -454,6 +472,7 @@ mod tests {
             read_active_identity_inner(&credentials::FileBackend::new(&cred), &dot).unwrap();
         assert_eq!(identity.kind, "account");
         assert_eq!(identity.email.as_deref(), Some("id@example.test"));
+        assert_eq!(identity.org.as_deref(), Some("Acme Inc"), "non-secret org label");
         assert_eq!(identity.tier.as_deref(), Some("Max 20x"));
         assert_eq!(identity.expires_at, Some(1_750_000_000_000));
 

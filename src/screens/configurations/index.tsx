@@ -15,6 +15,7 @@
  */
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
+import { useTranslation } from "react-i18next";
 import { Plus } from "@/ui/icons";
 import { ScreenHeader } from "@/app/ScreenHeader";
 import {
@@ -142,6 +143,7 @@ function CardNote({ children }: { children: React.ReactNode }) {
 }
 
 export function ConfigurationsScreen() {
+  const { t } = useTranslation();
   const openAddAccount = useShellStore((s) => s.openAddAccount);
   const accounts = useAccounts();
   const providers = useProviders();
@@ -160,8 +162,8 @@ export function ConfigurationsScreen() {
       }}
     >
       <ScreenHeader
-        title="Configurations"
-        description="Your keyring — Claude accounts and custom API providers in one place. Switch instantly."
+        title={t("header.configs.title")}
+        description={t("header.configs.description")}
       />
 
       <div

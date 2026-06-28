@@ -11,6 +11,7 @@
  * drive the shared {@link useResourceEditor}.
  */
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Badge, SourceBadge, type SourceName } from "@/ui/Badge";
 import { IconButton } from "@/ui/IconButton";
@@ -43,6 +44,7 @@ function skillMarkdown(skill: Resource): string {
 }
 
 export function SkillsScreen() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const skills = useResources("skill");
   const setEnabled = useSkillEnabled();
@@ -141,8 +143,8 @@ export function SkillsScreen() {
   return (
     <>
       <Collection
-        title="Skills"
-        description="Agent Skills Claude Code loads on demand — each a folder with a SKILL.md."
+        title={t("header.skills.title")}
+        description={t("header.skills.description")}
         items={items}
         config={config}
         view={view}

@@ -15,6 +15,7 @@
  * restores focus to the trigger on close; we re-assert input focus explicitly.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Modal } from "@/ui/Modal";
 import { Input } from "@/ui/Input";
 import { Key, Moon, Sun, type IconComponent } from "@/ui/icons";
@@ -22,17 +23,17 @@ import { NAV } from "@/app/router";
 import { useShellStore } from "@/lib/store";
 import { useTheme } from "@/theme/ThemeProvider";
 
-type PaletteGroup = "Go to" | "Account" | "Theme";
-
 interface PaletteAction {
   id: string;
-  group: PaletteGroup;
+  /** Localized group heading shown in the right column and matched by search. */
+  group: string;
   label: string;
   Icon: IconComponent;
   run: () => void;
 }
 
 export function CommandPalette() {
+  const { t } = useTranslation();
   const open = useShellStore((s) => s.paletteOpen);
   const closePalette = useShellStore((s) => s.closePalette);
   const go = useShellStore((s) => s.go);
@@ -51,16 +52,16 @@ export function CommandPalette() {
     for (const item of NAV) {
       list.push({
         id: `go:${item.screen}`,
-        group: "Go to",
-        label: item.label,
+        group: t("palette.groupGoTo"),
+        label: t(`nav.${item.screen}`),
         Icon: item.icon,
         run: () => go(item.screen),
       });
     }
     list.push({
       id: "account:signin",
-      group: "Account",
-      label: "Sign in with Claude",
+      group: t("palette.groupAccount"),
+      label: t("palette.signIn"),
       Icon: Key,
       // Opens the add-account capture modal. The per-account switch actions are
       // re-added from the queries layer in the "rewire switcher" S4 task.
@@ -69,13 +70,16 @@ export function CommandPalette() {
     const nextTheme = theme === "dark" ? "light" : "dark";
     list.push({
       id: "theme:toggle",
-      group: "Theme",
-      label: `Switch to ${nextTheme} theme`,
+      group: t("palette.groupTheme"),
+      label:
+        nextTheme === "dark"
+          ? t("palette.switchToDark")
+          : t("palette.switchToLight"),
       Icon: theme === "dark" ? Sun : Moon,
       run: () => setTheme(nextTheme),
     });
     return list;
-  }, [go, openAddAccount, theme, setTheme]);
+  }, [go, openAddAccount, theme, setTheme, t]);
 
   const q = query.trim().toLowerCase();
   const filtered = useMemo(
@@ -156,15 +160,15 @@ export function CommandPalette() {
             color: "var(--text-3)",
           }}
         >
-          ↑↓ navigate · ↵ select · esc close
+          {t("palette.footer")}
         </span>
       }
     >
       <Input
         ref={inputRef}
         variant="search"
-        placeholder="Search commands, accounts, screens…"
-        aria-label="Search commands, accounts, screens"
+        placeholder={t("palette.placeholder")}
+        aria-label={t("palette.ariaLabel")}
         aria-controls="command-palette-list"
         aria-activedescendant={activeId ? `cmd-${activeId}` : undefined}
         value={query}
@@ -192,7 +196,7 @@ export function CommandPalette() {
               color: "var(--text-3)",
             }}
           >
-            No results
+            {t("palette.noResults")}
           </div>
         ) : (
           filtered.map((action, i) => {

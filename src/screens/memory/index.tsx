@@ -15,6 +15,7 @@
  * never a credential.
  */
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/ui/Button";
 import { Select } from "@/ui/Select";
 import { Modal } from "@/ui/Modal";
@@ -30,6 +31,7 @@ function scopeKey(scope: MemoryScope): string {
 }
 
 export function MemoryScreen() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const projects = useProjects();
   const saveMemory = useSaveMemory();
@@ -137,7 +139,7 @@ export function MemoryScreen() {
               color: "var(--text)",
             }}
           >
-            Memory
+            {t("header.memory.title")}
           </div>
           <div
             style={{
@@ -173,7 +175,7 @@ export function MemoryScreen() {
             loading={saveMemory.isPending}
             onClick={() => handleSave(draft)}
           >
-            Save
+            {t("common.save")}
           </Button>
         </div>
       </header>

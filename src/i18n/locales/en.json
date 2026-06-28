@@ -4,7 +4,94 @@
     "on": "On",
     "off": "Off",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "switch": "Switch",
+    "test": "Test",
+    "add": "Add",
+    "delete": "Delete",
+    "restore": "Restore",
+    "edit": "Edit",
+    "remove": "Remove",
+    "search": "Search…",
+    "light": "Light",
+    "dark": "Dark",
+    "theme": "Theme"
+  },
+  "nav": {
+    "overview": "Overview",
+    "configs": "Configurations",
+    "projects": "Projects",
+    "mcp": "MCP",
+    "agents": "Agents",
+    "commands": "Commands",
+    "skills": "Skills",
+    "memory": "Memory",
+    "usage": "Usage",
+    "notifications": "Notifications",
+    "experimental": "Experimental",
+    "settings": "Settings",
+    "groupCustomize": "Customize",
+    "groupSystem": "System"
+  },
+  "header": {
+    "overview": {
+      "title": "Overview",
+      "description": "Your Claude Code control room — keys, servers and usage at a glance."
+    },
+    "configs": {
+      "title": "Configurations",
+      "description": "Your keyring — Claude accounts and custom API providers in one place. Switch instantly."
+    },
+    "projects": {
+      "title": "Projects",
+      "description": "Per-project configuration for every folder you've run Claude Code in."
+    },
+    "mcp": {
+      "title": "MCP",
+      "description": "Global Model Context Protocol servers, available across every project."
+    },
+    "agents": {
+      "title": "Agents",
+      "description": "Sub-agents Claude Code can delegate specialized work to."
+    },
+    "commands": {
+      "title": "Commands",
+      "description": "Custom slash commands available in every Claude Code session."
+    },
+    "skills": {
+      "title": "Skills",
+      "description": "Agent Skills Claude Code loads on demand — each a folder with a SKILL.md."
+    },
+    "memory": {
+      "title": "Memory"
+    },
+    "usage": {
+      "title": "Usage",
+      "description": "Token consumption across all your Claude Code sessions."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choose when Claude Code should ping you with a system notification."
+    }
+  },
+  "status": {
+    "mcp": "MCP",
+    "skills": "Skills",
+    "tokToday": "tok today",
+    "synced": "Synced"
+  },
+  "palette": {
+    "placeholder": "Search commands, accounts, screens…",
+    "ariaLabel": "Search commands, accounts, screens",
+    "openLauncher": "Search — open command palette",
+    "noResults": "No results",
+    "footer": "↑↓ navigate · ↵ select · esc close",
+    "groupGoTo": "Go to",
+    "groupAccount": "Account",
+    "groupTheme": "Theme",
+    "signIn": "Sign in with Claude",
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme"
   },
   "settings": {
     "title": "Settings",

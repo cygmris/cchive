@@ -18,6 +18,7 @@ import { Card } from "@/ui/Card";
 import { StatTile } from "@/ui/StatTile";
 import { OutputBars } from "@/ui/charts/OutputBars";
 import { ModelBars } from "@/ui/charts/ModelBars";
+import { useTranslation } from "react-i18next";
 import { Activity, BarChart, Book, Key, Server, Sparkles, User } from "@/ui/icons";
 import { ScreenHeader } from "@/app/ScreenHeader";
 import { AccountAvatar, initialsOf } from "@/app/AccountSwitcher";
@@ -241,7 +242,12 @@ function Hero({ identity }: { identity: ActiveIdentity | undefined }) {
     );
     eyebrow = "Active account";
     name = label;
-    sub = identity?.email ?? null;
+    // Sub line: "email · org" when the org label is present, else email only.
+    sub = identity?.email
+      ? identity.org
+        ? `${identity.email} · ${identity.org}`
+        : identity.email
+      : null;
     badge = identity?.tier ? (
       <Badge variant="accent">{`Claude ${identity.tier}`}</Badge>
     ) : null;
@@ -302,6 +308,7 @@ function CardNote({ children }: { children: React.ReactNode }) {
 }
 
 export function OverviewScreen() {
+  const { t } = useTranslation();
   const go = useShellStore((s) => s.go);
 
   const { data: identity } = useActiveIdentity();
@@ -336,8 +343,8 @@ export function OverviewScreen() {
       }}
     >
       <ScreenHeader
-        title="Overview"
-        description="Your Claude Code control room — keys, servers and usage at a glance."
+        title={t("header.overview.title")}
+        description={t("header.overview.description")}
       />
 
       <div

@@ -9,6 +9,7 @@
  * shared {@link useResourceEditor} (MarkdownEditor + the resource mutations).
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { IconButton } from "@/ui/IconButton";
 import { Pencil, Terminal, Trash } from "@/ui/icons";
@@ -28,6 +29,7 @@ function commandMarkdown(command: Resource): string {
 }
 
 export function CommandsScreen() {
+  const { t } = useTranslation();
   const commands = useResources("command");
   const items = commands.data ?? [];
 
@@ -117,8 +119,8 @@ export function CommandsScreen() {
   return (
     <>
       <Collection
-        title="Commands"
-        description="Custom slash commands available in every Claude Code session."
+        title={t("header.commands.title")}
+        description={t("header.commands.description")}
         items={items}
         config={config}
         view={view}

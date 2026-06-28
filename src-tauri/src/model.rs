@@ -262,6 +262,9 @@ pub struct ActiveIdentity {
     pub kind: String,
     pub label: String,
     pub email: Option<String>,
+    /// Organization name from `~/.claude.json` `oauthAccount.organizationName`
+    /// (a non-secret label; never a token/uuid). Drives the "email · org" hero sub.
+    pub org: Option<String>,
     pub tier: Option<String>,
     pub model: Option<String>,
     /// Epoch milliseconds the credential expires at (drives the countdown badge).

@@ -10,6 +10,7 @@
  * status-bar count re-derives from {@link useMcpServers} on every change.
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/ui/Badge";
 import { IconButton } from "@/ui/IconButton";
 import { useToast } from "@/ui/Toast";
@@ -67,6 +68,7 @@ function definitionJson(server: McpServer): string {
 }
 
 export function McpScreen() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const servers = useMcpServers();
   const toggle = useToggleMcpServer();
@@ -224,8 +226,8 @@ export function McpScreen() {
   return (
     <>
       <Collection
-        title="MCP"
-        description="Global Model Context Protocol servers, available across every project."
+        title={t("header.mcp.title")}
+        description={t("header.mcp.description")}
         items={items}
         config={config}
         view={view}

@@ -14,6 +14,7 @@
  * local settings — never a credential.
  */
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/ui/Button";
 import { CodeEditor } from "@/ui/CodeEditor";
 import { ScreenHeader } from "@/app/ScreenHeader";
@@ -297,6 +298,7 @@ function ProjectDetail({ project }: { project: Project }) {
 }
 
 export function ProjectsScreen() {
+  const { t } = useTranslation();
   const projects = useProjects();
   const items = projects.data ?? [];
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -325,8 +327,8 @@ export function ProjectsScreen() {
       }}
     >
       <ScreenHeader
-        title="Projects"
-        description="Per-project configuration for every folder you've run Claude Code in."
+        title={t("header.projects.title")}
+        description={t("header.projects.description")}
       />
 
       <div

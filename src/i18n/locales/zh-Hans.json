@@ -4,7 +4,94 @@
     "on": "开启",
     "off": "关闭",
     "save": "保存",
-    "cancel": "取消"
+    "cancel": "取消",
+    "switch": "切换",
+    "test": "测试",
+    "add": "添加",
+    "delete": "删除",
+    "restore": "恢复",
+    "edit": "编辑",
+    "remove": "移除",
+    "search": "搜索…",
+    "light": "浅色",
+    "dark": "深色",
+    "theme": "主题"
+  },
+  "nav": {
+    "overview": "概览",
+    "configs": "配置",
+    "projects": "项目",
+    "mcp": "MCP",
+    "agents": "智能体",
+    "commands": "命令",
+    "skills": "技能",
+    "memory": "记忆",
+    "usage": "用量",
+    "notifications": "通知",
+    "experimental": "实验性功能",
+    "settings": "设置",
+    "groupCustomize": "自定义",
+    "groupSystem": "系统"
+  },
+  "header": {
+    "overview": {
+      "title": "概览",
+      "description": "你的 Claude Code 控制中心——密钥、服务器与用量一目了然。"
+    },
+    "configs": {
+      "title": "配置",
+      "description": "你的钥匙串——Claude 账户与自定义 API 服务商集中在一处，一键切换。"
+    },
+    "projects": {
+      "title": "项目",
+      "description": "为每个运行过 Claude Code 的文件夹设置独立配置。"
+    },
+    "mcp": {
+      "title": "MCP",
+      "description": "全局模型上下文协议（MCP）服务器，在每个项目中通用。"
+    },
+    "agents": {
+      "title": "智能体",
+      "description": "Claude Code 可委派专门工作的子智能体。"
+    },
+    "commands": {
+      "title": "命令",
+      "description": "在每个 Claude Code 会话中可用的自定义斜杠命令。"
+    },
+    "skills": {
+      "title": "技能",
+      "description": "Claude Code 按需加载的智能体技能——每个都是一个含 SKILL.md 的文件夹。"
+    },
+    "memory": {
+      "title": "记忆"
+    },
+    "usage": {
+      "title": "用量",
+      "description": "所有 Claude Code 会话的令牌消耗。"
+    },
+    "notifications": {
+      "title": "通知",
+      "description": "选择 Claude Code 何时通过系统通知提醒你。"
+    }
+  },
+  "status": {
+    "mcp": "MCP",
+    "skills": "技能",
+    "tokToday": "今日令牌",
+    "synced": "已同步"
+  },
+  "palette": {
+    "placeholder": "搜索命令、账户、屏幕…",
+    "ariaLabel": "搜索命令、账户、屏幕",
+    "openLauncher": "搜索——打开命令面板",
+    "noResults": "无结果",
+    "footer": "↑↓ 导航 · ↵ 选择 · esc 关闭",
+    "groupGoTo": "前往",
+    "groupAccount": "账户",
+    "groupTheme": "主题",
+    "signIn": "使用 Claude 登录",
+    "switchToLight": "切换到浅色主题",
+    "switchToDark": "切换到深色主题"
   },
   "settings": {
     "title": "设置",

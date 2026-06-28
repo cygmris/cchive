@@ -39,6 +39,11 @@ pub struct Rate {
 pub fn pricing() -> Vec<(&'static str, Rate)> {
     vec![
         // Claude — USD / Mtok: input · output · cache-write(5m) · cache-read.
+        // Per current public Claude pricing the cache rates are fixed fractions of the
+        // input rate: 5-minute cache-WRITE ≈ 1.25× input, cache-READ ≈ 0.1× input.
+        // Pricing cache-read at the full input rate is the cache-read over-charge this
+        // table avoids (a 10× blow-up — see `cache_read_priced_far_below_input`). The
+        // resulting `est_cost_usd` is surfaced as an ESTIMATE only, never a bill.
         ("claude-opus-4", Rate { input: 15.0, output: 75.0, cache_write: 18.75, cache_read: 1.50 }),
         ("claude-3-opus", Rate { input: 15.0, output: 75.0, cache_write: 18.75, cache_read: 1.50 }),
         ("claude-opus", Rate { input: 15.0, output: 75.0, cache_write: 18.75, cache_read: 1.50 }),
@@ -389,5 +394,40 @@ mod tests {
         let s = aggregate(tmp.path(), 0, today());
         assert_eq!(s.range_days, 30);
         assert_eq!(s.per_day.len(), 30);
+    }
+
+    /// Pricing sanity: cache-read is charged at its real low fraction of input
+    /// (≈0.1×) and 5-minute cache-write at ≈1.25× input, per current public Claude
+    /// pricing. Guards the regression where cache-read was billed at the full input
+    /// rate — for a 3.6B-token cache-read line that is ~$5.4k correct vs the ~$54k it
+    /// inflates to when mispriced at input (a 10× over-charge).
+    #[test]
+    fn cache_read_priced_far_below_input() {
+        let r = price_of("claude-opus-4-20250514").expect("opus is priced");
+
+        // The documented multipliers hold (cache-read 0.1× input, cache-write 1.25×).
+        assert!((r.cache_read - r.input * 0.10).abs() < 1e-9, "cache-read ≈ 0.1× input");
+        assert!((r.cache_write - r.input * 1.25).abs() < 1e-9, "cache-write ≈ 1.25× input");
+
+        // A known token mix, priced exactly as `aggregate` does (USD).
+        let (input, output, cache_write, cache_read) =
+            (100_000_000u64, 20_000_000u64, 200_000_000u64, 3_600_000_000u64);
+        let cost = |toks: u64, rate: f64| toks as f64 * rate / 1e6;
+
+        let cache_read_cost = cost(cache_read, r.cache_read); // ~$5,400 (correct)
+        let inflated = cost(cache_read, r.input); // ~$54,000 (the old over-charge)
+        let total = cost(input, r.input)
+            + cost(output, r.output)
+            + cost(cache_write, r.cache_write)
+            + cache_read_cost;
+
+        // The same cache-read line: ~$5.4k correct vs ~$54k mispriced at input (10×).
+        assert!((inflated - 54_000.0).abs() < 1.0, "input-priced cache-read ≈ $54k, got {inflated}");
+        assert!((cache_read_cost - 5_400.0).abs() < 1.0, "correct cache-read ≈ $5.4k, got {cache_read_cost}");
+        assert!(cache_read_cost < inflated / 5.0, "cache-read must be priced far below input");
+
+        // The whole estimate stays sane — well under the inflated cache-read line alone.
+        assert!((total - 12_150.0).abs() < 1.0, "sane total ≈ $12.15k, got {total}");
+        assert!(total < inflated, "total must be below the old inflated cache-read figure");
     }
 }

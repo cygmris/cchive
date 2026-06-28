@@ -4,7 +4,94 @@
     "on": "開啟",
     "off": "關閉",
     "save": "儲存",
-    "cancel": "取消"
+    "cancel": "取消",
+    "switch": "切換",
+    "test": "測試",
+    "add": "新增",
+    "delete": "刪除",
+    "restore": "還原",
+    "edit": "編輯",
+    "remove": "移除",
+    "search": "搜尋…",
+    "light": "淺色",
+    "dark": "深色",
+    "theme": "主題"
+  },
+  "nav": {
+    "overview": "總覽",
+    "configs": "設定組",
+    "projects": "專案",
+    "mcp": "MCP",
+    "agents": "智能體",
+    "commands": "指令",
+    "skills": "技能",
+    "memory": "記憶",
+    "usage": "用量",
+    "notifications": "通知",
+    "experimental": "實驗性功能",
+    "settings": "設定",
+    "groupCustomize": "自訂",
+    "groupSystem": "系統"
+  },
+  "header": {
+    "overview": {
+      "title": "總覽",
+      "description": "你的 Claude Code 控制中心——金鑰、伺服器與用量一目了然。"
+    },
+    "configs": {
+      "title": "設定組",
+      "description": "你的鑰匙圈——Claude 帳戶與自訂 API 服務商集中在一處，一鍵切換。"
+    },
+    "projects": {
+      "title": "專案",
+      "description": "為每個執行過 Claude Code 的資料夾設定獨立組態。"
+    },
+    "mcp": {
+      "title": "MCP",
+      "description": "全域模型上下文協定（MCP）伺服器，在每個專案中通用。"
+    },
+    "agents": {
+      "title": "智能體",
+      "description": "Claude Code 可委派專門工作的子智能體。"
+    },
+    "commands": {
+      "title": "指令",
+      "description": "在每個 Claude Code 工作階段中可用的自訂斜線指令。"
+    },
+    "skills": {
+      "title": "技能",
+      "description": "Claude Code 按需載入的智能體技能——每個都是一個含 SKILL.md 的資料夾。"
+    },
+    "memory": {
+      "title": "記憶"
+    },
+    "usage": {
+      "title": "用量",
+      "description": "所有 Claude Code 工作階段的權杖消耗。"
+    },
+    "notifications": {
+      "title": "通知",
+      "description": "選擇 Claude Code 何時透過系統通知提醒你。"
+    }
+  },
+  "status": {
+    "mcp": "MCP",
+    "skills": "技能",
+    "tokToday": "今日權杖",
+    "synced": "已同步"
+  },
+  "palette": {
+    "placeholder": "搜尋指令、帳戶、畫面…",
+    "ariaLabel": "搜尋指令、帳戶、畫面",
+    "openLauncher": "搜尋——開啟命令面板",
+    "noResults": "無結果",
+    "footer": "↑↓ 導覽 · ↵ 選擇 · esc 關閉",
+    "groupGoTo": "前往",
+    "groupAccount": "帳戶",
+    "groupTheme": "主題",
+    "signIn": "使用 Claude 登入",
+    "switchToLight": "切換至淺色主題",
+    "switchToDark": "切換至深色主題"
   },
   "settings": {
     "title": "設定",

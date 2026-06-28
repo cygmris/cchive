@@ -4,7 +4,94 @@
     "on": "Activé",
     "off": "Désactivé",
     "save": "Enregistrer",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "switch": "Changer",
+    "test": "Tester",
+    "add": "Ajouter",
+    "delete": "Supprimer",
+    "restore": "Restaurer",
+    "edit": "Modifier",
+    "remove": "Retirer",
+    "search": "Rechercher…",
+    "light": "Clair",
+    "dark": "Sombre",
+    "theme": "Thème"
+  },
+  "nav": {
+    "overview": "Aperçu",
+    "configs": "Configurations",
+    "projects": "Projets",
+    "mcp": "MCP",
+    "agents": "Agents",
+    "commands": "Commandes",
+    "skills": "Compétences",
+    "memory": "Mémoire",
+    "usage": "Utilisation",
+    "notifications": "Notifications",
+    "experimental": "Expérimental",
+    "settings": "Paramètres",
+    "groupCustomize": "Personnaliser",
+    "groupSystem": "Système"
+  },
+  "header": {
+    "overview": {
+      "title": "Aperçu",
+      "description": "Votre poste de contrôle Claude Code — clés, serveurs et utilisation en un coup d'œil."
+    },
+    "configs": {
+      "title": "Configurations",
+      "description": "Votre trousseau — comptes Claude et fournisseurs d'API personnalisés au même endroit. Changez instantanément."
+    },
+    "projects": {
+      "title": "Projets",
+      "description": "Configuration propre à chaque dossier où vous avez exécuté Claude Code."
+    },
+    "mcp": {
+      "title": "MCP",
+      "description": "Serveurs Model Context Protocol globaux, disponibles dans tous les projets."
+    },
+    "agents": {
+      "title": "Agents",
+      "description": "Sous-agents auxquels Claude Code peut déléguer des tâches spécialisées."
+    },
+    "commands": {
+      "title": "Commandes",
+      "description": "Commandes slash personnalisées disponibles dans chaque session Claude Code."
+    },
+    "skills": {
+      "title": "Compétences",
+      "description": "Compétences d'agent chargées à la demande par Claude Code — chacune un dossier avec un SKILL.md."
+    },
+    "memory": {
+      "title": "Mémoire"
+    },
+    "usage": {
+      "title": "Utilisation",
+      "description": "Consommation de jetons sur toutes vos sessions Claude Code."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choisissez quand Claude Code doit vous prévenir par une notification système."
+    }
+  },
+  "status": {
+    "mcp": "MCP",
+    "skills": "Compétences",
+    "tokToday": "jetons aujourd'hui",
+    "synced": "Synchronisé"
+  },
+  "palette": {
+    "placeholder": "Rechercher commandes, comptes, écrans…",
+    "ariaLabel": "Rechercher commandes, comptes, écrans",
+    "openLauncher": "Rechercher — ouvrir la palette de commandes",
+    "noResults": "Aucun résultat",
+    "footer": "↑↓ naviguer · ↵ sélectionner · esc fermer",
+    "groupGoTo": "Aller à",
+    "groupAccount": "Compte",
+    "groupTheme": "Thème",
+    "signIn": "Se connecter avec Claude",
+    "switchToLight": "Passer au thème clair",
+    "switchToDark": "Passer au thème sombre"
   },
   "settings": {
     "title": "Paramètres",

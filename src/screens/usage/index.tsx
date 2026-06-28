@@ -12,6 +12,7 @@
  * token-only — the dots use the semantic tokens, everything else the accent.
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ScreenHeader } from "@/app/ScreenHeader";
 import { Card } from "@/ui/Card";
@@ -86,6 +87,7 @@ function CardHeading({ title, subtitle }: { title: string; subtitle?: string }) 
 }
 
 export function UsageScreen() {
+  const { t } = useTranslation();
   const [range, setRange] = useState<Range>("30");
   const rangeDays = range === "30" ? 30 : 7;
   const { data, isPending, isFetching, refetch } = useUsage(rangeDays);
@@ -110,8 +112,8 @@ export function UsageScreen() {
         }}
       >
         <ScreenHeader
-          title="Usage"
-          description="Token consumption across all your Claude Code sessions."
+          title={t("header.usage.title")}
+          description={t("header.usage.description")}
         />
         <div
           style={{

@@ -6,13 +6,14 @@
  * (`editor`, absent from the nav) is open. Clicking a nav item navigates.
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar } from "./Sidebar";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/ui/Toast";
 import { useShellStore } from "@/lib/store";
+import { setLanguage } from "@/i18n";
 
 beforeEach(() => {
   useShellStore.setState({
@@ -65,5 +66,26 @@ describe("Sidebar", () => {
     await user.click(navItem("Projects"));
     expect(useShellStore.getState().activeScreen).toBe("projects");
     expect(navItem("Projects")).toHaveAttribute("aria-current", "page");
+  });
+
+  it("localizes the nav labels when the language changes", async () => {
+    renderSidebar();
+    try {
+      expect(navItem("Overview")).toBeInTheDocument();
+
+      await act(async () => {
+        await setLanguage("zh-Hans");
+      });
+
+      expect(
+        await screen.findByRole("button", { name: "概览" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Overview" })).toBeNull();
+    } finally {
+      // Restore the baseline so the other Sidebar tests still see English labels.
+      await act(async () => {
+        await setLanguage("en");
+      });
+    }
   });
 });

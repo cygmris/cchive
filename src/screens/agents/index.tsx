@@ -9,6 +9,7 @@
  * {@link useResourceEditor} (MarkdownEditor + the resource mutations).
  */
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Badge, ModelBadge, type ModelName } from "@/ui/Badge";
 import { IconButton } from "@/ui/IconButton";
@@ -39,6 +40,7 @@ function agentMarkdown(agent: Resource): string {
 }
 
 export function AgentsScreen() {
+  const { t } = useTranslation();
   const agents = useResources("agent");
   const items = agents.data ?? [];
 
@@ -131,8 +133,8 @@ export function AgentsScreen() {
   return (
     <>
       <Collection
-        title="Agents"
-        description="Sub-agents Claude Code can delegate specialized work to."
+        title={t("header.agents.title")}
+        description={t("header.agents.description")}
         items={items}
         config={config}
         view={view}

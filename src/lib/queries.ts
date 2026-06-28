@@ -168,6 +168,7 @@ const DEMO_ACTIVE_IDENTITY: ActiveIdentity = {
   kind: "account",
   label: "DEMO · Personal",
   email: "demo@example.com",
+  org: "DEMO · Acme Org",
   tier: "Max 5×",
   model: "claude-sonnet-4-5",
   expiresAt: null,

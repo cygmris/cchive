@@ -23,6 +23,7 @@ import { ToastProvider } from "@/ui/Toast";
 import { Window } from "@/app/Window";
 import { CommandPalette } from "@/app/CommandPalette";
 import { useGlobalShortcuts } from "@/app/useGlobalShortcuts";
+import { useGlobalData } from "@/app/useGlobalData";
 import { queryKeys, useActiveIdentity } from "@/lib/queries";
 import { AddAccountModal } from "@/screens/configurations/AddAccountModal";
 import { Gallery } from "@/screens/_gallery/Gallery";
@@ -87,6 +88,10 @@ function Shell() {
   // Hydrate the store's active-identity cache so the Sidebar card + StatusBar
   // reflect the live session (demo seed outside Tauri).
   useActiveIdentity();
+  // Prime the app-wide counts (MCP / Skills / tokens-today) once at the root so
+  // the StatusBar + Overview tiles populate from the shared cache regardless of
+  // the entry screen. Dedups with the screens' own hooks (no refetch storm).
+  useGlobalData();
   // Mirror a tray quick-switch back into the in-app query cache.
   useTraySwitchSync();
   return (

@@ -11,12 +11,13 @@
 import {
   Bar,
   BarChart,
-  Cell,
+  Rectangle,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import type { BarShapeProps } from "recharts";
 import type { DayPoint } from "@/lib/types";
 
 const MONTHS = [
@@ -49,6 +50,9 @@ function fmtTokens(n: number): string {
 
 const ACCENT_SOLID = "var(--accent)";
 const ACCENT_SOFT = "color-mix(in srgb, var(--accent) 62%, transparent)";
+
+/** Rounded top corners; kept on the custom bar shape (replaces `Bar.radius`). */
+const BAR_RADIUS: [number, number, number, number] = [3, 3, 0, 0];
 
 interface OutputTooltipProps {
   active?: boolean;
@@ -123,14 +127,19 @@ export function OutputBars({ data, height = 230, className }: OutputBarsProps) {
             content={<OutputTooltip />}
             cursor={{ fill: "var(--hover)" }}
           />
-          <Bar dataKey="output" radius={[3, 3, 0, 0]} maxBarSize={28}>
-            {data.map((point, i) => (
-              <Cell
-                key={point.date}
-                fill={i === lastIndex ? ACCENT_SOLID : ACCENT_SOFT}
+          {/* Per-bar color via the current `shape` API (Recharts deprecated
+              `<Cell>`): today's bar is solid accent, the rest the soft accent. */}
+          <Bar
+            dataKey="output"
+            maxBarSize={28}
+            shape={(props: BarShapeProps) => (
+              <Rectangle
+                {...props}
+                radius={BAR_RADIUS}
+                fill={props.index === lastIndex ? ACCENT_SOLID : ACCENT_SOFT}
               />
-            ))}
-          </Bar>
+            )}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

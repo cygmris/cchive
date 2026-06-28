@@ -7,6 +7,7 @@
  * values update reactively when the active config or counters change. Mono 11px
  * throughout (machine text), token-only styling.
  */
+import { useTranslation } from "react-i18next";
 import { selectStatus, useShellStore } from "@/lib/store";
 
 /** A 13px vertical hairline separating status groups. */
@@ -25,6 +26,7 @@ function Divider() {
 }
 
 export function StatusBar() {
+  const { t } = useTranslation();
   const status = selectStatus(useShellStore());
 
   return (
@@ -76,12 +78,12 @@ export function StatusBar() {
       <span style={{ flex: 1 }} />
 
       <span>
-        MCP&nbsp;
+        {t("status.mcp")}&nbsp;
         <span style={{ color: "var(--text-2)" }}>{status.mcpEnabledCount}</span>
       </span>
       <Divider />
       <span>
-        Skills&nbsp;
+        {t("status.skills")}&nbsp;
         <span style={{ color: "var(--text-2)" }}>
           {status.skillsEnabledCount}
         </span>
@@ -89,10 +91,10 @@ export function StatusBar() {
       <Divider />
       <span>
         <span style={{ color: "var(--text-2)" }}>{status.tokensToday}</span>
-        &nbsp;tok today
+        &nbsp;{t("status.tokToday")}
       </span>
       <Divider />
-      <span style={{ color: "var(--success)" }}>Synced</span>
+      <span style={{ color: "var(--success)" }}>{t("status.synced")}</span>
     </div>
   );
 }

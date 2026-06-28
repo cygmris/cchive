@@ -4,7 +4,94 @@
     "on": "オン",
     "off": "オフ",
     "save": "保存",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "switch": "切り替え",
+    "test": "テスト",
+    "add": "追加",
+    "delete": "削除",
+    "restore": "復元",
+    "edit": "編集",
+    "remove": "削除",
+    "search": "検索…",
+    "light": "ライト",
+    "dark": "ダーク",
+    "theme": "テーマ"
+  },
+  "nav": {
+    "overview": "概要",
+    "configs": "構成",
+    "projects": "プロジェクト",
+    "mcp": "MCP",
+    "agents": "エージェント",
+    "commands": "コマンド",
+    "skills": "スキル",
+    "memory": "メモリ",
+    "usage": "使用状況",
+    "notifications": "通知",
+    "experimental": "実験的機能",
+    "settings": "設定",
+    "groupCustomize": "カスタマイズ",
+    "groupSystem": "システム"
+  },
+  "header": {
+    "overview": {
+      "title": "概要",
+      "description": "Claude Code のコントロールルーム。キー、サーバー、使用状況をひと目で。"
+    },
+    "configs": {
+      "title": "構成",
+      "description": "あなたのキーリング。Claude アカウントとカスタム API プロバイダーを一か所で、すぐに切り替え。"
+    },
+    "projects": {
+      "title": "プロジェクト",
+      "description": "Claude Code を実行したフォルダーごとの構成。"
+    },
+    "mcp": {
+      "title": "MCP",
+      "description": "すべてのプロジェクトで利用できるグローバルな Model Context Protocol サーバー。"
+    },
+    "agents": {
+      "title": "エージェント",
+      "description": "Claude Code が専門的な作業を委任できるサブエージェント。"
+    },
+    "commands": {
+      "title": "コマンド",
+      "description": "すべての Claude Code セッションで使えるカスタムスラッシュコマンド。"
+    },
+    "skills": {
+      "title": "スキル",
+      "description": "Claude Code が必要に応じて読み込むエージェントスキル。各スキルは SKILL.md を含むフォルダーです。"
+    },
+    "memory": {
+      "title": "メモリ"
+    },
+    "usage": {
+      "title": "使用状況",
+      "description": "すべての Claude Code セッションのトークン消費量。"
+    },
+    "notifications": {
+      "title": "通知",
+      "description": "Claude Code がシステム通知で知らせるタイミングを選択します。"
+    }
+  },
+  "status": {
+    "mcp": "MCP",
+    "skills": "スキル",
+    "tokToday": "本日のトークン",
+    "synced": "同期済み"
+  },
+  "palette": {
+    "placeholder": "コマンド、アカウント、画面を検索…",
+    "ariaLabel": "コマンド、アカウント、画面を検索",
+    "openLauncher": "検索 — コマンドパレットを開く",
+    "noResults": "結果なし",
+    "footer": "↑↓ 移動 · ↵ 選択 · esc 閉じる",
+    "groupGoTo": "移動",
+    "groupAccount": "アカウント",
+    "groupTheme": "テーマ",
+    "signIn": "Claude でサインイン",
+    "switchToLight": "ライトテーマに切り替え",
+    "switchToDark": "ダークテーマに切り替え"
   },
   "settings": {
     "title": "設定",

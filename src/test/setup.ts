@@ -5,6 +5,9 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
+// Initialize i18next once for every test so `t()` resolves to the English
+// baseline (the app bootstraps it in main.tsx; tests rely on this global init).
+import "@/i18n";
 
 afterEach(() => {
   cleanup();

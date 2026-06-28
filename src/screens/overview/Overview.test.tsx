@@ -168,6 +168,18 @@ describe("OverviewScreen hero", () => {
       screen.getByRole("button", { name: "Edit config" }),
     ).toBeInTheDocument();
   });
+
+  it("shows the org alongside the email in the hero sub when present", async () => {
+    (ipc.getActiveIdentity as Mock).mockResolvedValue({
+      ...ACCOUNT_IDENTITY,
+      org: "Northwind Labs",
+    });
+    renderScreen();
+
+    expect(
+      await screen.findByText("alex@gmail.com · Northwind Labs"),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("OverviewScreen stat tiles", () => {
