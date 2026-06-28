@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capability for the Clavis main window. Narrow by design: core + non-secret store + the window controls the frameless chrome drives (minimize/maximize/unmaximize/close/drag/is-maximized).",
+  "description": "Default capability for the Clavis main window. Narrow by design: core + non-secret store + the window controls the frameless chrome drives (minimize/maximize/unmaximize/close/drag/is-maximized) + opening the Report-an-issue link (github.com over https only).",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -14,6 +14,10 @@
     "core:window:allow-start-dragging",
     "core:window:allow-is-maximized",
     "store:default",
-    "notification:default"
+    "notification:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/*" }]
+    }
   ]
 }

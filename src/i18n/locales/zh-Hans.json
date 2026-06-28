@@ -1,0 +1,66 @@
+{
+  "common": {
+    "appName": "Clavis",
+    "on": "开启",
+    "off": "关闭",
+    "save": "保存",
+    "cancel": "取消"
+  },
+  "settings": {
+    "title": "设置",
+    "description": "Clavis 应用程序偏好设置。",
+    "language": {
+      "label": "语言",
+      "description": "选择 Clavis 的显示语言。"
+    },
+    "appearance": {
+      "label": "外观",
+      "description": "在浅色和深色主题之间切换。",
+      "light": "浅色",
+      "dark": "深色",
+      "accent": {
+        "label": "强调色",
+        "description": "应用中使用的强调色。",
+        "clay": "陶土色",
+        "blue": "蓝色",
+        "green": "绿色",
+        "violet": "紫罗兰色",
+        "ember": "余烬色"
+      },
+      "density": {
+        "label": "密度",
+        "description": "行和卡片占用的空间大小。",
+        "comfortable": "宽松",
+        "compact": "紧凑"
+      }
+    },
+    "version": {
+      "label": "版本",
+      "value": "Clavis v{{version}}",
+      "upToDate": "已是最新",
+      "notConfigured": "尚未配置更新",
+      "checkForUpdates": "检查更新"
+    },
+    "support": {
+      "title": "联系与支持",
+      "description": "发现问题或有反馈？在 GitHub 上告诉我们。",
+      "reportIssue": "报告问题"
+    }
+  },
+  "experimental": {
+    "title": "实验性功能",
+    "description": "可能在未来版本中更改或移除的早期功能。",
+    "warning": "这些设置尚不稳定。仅在你了解其作用时启用。",
+    "agentTeams": {
+      "title": "智能体团队",
+      "description": "协调多个 Claude Code 实例作为一个团队协作完成同一项任务。"
+    },
+    "teammateMode": {
+      "label": "队友显示模式",
+      "description": "团队运行时队友的显示方式。",
+      "auto": "自动",
+      "inProcess": "进程内",
+      "splitPanes": "分屏（tmux / iTerm2）"
+    }
+  }
+}

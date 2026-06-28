@@ -31,6 +31,8 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         // Desktop notifications for the Notifications screen's Test action.
         .plugin(tauri_plugin_notification::init())
+        // Opens the "Report an issue" link (Settings) in the default browser.
+        .plugin(tauri_plugin_opener::init())
         // The narrow, typed command surface. Every return carries labels +
         // non-secret metadata only; tokens never cross IPC to the webview.
         .invoke_handler(tauri::generate_handler![

@@ -18,6 +18,8 @@ tauri = { version = "2.10", features = ["tray-icon", "image-png"] }
 tauri-plugin-store = "2.4.3"
 # Desktop notifications for the Notifications screen's Test action.
 tauri-plugin-notification = "2.3.3"
+# Opens the "Report an issue" link in the user's default browser (Settings screen).
+tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 # preserve_order keeps unknown keys in their original position when we re-serialize
 # Claude's JSON files (G11: never drop future keys we don't model).

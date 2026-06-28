@@ -129,3 +129,191 @@ export async function setPref<K extends keyof ThemePrefs>(
     }
   }
 }
+
+/* ------------------------------------------------------------------------- *
+ * UI language slice.
+ *
+ * A single language tag (e.g. "en", "zh-Hans", "fr"). Stored alongside the
+ * theme prefs in the same backends, but under its own key. The localStorage
+ * copy is a plain string (not JSON) so i18next-browser-languagedetector can read
+ * it directly via `lookupLocalStorage`. Defaults to "en"; never throws.
+ * ------------------------------------------------------------------------- */
+
+const LANG_STORE_KEY = "language";
+/** Shared with the i18next language detector (`lookupLocalStorage`). */
+export const LANGUAGE_LS_KEY = "clavis.language";
+const DEFAULT_LANGUAGE = "en";
+
+/** Last-known language, the final fallback when no backend is readable. */
+let memoryLanguage: string = DEFAULT_LANGUAGE;
+
+function sanitizeLanguage(raw: unknown): string {
+  return typeof raw === "string" && raw.length > 0 ? raw : DEFAULT_LANGUAGE;
+}
+
+/** Read the persisted UI language, falling back to "en". Never throws. */
+export async function getLanguagePref(): Promise<string> {
+  const store = await getStore();
+  if (store) {
+    try {
+      const raw = await store.get<string>(LANG_STORE_KEY);
+      if (raw != null) {
+        memoryLanguage = sanitizeLanguage(raw);
+        return memoryLanguage;
+      }
+    } catch {
+      /* fall through to localStorage / memory */
+    }
+  }
+
+  try {
+    if (typeof localStorage !== "undefined") {
+      const raw = localStorage.getItem(LANGUAGE_LS_KEY);
+      if (raw) {
+        memoryLanguage = sanitizeLanguage(raw);
+        return memoryLanguage;
+      }
+    }
+  } catch {
+    /* ignore — fall through to memory */
+  }
+
+  return memoryLanguage;
+}
+
+/** Persist the UI language across all available backends. Never throws. */
+export async function setLanguagePref(language: string): Promise<void> {
+  memoryLanguage = sanitizeLanguage(language);
+
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(LANGUAGE_LS_KEY, memoryLanguage);
+    }
+  } catch {
+    /* ignore — memory copy still holds the value */
+  }
+
+  const store = await getStore();
+  if (store) {
+    try {
+      await store.set(LANG_STORE_KEY, memoryLanguage);
+      await store.save();
+    } catch {
+      /* ignore — localStorage / memory already updated */
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------- *
+ * Experimental flags slice.
+ *
+ * Clavis-local toggles for unstable features. These are app preferences only —
+ * NO Claude Code files are touched. Stored alongside the theme + language prefs
+ * in the same backends, under its own key. Corrupt or partial data degrades to
+ * the defaults (everything off, mode "auto"); never throws.
+ * ------------------------------------------------------------------------- */
+
+/** How teammates are presented while an Agent Teams run is in progress. */
+export type TeammateMode = "auto" | "inProcess" | "splitPanes";
+
+export interface ExperimentalPrefs {
+  /** Coordinate multiple Claude Code instances as a team. @default false */
+  agentTeams: boolean;
+  /** Teammate display mode (only meaningful while `agentTeams` is on). */
+  teammateMode: TeammateMode;
+}
+
+export const DEFAULT_EXPERIMENTAL_PREFS: ExperimentalPrefs = {
+  agentTeams: false,
+  teammateMode: "auto",
+};
+
+const EXPERIMENTAL_STORE_KEY = "experimental";
+const EXPERIMENTAL_LS_KEY = "clavis.experimental";
+const TEAMMATE_MODES: readonly TeammateMode[] = [
+  "auto",
+  "inProcess",
+  "splitPanes",
+];
+
+/** Last-known experimental prefs, the final fallback when no backend is readable. */
+let memoryExperimental: ExperimentalPrefs = { ...DEFAULT_EXPERIMENTAL_PREFS };
+
+/** Coerce arbitrary stored data into a valid `ExperimentalPrefs`, filling defaults. */
+function sanitizeExperimental(raw: unknown): ExperimentalPrefs {
+  const v = (raw && typeof raw === "object"
+    ? raw
+    : {}) as Partial<ExperimentalPrefs>;
+  return {
+    agentTeams: v.agentTeams === true,
+    teammateMode: TEAMMATE_MODES.includes(v.teammateMode as TeammateMode)
+      ? (v.teammateMode as TeammateMode)
+      : DEFAULT_EXPERIMENTAL_PREFS.teammateMode,
+  };
+}
+
+function readExperimentalLocalStorage(): ExperimentalPrefs | null {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(EXPERIMENTAL_LS_KEY);
+    return raw ? sanitizeExperimental(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeExperimentalLocalStorage(prefs: ExperimentalPrefs): void {
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(EXPERIMENTAL_LS_KEY, JSON.stringify(prefs));
+  } catch {
+    /* ignore — memory copy still holds the value */
+  }
+}
+
+/** Read the persisted experimental flags, falling back to defaults. Never throws. */
+export async function getExperimentalPrefs(): Promise<ExperimentalPrefs> {
+  const store = await getStore();
+  if (store) {
+    try {
+      const raw = await store.get<ExperimentalPrefs>(EXPERIMENTAL_STORE_KEY);
+      if (raw != null) {
+        memoryExperimental = sanitizeExperimental(raw);
+        return memoryExperimental;
+      }
+    } catch {
+      /* fall through to localStorage / memory */
+    }
+  }
+
+  const ls = readExperimentalLocalStorage();
+  if (ls) {
+    memoryExperimental = ls;
+    return ls;
+  }
+
+  return { ...memoryExperimental };
+}
+
+/** Persist a single experimental flag across all available backends. Never throws. */
+export async function setExperimentalPref<K extends keyof ExperimentalPrefs>(
+  key: K,
+  value: ExperimentalPrefs[K],
+): Promise<void> {
+  const next: ExperimentalPrefs = {
+    ...(await getExperimentalPrefs()),
+    [key]: value,
+  };
+  memoryExperimental = next;
+  writeExperimentalLocalStorage(next);
+
+  const store = await getStore();
+  if (store) {
+    try {
+      await store.set(EXPERIMENTAL_STORE_KEY, next);
+      await store.save();
+    } catch {
+      /* ignore — localStorage / memory already updated */
+    }
+  }
+}

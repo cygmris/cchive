@@ -1,0 +1,66 @@
+{
+  "common": {
+    "appName": "Clavis",
+    "on": "Activé",
+    "off": "Désactivé",
+    "save": "Enregistrer",
+    "cancel": "Annuler"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Préférences de l'application Clavis.",
+    "language": {
+      "label": "Langue",
+      "description": "Choisissez la langue d'affichage de Clavis."
+    },
+    "appearance": {
+      "label": "Apparence",
+      "description": "Basculez entre les thèmes clair et sombre.",
+      "light": "Clair",
+      "dark": "Sombre",
+      "accent": {
+        "label": "Couleur d'accent",
+        "description": "La couleur d'accent utilisée dans toute l'application.",
+        "clay": "Argile",
+        "blue": "Bleu",
+        "green": "Vert",
+        "violet": "Violet",
+        "ember": "Braise"
+      },
+      "density": {
+        "label": "Densité",
+        "description": "L'espace occupé par les lignes et les cartes.",
+        "comfortable": "Confortable",
+        "compact": "Compact"
+      }
+    },
+    "version": {
+      "label": "Version",
+      "value": "Clavis v{{version}}",
+      "upToDate": "À jour",
+      "notConfigured": "Mises à jour non configurées",
+      "checkForUpdates": "Rechercher des mises à jour"
+    },
+    "support": {
+      "title": "Contact et assistance",
+      "description": "Un bug ou un commentaire ? Dites-le-nous sur GitHub.",
+      "reportIssue": "Signaler un problème"
+    }
+  },
+  "experimental": {
+    "title": "Expérimental",
+    "description": "Fonctionnalités en avant-première susceptibles d'évoluer ou de disparaître dans de futures versions.",
+    "warning": "Ces paramètres sont instables. Ne les activez que si vous savez ce que vous faites.",
+    "agentTeams": {
+      "title": "Équipes d'agents",
+      "description": "Coordonnez plusieurs instances de Claude Code travaillant ensemble en équipe sur une même tâche."
+    },
+    "teammateMode": {
+      "label": "Mode d'affichage des coéquipiers",
+      "description": "Comment les coéquipiers sont présentés pendant l'exécution d'une équipe.",
+      "auto": "Auto",
+      "inProcess": "Dans le processus",
+      "splitPanes": "Volets divisés (tmux / iTerm2)"
+    }
+  }
+}

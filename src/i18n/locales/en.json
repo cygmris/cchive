@@ -1,0 +1,66 @@
+{
+  "common": {
+    "appName": "Clavis",
+    "on": "On",
+    "off": "Off",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Clavis application preferences.",
+    "language": {
+      "label": "Language",
+      "description": "Choose the language Clavis is displayed in."
+    },
+    "appearance": {
+      "label": "Appearance",
+      "description": "Switch between light and dark themes.",
+      "light": "Light",
+      "dark": "Dark",
+      "accent": {
+        "label": "Accent",
+        "description": "The accent color used across the app.",
+        "clay": "Clay",
+        "blue": "Blue",
+        "green": "Green",
+        "violet": "Violet",
+        "ember": "Ember"
+      },
+      "density": {
+        "label": "Density",
+        "description": "How much space rows and cards take up.",
+        "comfortable": "Comfortable",
+        "compact": "Compact"
+      }
+    },
+    "version": {
+      "label": "Version",
+      "value": "Clavis v{{version}}",
+      "upToDate": "Up to date",
+      "notConfigured": "Updates not configured yet",
+      "checkForUpdates": "Check for updates"
+    },
+    "support": {
+      "title": "Contact & support",
+      "description": "Found a bug or have feedback? Let us know on GitHub.",
+      "reportIssue": "Report an issue"
+    }
+  },
+  "experimental": {
+    "title": "Experimental",
+    "description": "Early features that may change or disappear in future versions.",
+    "warning": "These settings are unstable. Enable them only if you know what you're doing.",
+    "agentTeams": {
+      "title": "Agent Teams",
+      "description": "Coordinate multiple Claude Code instances working together as a team on a single task."
+    },
+    "teammateMode": {
+      "label": "Teammate display mode",
+      "description": "How teammates are presented while a team is running.",
+      "auto": "Auto",
+      "inProcess": "In-process",
+      "splitPanes": "Split panes (tmux / iTerm2)"
+    }
+  }
+}

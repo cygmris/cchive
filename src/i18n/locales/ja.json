@@ -1,0 +1,66 @@
+{
+  "common": {
+    "appName": "Clavis",
+    "on": "オン",
+    "off": "オフ",
+    "save": "保存",
+    "cancel": "キャンセル"
+  },
+  "settings": {
+    "title": "設定",
+    "description": "Clavis アプリの環境設定。",
+    "language": {
+      "label": "言語",
+      "description": "Clavis を表示する言語を選択します。"
+    },
+    "appearance": {
+      "label": "外観",
+      "description": "ライトテーマとダークテーマを切り替えます。",
+      "light": "ライト",
+      "dark": "ダーク",
+      "accent": {
+        "label": "アクセント",
+        "description": "アプリ全体で使用されるアクセントカラー。",
+        "clay": "クレイ",
+        "blue": "ブルー",
+        "green": "グリーン",
+        "violet": "バイオレット",
+        "ember": "エンバー"
+      },
+      "density": {
+        "label": "表示密度",
+        "description": "行やカードが占めるスペースの大きさ。",
+        "comfortable": "標準",
+        "compact": "コンパクト"
+      }
+    },
+    "version": {
+      "label": "バージョン",
+      "value": "Clavis v{{version}}",
+      "upToDate": "最新です",
+      "notConfigured": "アップデートは未設定です",
+      "checkForUpdates": "アップデートを確認"
+    },
+    "support": {
+      "title": "お問い合わせ・サポート",
+      "description": "不具合の報告やご意見は GitHub までお知らせください。",
+      "reportIssue": "問題を報告"
+    }
+  },
+  "experimental": {
+    "title": "実験的機能",
+    "description": "今後のバージョンで変更または削除される可能性がある先行機能。",
+    "warning": "これらの設定は不安定です。仕組みを理解している場合のみ有効にしてください。",
+    "agentTeams": {
+      "title": "エージェントチーム",
+      "description": "複数の Claude Code インスタンスをチームとして連携させ、1 つのタスクに取り組ませます。"
+    },
+    "teammateMode": {
+      "label": "チームメイトの表示モード",
+      "description": "チームの実行中にチームメイトを表示する方法。",
+      "auto": "自動",
+      "inProcess": "プロセス内",
+      "splitPanes": "分割ペイン（tmux / iTerm2）"
+    }
+  }
+}
