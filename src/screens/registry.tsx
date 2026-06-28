@@ -2,10 +2,8 @@
  * Screen → component map.
  *
  * Every `Screen` (including `editor`) resolves to a component here, so the
- * Window shell only ever does `getScreen(activeScreen)` — wiring a real screen
- * later means swapping one import, never touching the shell. The screens are
- * S2 placeholders (shared header + "coming soon" body); later specs fill in the
- * bodies without changing this map.
+ * Window shell only ever does `getScreen(activeScreen)` — never touching the
+ * shell to add or change a screen. Every entry below is a real implementation.
  */
 import type { ComponentType } from "react";
 import type { Screen } from "@/lib/shell-types";

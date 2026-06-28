@@ -5,8 +5,7 @@
  * the top of the scrolling content area (`--app-bg` so rows scroll under it).
  * Sentence case throughout (only eyebrows are uppercase, and there are none
  * here). An optional back link sits above the title — the Config Editor uses it
- * to return to Configurations. This is the reusable header every real screen
- * mounts later; the placeholder screens render it now via `ScreenPlaceholder`.
+ * to return to Configurations. This is the reusable header every screen mounts.
  */
 import { ChevronLeft } from "@/ui/icons";
 
@@ -88,43 +87,5 @@ export function ScreenHeader({
         </div>
       )}
     </header>
-  );
-}
-
-/**
- * Placeholder screen scaffold: the real {@link ScreenHeader} over a subtle
- * "{label} — coming soon" body. Each S2 screen is a thin wrapper around this;
- * real content replaces the body in later specs.
- */
-export interface ScreenPlaceholderProps extends ScreenHeaderProps {
-  /** Subject of the "{label} — coming soon" placeholder body. */
-  label: string;
-}
-
-/** Full-height column: sticky header + a muted "coming soon" body. */
-export function ScreenPlaceholder({ label, ...header }: ScreenPlaceholderProps) {
-  return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "auto",
-      }}
-    >
-      <ScreenHeader {...header} />
-      <div
-        style={{
-          flex: 1,
-          display: "grid",
-          placeItems: "center",
-          color: "var(--text-3)",
-          fontFamily: "var(--font-sans)",
-          fontSize: "var(--fs-body)",
-        }}
-      >
-        {`${label} — coming soon`}
-      </div>
-    </div>
   );
 }

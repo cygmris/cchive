@@ -76,6 +76,34 @@ pnpm build
 pnpm tauri build
 ```
 
+Locally, `pnpm tauri build` produces installers for the host OS only. Linux is
+the verified target (`.deb` + `.AppImage`). macOS (`.dmg`) and Windows (`.nsis`)
+are built on their native runners by the **Release** CI workflow
+(`.github/workflows/release.yml`), which runs the bundle matrix on a `v*` tag and
+attaches the installers to a draft GitHub Release. The **CI** workflow
+(`.github/workflows/ci.yml`) runs the type-check, both test suites, and the
+builds on every push.
+
+## Code signing & notarization
+
+The installers build **unsigned** by default — fine for local use and testing,
+but unsigned apps trip macOS Gatekeeper and Windows SmartScreen, so signing is
+required for public distribution. Like the updater, signing is left as a
+release-time step so each maintainer controls their own identity; **no
+certificates or keys are committed**. To sign:
+
+- **macOS** — add a Developer ID Application certificate and notarization
+  credentials as repo secrets (`APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
+  `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`). The
+  Release workflow already wires these into `tauri-action`; with them set the
+  `.dmg`/`.app` is signed and notarized (stapled) automatically.
+- **Windows** — sign the `.nsis`/`.msi` with an Authenticode certificate (an EV
+  cert avoids SmartScreen reputation warnings). Configure `tauri.conf.json`
+  `bundle.windows.certificateThumbprint` (or a signing-command) and provide the
+  cert to the runner.
+- **Linux** — `.deb`/`.AppImage` are conventionally distributed unsigned;
+  optionally GPG-sign the repository metadata.
+
 ## Test & verify
 
 ```bash

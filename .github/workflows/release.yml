@@ -1,0 +1,78 @@
+name: Release
+
+# Builds the cross-platform installers on a version tag (e.g. v1.0.0) and
+# attaches them to a draft GitHub Release. This is the workflow that turns the
+# bundle config in tauri.conf.json into actually-built mac .dmg / Windows .nsis /
+# Linux .deb + .AppImage on real runners.
+#
+# Code signing is opt-in via repo secrets (see docs/architecture.md and the
+# README "Code signing & notarization" section). With no secrets set, the
+# installers build UNSIGNED (fine for local/testing; Gatekeeper/SmartScreen will
+# warn end users). No keys are committed to the repo.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-latest
+            args: ""
+          - platform: macos-latest # Apple Silicon
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-13 # Intel
+            args: "--target x86_64-apple-darwin"
+          - platform: windows-latest
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri Linux dependencies
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev patchelf libssl-dev
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # --- macOS signing + notarization (set these secrets to sign) ---
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # --- Tauri updater signing (set to emit update signatures) ---
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Clavis ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
