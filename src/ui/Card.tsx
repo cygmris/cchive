@@ -1,5 +1,5 @@
 /**
- * Clavis Card — the base surface for everything in the content area.
+ * cchive Card — the base surface for everything in the content area.
  *
  * A hairline `--border` on `--surface` with a near-flat warm `--shadow-card`;
  * the border does the visual work. Variants:

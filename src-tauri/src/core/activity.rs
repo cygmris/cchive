@@ -3,7 +3,7 @@
 //! Entries are labels ONLY — `{ kind, message, timestamp }` where `message` is a
 //! human label (e.g. "Switched account to Work") and `timestamp` is epoch
 //! milliseconds. NO secret ever lands here: callers pass display labels, never a
-//! token. The log lives at `<clavis-config>/activity.json` as a JSON array of the
+//! token. The log lives at `<cchive-config>/activity.json` as a JSON array of the
 //! newest `CAP` entries (oldest→newest on disk); reads return newest-first. A
 //! missing or corrupt file is treated as empty (this module never panics on bad
 //! input).
@@ -117,7 +117,7 @@ mod tests {
             .unwrap()
             .flatten()
             .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.contains(".clavis.tmp."))
+            .filter(|n| n.contains(".cchive.tmp."))
             .collect();
         assert!(leftovers.is_empty(), "atomic write leaked temp: {leftovers:?}");
         assert!(activity_path(dir.path()).exists(), "log file persisted");

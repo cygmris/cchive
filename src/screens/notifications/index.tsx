@@ -3,7 +3,7 @@
  *
  * One Card of three rows (design §12); each row = label + description + a "Test"
  * Button + a Switch, bound to {@link useNotifications}. Toggling a row installs or
- * removes a Clavis-marked desktop-notification hook in `~/.claude/settings.json`
+ * removes a cchive-marked desktop-notification hook in `~/.claude/settings.json`
  * via {@link useSetNotification} (surgical: the user's own hooks + every other key
  * are preserved). "Test" fires a live desktop notification through the Tauri
  * notification plugin ({@link testNotification}, requesting permission first).
@@ -189,7 +189,7 @@ export function NotificationsScreen() {
             color: "var(--text-3)",
           }}
         >
-          Each toggle installs or removes a small Clavis-marked command hook in{" "}
+          Each toggle installs or removes a small cchive-marked command hook in{" "}
           <code style={{ fontFamily: "var(--font-mono)" }}>
             ~/.claude/settings.json
           </code>

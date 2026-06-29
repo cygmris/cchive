@@ -37,7 +37,7 @@ pub struct ProviderMeta {
 }
 
 /// The `env`-block half of a provider config. Maps 1:1 to the `ANTHROPIC_*` /
-/// proxy / telemetry env vars Clavis writes into `settings.json` on apply.
+/// proxy / telemetry env vars cchive writes into `settings.json` on apply.
 ///
 /// SAFETY: there is deliberately NO token field here. The auth token
 /// (`ANTHROPIC_AUTH_TOKEN`) lives only in the OS keyring vault and is composed in
@@ -84,7 +84,7 @@ pub struct ProviderSettings {
 }
 
 /// One saved API-provider config: non-secret metadata + the full settings payload.
-/// Persisted in the Clavis-managed provider index; the token is kept separately in
+/// Persisted in the cchive-managed provider index; the token is kept separately in
 /// the vault. Carries no token value.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -145,14 +145,14 @@ pub struct ExportAccount {
     pub tier: Option<String>,
 }
 
-/// A portable, SECRET-FREE snapshot of the Clavis setup, written to / read from a
-/// single JSON file via the export/import flow. `app` is always `"clavis"`; an
+/// A portable, SECRET-FREE snapshot of the cchive setup, written to / read from a
+/// single JSON file via the export/import flow. `app` is always `"cchive"`; an
 /// import rejects any other identity. Providers carry no key, accounts carry no
 /// token, and `prefs` is the non-secret app-preference subset only.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportDoc {
-    /// Identity tag; always `"clavis"` (a foreign value is rejected on import).
+    /// Identity tag; always `"cchive"` (a foreign value is rejected on import).
     pub app: String,
     /// Export schema version (bumped if the shape ever changes).
     pub schema: u32,
@@ -176,7 +176,7 @@ pub struct ImportSummary {
     pub prefs_applied: u32,
 }
 
-/// One rotating snapshot of a Claude file in the Clavis backups store. Plain
+/// One rotating snapshot of a Claude file in the cchive backups store. Plain
 /// metadata for the Settings backups list — never a secret (the backup holds the
 /// file CONTENT on disk; the OS keyring is never part of a backup).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -209,7 +209,7 @@ pub struct LatencyResult {
 }
 
 /// One global MCP server, normalized from `~/.claude.json` `mcpServers` (or from
-/// the Clavis disabled stash). `transport` is `"stdio" | "http" | "sse"` (missing
+/// the cchive disabled stash). `transport` is `"stdio" | "http" | "sse"` (missing
 /// `type` normalizes to `"stdio"`); `scope` is `"user" | "project"` (global
 /// servers are `"user"`). `enabled` is `false` for servers parked in the stash.
 ///
@@ -233,7 +233,7 @@ pub struct McpServer {
     pub url: Option<String>,
     /// `"user" | "project"`.
     pub scope: String,
-    /// `false` when the definition is parked in the Clavis disabled stash.
+    /// `false` when the definition is parked in the cchive disabled stash.
     pub enabled: bool,
     /// Optional free-text hint about the tools the server exposes (display only).
     pub tools_hint: Option<String>,
@@ -280,7 +280,7 @@ pub struct SwitchResult {
     pub apply_note: String,
 }
 
-/// Auth-relevant environment variables that can override what Clavis writes.
+/// Auth-relevant environment variables that can override what cchive writes.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvOverrides {
@@ -493,8 +493,8 @@ pub enum NotificationKind {
     ToolUse,
 }
 
-/// Whether each Clavis-marked notification hook is currently installed in
-/// `~/.claude/settings.json`. Derived by scanning for the `clavis-notify`
+/// Whether each cchive-marked notification hook is currently installed in
+/// `~/.claude/settings.json`. Derived by scanning for the `cchive-notify`
 /// marker; carries no secret.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

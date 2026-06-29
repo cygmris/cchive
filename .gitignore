@@ -42,3 +42,6 @@ pnpm-debug.log*
 packaging/arch/*.pkg.tar.*
 packaging/arch/pkg/
 packaging/arch/src/
+
+# Dev specs — kept locally, not published
+.spec-workflow/

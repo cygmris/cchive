@@ -1,5 +1,5 @@
 /* ============================================================
-   Clavis global stylesheet — the single CSS entry point.
+   cchive global stylesheet — the single CSS entry point.
    Loads Tailwind v4, then the self-hosted fonts and the design
    tokens, then maps the key tokens into Tailwind's @theme so
    utilities (bg-surface, text-text-2, rounded-2xl, …) stay in

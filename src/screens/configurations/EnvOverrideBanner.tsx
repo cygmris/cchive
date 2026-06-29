@@ -1,9 +1,9 @@
 /**
  * EnvOverrideBanner — a non-blocking warning shown when an environment variable
- * overrides Clavis's file/keychain switching.
+ * overrides cchive's file/keychain switching.
  *
  * When {@link useEnvOverrides} reports `CLAUDE_CODE_OAUTH_TOKEN` is set, that
- * token takes precedence over whatever Clavis writes to the credential file /
+ * token takes precedence over whatever cchive writes to the credential file /
  * keychain, so switching accounts silently has no effect. We surface a
  * warning-semantic banner (token-only tint) telling the user to unset it. It is
  * non-blocking and dismissible for the session (a plain `useState`, so it

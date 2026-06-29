@@ -1,4 +1,4 @@
-//! The safe write primitive every Clavis writer is built on.
+//! The safe write primitive every cchive writer is built on.
 //!
 //! - `atomic_write`: write a temp file in the SAME directory, fsync, rename over
 //!   the target (atomic on one filesystem), then chmod (0600) on unix. Never
@@ -21,8 +21,8 @@ use crate::model::CoreError;
 
 /// How many timestamped backups to keep per file before pruning the oldest.
 const BACKUP_KEEP: usize = 10;
-/// Infix used in backup file names: `<file>.clavis.bak.<epoch_millis>`.
-const BACKUP_INFIX: &str = ".clavis.bak.";
+/// Infix used in backup file names: `<file>.cchive.bak.<epoch_millis>`.
+const BACKUP_INFIX: &str = ".cchive.bak.";
 
 /// Monotonic counter so two temp files created in the same millisecond don't
 /// collide (the timestamp alone is not unique enough under rapid writes).
@@ -47,7 +47,7 @@ fn temp_sibling(path: &Path) -> PathBuf {
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| "tmp".to_string());
     let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
-    let unique = format!(".{name}.clavis.tmp.{}.{seq}", now_millis());
+    let unique = format!(".{name}.cchive.tmp.{}.{seq}", now_millis());
     match path.parent() {
         Some(dir) => dir.join(unique),
         None => PathBuf::from(unique),
@@ -164,7 +164,7 @@ fn rotate_backups(path: &Path) {
     }
 }
 
-/// Copy `path` to `path.clavis.bak.<epoch_millis>` and rotate. Returns `None`
+/// Copy `path` to `path.cchive.bak.<epoch_millis>` and rotate. Returns `None`
 /// when `path` does not exist (nothing to back up).
 pub fn backup(path: &Path) -> Result<Option<BackupHandle>, CoreError> {
     backup_at(path, now_millis())
@@ -261,7 +261,7 @@ mod tests {
             .unwrap()
             .flatten()
             .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.contains(".clavis.tmp."))
+            .filter(|n| n.contains(".cchive.tmp."))
             .collect()
     }
 

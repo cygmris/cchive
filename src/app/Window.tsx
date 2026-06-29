@@ -33,7 +33,7 @@ import {
 
 /**
  * The canonical macOS window-control hues. These are fixed OS-chrome colors
- * (not part of the warm Clavis theme palette) and stay constant across
+ * (not part of the warm cchive theme palette) and stay constant across
  * light/dark, matching the design's traffic-light header exactly.
  */
 const TRAFFIC = {

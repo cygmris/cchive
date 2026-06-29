@@ -1,6 +1,6 @@
 /**
  * ExperimentalScreen tests — the Agent Teams toggle is the only interactive
- * control: flipping it on persists the Clavis-local `experimental.agentTeams`
+ * control: flipping it on persists the cchive-local `experimental.agentTeams`
  * pref and reveals the "Teammate display mode" sub-row, whose Select persists
  * `experimental.teammateMode` on change.
  *
@@ -17,7 +17,7 @@ vi.mock("@/lib/prefs", () => ({
   getExperimentalPrefs: vi.fn(),
   setExperimentalPref: vi.fn(),
   // Consumed by @/i18n at import time.
-  LANGUAGE_LS_KEY: "clavis.language",
+  LANGUAGE_LS_KEY: "cchive.language",
   setLanguagePref: vi.fn(),
 }));
 
@@ -58,7 +58,7 @@ describe("ExperimentalScreen", () => {
     expect(
       await screen.findByLabelText("Teammate display mode"),
     ).toBeInTheDocument();
-    // …and the flip persisted the Clavis-local pref.
+    // …and the flip persisted the cchive-local pref.
     await waitFor(() =>
       expect(prefs.setExperimentalPref).toHaveBeenCalledWith(
         "agentTeams",

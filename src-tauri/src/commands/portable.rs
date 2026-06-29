@@ -1,7 +1,7 @@
 //! Portable export/import commands: write / read a single secret-free JSON file.
 //!
 //! The frontend obtains `path` from the dialog plugin (save for export, open for
-//! import). `export_config` builds an `ExportDoc` from the Clavis files under the
+//! import). `export_config` builds an `ExportDoc` from the cchive files under the
 //! app config dir and atomically writes it to `path`; `import_config` reads the
 //! file, validates the header, and merges it back KEYLESS, returning the counts.
 //! No secret crosses this boundary — see `core::portable` for the safety contract.
@@ -13,7 +13,7 @@ use tauri::{AppHandle, Manager, Runtime};
 use crate::core::{atomic_fs, portable};
 use crate::model::{CoreError, ImportSummary};
 
-/// Resolve the Clavis app config dir (where the provider/pref/account files live).
+/// Resolve the cchive app config dir (where the provider/pref/account files live).
 fn config_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, CoreError> {
     app.path()
         .app_config_dir()

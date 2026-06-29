@@ -1,26 +1,26 @@
-# Clavis — Architecture & Security
+# cchive — Architecture & Security
 
-Clavis is a calm, cross‑platform desktop tool for managing Claude Code: switch
+cchive is a calm, cross‑platform desktop tool for managing Claude Code: switch
 between accounts (e.g. two Max plans — flip the moment one runs out), manage API
 providers, MCP servers, agents/commands/skills, memory, and read local usage.
 This document captures the durable design that isn't obvious from the code alone.
 
 ## Stack
 
-- **Shell:** Tauri v2 (Rust backend + system WebView). App identity `app.clavis`.
+- **Shell:** Tauri v2 (Rust backend + system WebView). App identity `app.cchive`.
 - **Frontend:** React 19 + TypeScript + Vite, Tailwind v4 (`@theme` tokens), an
   in‑repo component library (no UI framework). TanStack Query (server state) +
   Zustand (UI shell state). i18next (en / zh‑Hans / zh‑Hant / ja / fr). Recharts,
   CodeMirror 6, lucide‑react.
 - **Backend:** Rust, organized as `core/*` (logic) + `commands/*` (thin Tauri
   command wrappers registered in `lib.rs`). Secrets in the OS keyring (`keyring`
-  crate). Non‑secret prefs in `tauri-plugin-store`; Clavis‑managed JSON via an
+  crate). Non‑secret prefs in `tauri-plugin-store`; cchive‑managed JSON via an
   atomic filesystem helper.
 
 ## Module map (`src-tauri/src/`)
 
 - `core/paths` — resolve `~/.claude.json`, `~/.claude/.credentials.json`,
-  `~/.claude/settings.json`, and the Clavis config dir.
+  `~/.claude/settings.json`, and the cchive config dir.
 - `core/atomic_fs` — temp‑write + fsync + rename, mode 0600 (dirs 0700),
   backup‑first; the single safe‑write primitive everything else uses.
 - `core/credentials`, `core/claude_json`, `core/settings` — read/merge the three
@@ -33,7 +33,7 @@ This document captures the durable design that isn't obvious from the code alone
   cost estimate (cache‑read ≈ 0.1× input, cache‑write ≈ 1.25× input).
 - `core/mcp`, `core/resources`, `core/memory`, `core/projects` — the manager
   backends for those screens.
-- `core/notify_hook` — install/remove a `clavis-notify`‑marked command hook in
+- `core/notify_hook` — install/remove a `cchive-notify`‑marked command hook in
   `settings.json` (Stop/Notification/PreToolUse) **surgically**, preserving the
   user's existing hooks.
 - `core/activity` — a capped recent‑activity log (labels only).

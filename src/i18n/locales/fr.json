@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Clavis",
+    "appName": "cchive",
     "on": "Activé",
     "off": "Désactivé",
     "save": "Enregistrer",
@@ -95,10 +95,10 @@
   },
   "settings": {
     "title": "Paramètres",
-    "description": "Préférences de l'application Clavis.",
+    "description": "Préférences de l'application cchive.",
     "language": {
       "label": "Langue",
-      "description": "Choisissez la langue d'affichage de Clavis."
+      "description": "Choisissez la langue d'affichage de cchive."
     },
     "appearance": {
       "label": "Apparence",
@@ -123,11 +123,11 @@
     },
     "launchAtLogin": {
       "label": "Lancer à la connexion",
-      "description": "Démarrer Clavis automatiquement à votre connexion."
+      "description": "Démarrer cchive automatiquement à votre connexion."
     },
     "version": {
       "label": "Version",
-      "value": "Clavis v{{version}}",
+      "value": "cchive v{{version}}",
       "upToDate": "À jour",
       "notConfigured": "Mises à jour non configurées",
       "checkForUpdates": "Rechercher des mises à jour"

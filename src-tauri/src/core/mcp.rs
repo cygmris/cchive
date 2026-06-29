@@ -1,9 +1,9 @@
-//! The Clavis MCP manager — read/normalize/add/edit/remove/toggle the GLOBAL
+//! The cchive MCP manager — read/normalize/add/edit/remove/toggle the GLOBAL
 //! MCP servers in `~/.claude.json` `mcpServers`.
 //!
 //! A server name lives in exactly one of two places:
 //! - **enabled** servers sit in `~/.claude.json` `mcpServers` (what Claude Code reads);
-//! - **disabled** servers sit in a Clavis-managed *disabled stash*
+//! - **disabled** servers sit in a cchive-managed *disabled stash*
 //!   (`mcp_disabled.json` in the app config dir), so toggling a server off never
 //!   loses its definition.
 //!
@@ -21,7 +21,7 @@ use serde_json::{Map, Value};
 use super::atomic_fs;
 use crate::model::{CoreError, McpServer, McpServerInput};
 
-/// Unix permission bits for the Clavis disabled stash (non-secret index).
+/// Unix permission bits for the cchive disabled stash (non-secret index).
 const STASH_MODE: u32 = 0o600;
 
 // ---------------------------------------------------------------------------
@@ -176,7 +176,7 @@ fn read_stash(stash: &Path) -> Result<Map<String, Value>, CoreError> {
     if !stash.exists() {
         return Ok(Map::new());
     }
-    // Tolerate a malformed stash (Clavis-managed, but never crash the list).
+    // Tolerate a malformed stash (cchive-managed, but never crash the list).
     match atomic_fs::read_json_value(stash) {
         Ok(v) => Ok(object_entries(Some(v))),
         Err(_) => Ok(Map::new()),

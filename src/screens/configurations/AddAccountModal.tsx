@@ -2,7 +2,7 @@
  * AddAccountModal — the capture-this-account flow (design §15, reworked from the
  * sign-in card).
  *
- * Clavis does not run a browser OAuth handshake; instead it captures whichever
+ * cchive does not run a browser OAuth handshake; instead it captures whichever
  * account is *currently logged into Claude Code on this machine* into the vault.
  * The copy is explicit about that, and about how to add a DIFFERENT account (log
  * into it in Claude Code first, then capture again).
@@ -94,7 +94,7 @@ export function AddAccountModal() {
               color: "var(--text-2)",
             }}
           >
-            Clavis captures the Claude account currently logged into Claude Code on
+            cchive captures the Claude account currently logged into Claude Code on
             this machine and saves it to your keyring.
           </p>
           <p

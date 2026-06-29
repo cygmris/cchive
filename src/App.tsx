@@ -1,7 +1,7 @@
 /**
  * Application root + dev hash router.
  *
- * Renders the Clavis shell — the frameless {@link Window} (sidebar + active
+ * Renders the cchive shell — the frameless {@link Window} (sidebar + active
  * screen + status bar) plus the global {@link CommandPalette} — inside the
  * theme and toast providers. Global keyboard shortcuts (⌘K / Esc) are bound for
  * the shell via {@link useGlobalShortcuts}.
@@ -55,7 +55,7 @@ function useHash(): string {
 
 /**
  * Keep the in-app UI in sync with a tray quick-switch: the tray menu reuses the
- * same `core::switch` path and emits `clavis-switched` after it lands, so we
+ * same `core::switch` path and emits `cchive-switched` after it lands, so we
  * invalidate the queries a switch can change (who's active, the account/provider
  * lists, the recent-activity feed). Tauri-only; the listener is torn down on
  * unmount (and if the component unmounts before `listen` resolves).
@@ -66,7 +66,7 @@ function useTraySwitchSync(): void {
     if (!isTauri()) return;
     let cancelled = false;
     let unlisten: UnlistenFn | undefined;
-    void listen("clavis-switched", () => {
+    void listen("cchive-switched", () => {
       void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
       void qc.invalidateQueries({ queryKey: queryKeys.accounts });
       void qc.invalidateQueries({ queryKey: queryKeys.providers });

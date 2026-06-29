@@ -5,7 +5,7 @@
  * Traditional Chinese, Japanese, and French. `en` is authoritative: any key
  * missing from another locale falls back to `en`.
  *
- * The initial language is detected from the persisted `clavis.language`
+ * The initial language is detected from the persisted `cchive.language`
  * localStorage value (written by `lib/prefs`), then the browser, defaulting to
  * `en`. Under Tauri the authoritative pref lives in the store, so `main.tsx`
  * reapplies it via `setLanguage`/`i18n.changeLanguage` before first paint.
@@ -20,7 +20,7 @@ import zhHant from "./locales/zh-Hant.json";
 import ja from "./locales/ja.json";
 import fr from "./locales/fr.json";
 
-/** The languages Clavis ships translations for (en is the baseline). */
+/** The languages cchive ships translations for (en is the baseline). */
 export const SUPPORTED_LANGUAGES = [
   "en",
   "zh-Hans",

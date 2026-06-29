@@ -51,7 +51,7 @@ import type {
 function ensureTauri(command: string): void {
   if (!isTauri()) {
     throw new Error(
-      `Clavis IPC "${command}" requires the Tauri runtime and is unavailable in a plain browser.`,
+      `cchive IPC "${command}" requires the Tauri runtime and is unavailable in a plain browser.`,
     );
   }
 }
@@ -143,14 +143,14 @@ export function readSettingsSummary(): Promise<SettingsSummary> {
   return invoke<SettingsSummary>("read_settings_summary");
 }
 
-/** Detect auth-relevant env vars that override or relocate what Clavis writes. */
+/** Detect auth-relevant env vars that override or relocate what cchive writes. */
 export function detectEnvOverrides(): Promise<EnvOverrides> {
   ensureTauri("detect_env_overrides");
   return invoke<EnvOverrides>("detect_env_overrides");
 }
 
 /**
- * Export the Clavis setup to a single JSON file the user picks via the native
+ * Export the cchive setup to a single JSON file the user picks via the native
  * save dialog, then atomically write it through `export_config`. Returns the
  * chosen path, or `null` when the dialog was cancelled (a no-op).
  *
@@ -160,8 +160,8 @@ export function detectEnvOverrides(): Promise<EnvOverrides> {
 export async function exportConfig(): Promise<string | null> {
   ensureTauri("export_config");
   const path = await save({
-    title: "Export Clavis configuration",
-    defaultPath: "clavis-config.json",
+    title: "Export cchive configuration",
+    defaultPath: "cchive-config.json",
     filters: [{ name: "JSON", extensions: ["json"] }],
   });
   if (path == null) return null;
@@ -170,7 +170,7 @@ export async function exportConfig(): Promise<string | null> {
 }
 
 /**
- * Import a Clavis setup from a JSON file the user picks via the native open
+ * Import a cchive setup from a JSON file the user picks via the native open
  * dialog, merging it back through `import_config`. Returns the {@link ImportSummary}
  * counts, or `null` when the dialog was cancelled (a no-op).
  *
@@ -180,7 +180,7 @@ export async function exportConfig(): Promise<string | null> {
 export async function importConfig(): Promise<ImportSummary | null> {
   ensureTauri("import_config");
   const selected = await open({
-    title: "Import Clavis configuration",
+    title: "Import cchive configuration",
     multiple: false,
     directory: false,
     filters: [{ name: "JSON", extensions: ["json"] }],
@@ -228,7 +228,7 @@ export function readUsage(rangeDays: number): Promise<UsageSummary> {
 
 /**
  * List global MCP servers: enabled (from `~/.claude.json` `mcpServers`) + disabled
- * (from the Clavis stash), each normalized. `.credentials.json`/`mcpOAuth`
+ * (from the cchive stash), each normalized. `.credentials.json`/`mcpOAuth`
  * untouched.
  */
 export function listMcpServers(): Promise<McpServer[]> {
@@ -264,7 +264,7 @@ export function setMcpEnabled(name: string, on: boolean): Promise<void> {
 
 /**
  * List markdown resources of one `kind`: agents/commands (`*.md`) or skills
- * (`<name>/SKILL.md`, plus the Clavis stash as disabled). Each is summarized from
+ * (`<name>/SKILL.md`, plus the cchive stash as disabled). Each is summarized from
  * its frontmatter + body. Touches ONLY `~/.claude/{agents,commands,skills}` + the
  * stash — credentials/`mcpOAuth` are never read.
  */
@@ -306,7 +306,7 @@ export function deleteResource(
 
 /**
  * Enable/disable a skill by MOVING its folder between `~/.claude/skills/<name>/`
- * and the Clavis stash (never deleted).
+ * and the cchive stash (never deleted).
  */
 export function setSkillEnabled(name: string, on: boolean): Promise<void> {
   ensureTauri("set_skill_enabled");
@@ -350,7 +350,7 @@ export function readProjectSettings(path: string): Promise<ProjectSettings> {
 
 /**
  * Append a label-only `{ kind, message }` entry to the capped recent-activity log
- * (newest 50, in the Clavis config dir). `message` carries a display label only —
+ * (newest 50, in the cchive config dir). `message` carries a display label only —
  * never a token.
  */
 export function appendActivity(kind: string, message: string): Promise<void> {
@@ -378,7 +378,7 @@ export function writeProjectSettings(
 }
 
 /**
- * Derive which Clavis-marked notification hooks are installed in
+ * Derive which cchive-marked notification hooks are installed in
  * `~/.claude/settings.json` `hooks` (booleans only; reads, never writes).
  */
 export function readNotificationState(): Promise<NotificationState> {
@@ -387,7 +387,7 @@ export function readNotificationState(): Promise<NotificationState> {
 }
 
 /**
- * Install (`on`) or remove (`!on`) the Clavis-marked hook for `kind`, touching
+ * Install (`on`) or remove (`!on`) the cchive-marked hook for `kind`, touching
  * ONLY the mapped `hooks` event in `settings.json` (the user's hooks + every
  * other key are preserved; atomic write).
  */
@@ -400,7 +400,7 @@ export function setNotification(
 }
 
 /**
- * Whether Clavis is registered to launch at login. Reads the OS autostart entry
+ * Whether cchive is registered to launch at login. Reads the OS autostart entry
  * (a LaunchAgent / registry entry / `.desktop` file); an unsupported environment
  * reports `false`. Touches no credentials and no `~/.claude` files.
  */
@@ -410,7 +410,7 @@ export function getAutostart(): Promise<boolean> {
 }
 
 /**
- * Register (`on`) or remove (`!on`) Clavis's own launch-at-login entry. The only
+ * Register (`on`) or remove (`!on`) cchive's own launch-at-login entry. The only
  * on-disk effect is the OS autostart entry for this app.
  */
 export function setAutostart(on: boolean): Promise<void> {
@@ -439,5 +439,5 @@ export async function testNotification(kind: NotificationKind): Promise<void> {
   if (!granted) {
     throw new Error("Notification permission was denied.");
   }
-  sendNotification({ title: "Clavis", body: NOTIFICATION_BODIES[kind] });
+  sendNotification({ title: "cchive", body: NOTIFICATION_BODIES[kind] });
 }

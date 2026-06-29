@@ -100,7 +100,7 @@ pub fn read_active_identity() -> Result<ActiveIdentity, CoreError> {
 }
 
 /// Remove a saved account's secret blob from the OS keyring vault (idempotent).
-/// Touches only the Clavis vault namespace; the live Claude files are untouched.
+/// Touches only the cchive vault namespace; the live Claude files are untouched.
 pub fn remove_account(id: &str) -> Result<(), CoreError> {
     keyring_store::vault_delete(id)
 }
@@ -455,7 +455,7 @@ mod tests {
         let strays: Vec<_> = std::fs::read_dir(dir.path())
             .unwrap()
             .flatten()
-            .filter(|e| e.file_name().to_string_lossy().contains(".clavis.bak."))
+            .filter(|e| e.file_name().to_string_lossy().contains(".cchive.bak."))
             .collect();
         assert!(strays.is_empty(), "no backups on a zero-change miss");
     }

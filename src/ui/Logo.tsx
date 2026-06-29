@@ -1,5 +1,5 @@
 /**
- * Clavis brand mark — the "C-Key": the C of Clavis bowing into a key (a broken
+ * cchive brand mark — the "C-Key": the C of cchive bowing into a key (a broken
  * ring + a horizontal shaft with two downward teeth), on a 0 0 64 64 grid.
  *
  * - {@link LogoMark}: monochrome, paints in `currentColor` — use it inline
@@ -22,7 +22,7 @@ interface LogoProps extends SvgProps {
 }
 
 /** The C-Key mark in `currentColor`. */
-export function LogoMark({ size = 24, title = "Clavis", ...rest }: LogoProps) {
+export function LogoMark({ size = 24, title = "cchive", ...rest }: LogoProps) {
   return (
     <svg
       width={size}
@@ -47,9 +47,9 @@ export function LogoMark({ size = 24, title = "Clavis", ...rest }: LogoProps) {
 }
 
 /** The clay-gradient app-icon tile with the mark in white. */
-export function LogoTile({ size = 32, title = "Clavis", ...rest }: LogoProps) {
+export function LogoTile({ size = 32, title = "cchive", ...rest }: LogoProps) {
   // Unique gradient id per instance so multiple tiles don't collide.
-  const gradId = `clavis-tile-${useId()}`;
+  const gradId = `cchive-tile-${useId()}`;
   return (
     <svg
       width={size}

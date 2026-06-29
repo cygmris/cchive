@@ -107,7 +107,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         }}
       >
         <style>
-          {"@keyframes clavis-toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}"}
+          {"@keyframes cchive-toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}"}
         </style>
         {items.map((item) => (
           <ToastCard key={item.id} item={item} onDismiss={dismiss} />
@@ -149,7 +149,7 @@ function ToastCard({
         borderRadius: "var(--radius-xl)",
         boxShadow: "var(--shadow-pop)",
         color: "var(--text)",
-        animation: "clavis-toast-in 160ms ease-out",
+        animation: "cchive-toast-in 160ms ease-out",
       }}
     >
       {Icon && (

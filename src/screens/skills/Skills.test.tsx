@@ -88,7 +88,7 @@ const SKILLS: Resource[] = [
     model: null,
     source: "Plugin",
     enabled: false,
-    path: "/home/me/.clavis/disabled-skills/slack-digest/SKILL.md",
+    path: "/home/me/.cchive/disabled-skills/slack-digest/SKILL.md",
     argsHint: null,
     tools: null,
   },

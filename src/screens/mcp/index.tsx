@@ -1,7 +1,7 @@
 /**
  * McpScreen — the MCP manager (design §6). Renders this machine's global Model
  * Context Protocol servers (read from `~/.claude.json` `mcpServers`, plus any
- * toggled-off ones parked in the Clavis stash) through the generic, domain-
+ * toggled-off ones parked in the cchive stash) through the generic, domain-
  * agnostic {@link Collection}: this screen only supplies a {@link CollectionConfig}
  * — the icon (by transport), a transport Badge, the tools hint, an enable/disable
  * Switch, the detail properties (Type / Tools / Scope / Status) and a read-only

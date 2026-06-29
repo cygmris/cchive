@@ -3,7 +3,7 @@
  *
  * A `@/ui/Modal` hosting the inline {@link CodeEditor} in `markdown` mode for
  * agents/commands/skills bodies. Save returns the edited text, Cancel discards;
- * `⌘S` inside the editor saves too. All CodeMirror setup and the Clavis token
+ * `⌘S` inside the editor saves too. All CodeMirror setup and the cchive token
  * theme live in `CodeEditor`, so this file is just the modal chrome.
  *
  * Token-only styling; no secret handling — these resources are plain markdown.

@@ -1,7 +1,7 @@
-//! The Clavis markdown-resource manager — list/get/save/delete the three
+//! The cchive markdown-resource manager — list/get/save/delete the three
 //! resource families (agents, commands, skills) under `~/.claude/{agents,
 //! commands,skills}`, plus a safe skill enable/disable that MOVES a skill's
-//! folder between `skills/<name>/` and a Clavis-managed disabled stash.
+//! folder between `skills/<name>/` and a cchive-managed disabled stash.
 //!
 //! A resource is a `.md` file (agents/commands) or a folder with a `SKILL.md`
 //! (skills). Frontmatter (`---` fenced YAML) is parsed tolerantly: a missing or
@@ -27,7 +27,7 @@ const SKILL_SOURCE: &str = "Personal";
 // ---------------------------------------------------------------------------
 // Public API (path-injectable: commands pass real paths, tests pass temps).
 //   `base`  = the agents/commands/skills dir for `kind`.
-//   `stash` = the Clavis disabled-skills dir (only consulted for skills).
+//   `stash` = the cchive disabled-skills dir (only consulted for skills).
 // ---------------------------------------------------------------------------
 
 /// List every resource of `kind`. Agents/commands read `*.md` in `base`; skills
@@ -521,7 +521,7 @@ mod tests {
             .map(|rd| {
                 rd.flatten()
                     .map(|e| e.file_name().to_string_lossy().into_owned())
-                    .filter(|n| n.contains(".clavis.tmp."))
+                    .filter(|n| n.contains(".cchive.tmp."))
                     .collect()
             })
             .unwrap_or_default()

@@ -11,14 +11,14 @@ use tauri_plugin_autostart::ManagerExt;
 
 use crate::model::CoreError;
 
-/// Whether Clavis is registered to launch at login. Reads the OS autostart
+/// Whether cchive is registered to launch at login. Reads the OS autostart
 /// entry; an unsupported environment reports `false` rather than erroring.
 #[tauri::command]
 pub fn get_autostart<R: Runtime>(app: AppHandle<R>) -> bool {
     app.autolaunch().is_enabled().unwrap_or(false)
 }
 
-/// Register (`on`) or remove (`!on`) Clavis's own launch-at-login entry.
+/// Register (`on`) or remove (`!on`) cchive's own launch-at-login entry.
 /// On-disk effect: only the OS autostart entry for this app; nothing else.
 #[tauri::command]
 pub fn set_autostart<R: Runtime>(app: AppHandle<R>, on: bool) -> Result<(), CoreError> {

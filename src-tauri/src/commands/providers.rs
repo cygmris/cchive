@@ -1,8 +1,8 @@
 //! Provider commands: list, get, save (upsert), delete, apply, clear.
 //!
-//! The non-secret provider index lives in a Clavis-managed `providers.json` under
+//! The non-secret provider index lives in a cchive-managed `providers.json` under
 //! the app config dir (written via `core::providers` / `atomic_fs`); the auth token
-//! lives in the OS keyring vault (`app.clavis.providers/<id>`). Every return here is
+//! lives in the OS keyring vault (`app.cchive.providers/<id>`). Every return here is
 //! non-secret metadata or a token-free view — the token never crosses this IPC
 //! boundary (it is composed in only when `apply` writes `settings.json`).
 
@@ -13,7 +13,7 @@ use tauri::{AppHandle, Manager, Runtime};
 use crate::core::{paths, providers, switch};
 use crate::model::{CoreError, ProviderConfigInput, ProviderConfigView, ProviderMeta};
 
-/// The Clavis-managed provider index, next to the other Clavis store files.
+/// The cchive-managed provider index, next to the other cchive store files.
 const PROVIDERS_INDEX: &str = "providers.json";
 
 /// Resolve the provider index path under the app config dir.

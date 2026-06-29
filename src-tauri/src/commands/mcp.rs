@@ -1,7 +1,7 @@
 //! MCP commands: list, save (upsert), delete, toggle enable/disable.
 //!
 //! These edit the GLOBAL MCP servers in `~/.claude.json` `mcpServers` (atomic,
-//! preserving every other key) plus a Clavis-managed disabled stash under the app
+//! preserving every other key) plus a cchive-managed disabled stash under the app
 //! config dir. `.credentials.json` and the `mcpOAuth` key are never touched here.
 
 use std::path::PathBuf;
@@ -11,7 +11,7 @@ use tauri::{AppHandle, Manager, Runtime};
 use crate::core::{mcp, paths};
 use crate::model::{CoreError, McpServer, McpServerInput};
 
-/// The Clavis-managed disabled-server stash, next to the other Clavis store files.
+/// The cchive-managed disabled-server stash, next to the other cchive store files.
 const MCP_DISABLED_STASH: &str = "mcp_disabled.json";
 
 /// Resolve the disabled-stash path under the app config dir.

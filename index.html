@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Clavis</title>
+    <title>cchive</title>
     <!--
       Pre-React paint: show the app surface (not white) on the very first frame.
       The hex mirrors the --app-bg token (sand-50 light / espresso-750 dark);
@@ -18,23 +18,23 @@
       /* Pre-React boot spinner inside #root; React replaces #root's contents on
          mount, so it vanishes the instant the app paints. Muted tone mirrors
          --border / --text-3 so it reads as a calm "loading", never a blank wait. */
-      .clavis-boot {
+      .cchive-boot {
         position: fixed;
         inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
       }
-      .clavis-boot::after {
+      .cchive-boot::after {
         content: "";
         width: 26px;
         height: 26px;
         border-radius: 50%;
         border: 2.5px solid #e4dccf;
         border-top-color: #9a8f80;
-        animation: clavis-spin 0.7s linear infinite;
+        animation: cchive-spin 0.7s linear infinite;
       }
-      @keyframes clavis-spin {
+      @keyframes cchive-spin {
         to {
           transform: rotate(360deg);
         }
@@ -44,7 +44,7 @@
         body {
           background: #1a1714;
         }
-        .clavis-boot::after {
+        .cchive-boot::after {
           border-color: #36302a;
           border-top-color: #8a8073;
         }
@@ -52,7 +52,7 @@
     </style>
   </head>
   <body>
-    <div id="root"><div class="clavis-boot"></div></div>
+    <div id="root"><div class="cchive-boot"></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

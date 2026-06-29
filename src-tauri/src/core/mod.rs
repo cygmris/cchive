@@ -1,4 +1,4 @@
-//! Privileged Clavis core: path resolution, atomic file I/O, the OS-keyring
+//! Privileged cchive core: path resolution, atomic file I/O, the OS-keyring
 //! account vault, per-OS credential access, key-preserving JSON editors, and
 //! the switch algorithms. All token I/O lives here; nothing above this layer
 //! (commands, the webview) ever holds a secret.

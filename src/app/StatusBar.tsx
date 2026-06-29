@@ -46,7 +46,7 @@ export function StatusBar() {
       }}
     >
       <style>
-        {"@keyframes clavis-status-pulse{0%,100%{opacity:1}50%{opacity:.45}}"}
+        {"@keyframes cchive-status-pulse{0%,100%{opacity:1}50%{opacity:.45}}"}
       </style>
 
       {/* Live indicator + active config name */}
@@ -66,7 +66,7 @@ export function StatusBar() {
             borderRadius: "var(--radius-pill)",
             background: "var(--success-strong)",
             boxShadow: "var(--ring-success)",
-            animation: "clavis-status-pulse 2.4s ease-in-out infinite",
+            animation: "cchive-status-pulse 2.4s ease-in-out infinite",
           }}
         />
         {status.name}

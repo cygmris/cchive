@@ -108,7 +108,7 @@ beforeEach(() => {
   (ipc.getAutostart as Mock).mockResolvedValue(false);
   (ipc.setAutostart as Mock).mockResolvedValue(undefined);
   (ipc.listBackups as Mock).mockResolvedValue(BACKUPS);
-  (ipc.exportConfig as Mock).mockResolvedValue("/home/me/clavis-config.json");
+  (ipc.exportConfig as Mock).mockResolvedValue("/home/me/cchive-config.json");
   (ipc.importConfig as Mock).mockResolvedValue(IMPORT_SUMMARY);
   (ipc.restoreBackup as Mock).mockResolvedValue(undefined);
   (ipc.appendActivity as Mock).mockResolvedValue(undefined);
@@ -157,7 +157,7 @@ describe("Data & backups card", () => {
 
     await waitFor(() => expect(ipc.exportConfig).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("Configuration exported")).toBeInTheDocument();
-    expect(screen.getByText(/clavis-config\.json/)).toBeInTheDocument();
+    expect(screen.getByText(/cchive-config\.json/)).toBeInTheDocument();
   });
 
   it("Import calls import_config and toasts the summary counts", async () => {

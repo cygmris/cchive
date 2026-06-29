@@ -47,7 +47,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ToastProvider } from "@/ui/Toast";
 import { SettingsScreen } from "./index";
 
-const ISSUE_URL = "https://github.com/clavis-app/clavis/issues/new";
+const ISSUE_URL = "https://github.com/cygmris/cchive/issues/new";
 
 let setTheme: Mock;
 let setAccent: Mock;
@@ -125,6 +125,6 @@ describe("SettingsScreen", () => {
   it("renders the resolved app version", async () => {
     renderScreen();
 
-    expect(await screen.findByText("Clavis v1.2.3")).toBeInTheDocument();
+    expect(await screen.findByText("cchive v1.2.3")).toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Window-control helpers for the frameless Clavis window.
+ * Window-control helpers for the frameless cchive window.
  *
  * The shipped app runs inside Tauri with the native OS chrome hidden
  * (`decorations:false`), so the custom traffic-light controls + drag region

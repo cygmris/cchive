@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Clavis",
+    "appName": "cchive",
     "on": "オン",
     "off": "オフ",
     "save": "保存",
@@ -95,10 +95,10 @@
   },
   "settings": {
     "title": "設定",
-    "description": "Clavis アプリの環境設定。",
+    "description": "cchive アプリの環境設定。",
     "language": {
       "label": "言語",
-      "description": "Clavis を表示する言語を選択します。"
+      "description": "cchive を表示する言語を選択します。"
     },
     "appearance": {
       "label": "外観",
@@ -123,11 +123,11 @@
     },
     "launchAtLogin": {
       "label": "ログイン時に起動",
-      "description": "サインイン時に Clavis を自動的に起動します。"
+      "description": "サインイン時に cchive を自動的に起動します。"
     },
     "version": {
       "label": "バージョン",
-      "value": "Clavis v{{version}}",
+      "value": "cchive v{{version}}",
       "upToDate": "最新です",
       "notConfigured": "アップデートは未設定です",
       "checkForUpdates": "アップデートを確認"

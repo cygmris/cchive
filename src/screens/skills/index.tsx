@@ -1,7 +1,7 @@
 /**
  * SkillsScreen — the agent-skills manager (design §9). Renders this machine's
  * `~/.claude/skills/<name>/SKILL.md` skills (plus any toggled-off ones parked in
- * the Clavis stash) through the generic, domain-agnostic {@link Collection}: this
+ * the cchive stash) through the generic, domain-agnostic {@link Collection}: this
  * screen only supplies a {@link CollectionConfig} — a Sparkles glyph, a source
  * Badge tag (Personal=clay / Project=blue / Plugin=violet), an enable/disable
  * Switch (a stash folder round-trip that never loses the skill), the detail

@@ -14,7 +14,7 @@ import { ACCENTS, applyTheme } from "./theme";
 import { getPrefs, setPref } from "@/lib/prefs";
 import { DEFAULT_THEME_PREFS } from "@/lib/types";
 
-const LS_KEY = "clavis.theme";
+const LS_KEY = "cchive.theme";
 
 const root = () => document.documentElement;
 

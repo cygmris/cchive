@@ -203,7 +203,7 @@ function GalleryBody() {
               fontWeight: 600,
             }}
           >
-            Clavis Component Gallery
+            cchive Component Gallery
           </h1>
           <p style={{ margin: "2px 0 0", color: "var(--text-2)", fontSize: "var(--fs-body-sm)" }}>
             Developer-only · #/gallery

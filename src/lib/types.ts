@@ -1,5 +1,5 @@
 /**
- * Shared frontend types for the Clavis design system.
+ * Shared frontend types for the cchive design system.
  */
 
 /** Color theme. Light is the default. */
@@ -66,7 +66,7 @@ export interface ProviderMeta {
 
 /**
  * The `env`-block half of a provider config — the `ANTHROPIC_*` / proxy /
- * telemetry vars Clavis writes into `settings.json` on apply.
+ * telemetry vars cchive writes into `settings.json` on apply.
  *
  * SAFETY: there is deliberately NO token field here. The auth token
  * (`ANTHROPIC_AUTH_TOKEN`) lives only in the OS-keyring vault and is composed in
@@ -166,7 +166,7 @@ export interface SwitchResult {
   applyNote: string;
 }
 
-/** Auth-relevant environment variables that can override what Clavis writes. */
+/** Auth-relevant environment variables that can override what cchive writes. */
 export interface EnvOverrides {
   /** `CLAUDE_CODE_OAUTH_TOKEN` is set — it bypasses the credential file/keychain. */
   oauthTokenSet: boolean;
@@ -212,13 +212,13 @@ export interface ExportAccount {
 }
 
 /**
- * A portable, SECRET-FREE snapshot of the Clavis setup written to / read from a
- * single JSON file. `app` is always `"clavis"` (an import rejects any other
+ * A portable, SECRET-FREE snapshot of the cchive setup written to / read from a
+ * single JSON file. `app` is always `"cchive"` (an import rejects any other
  * identity); providers carry no key, accounts carry no token, and `prefs` is the
  * non-secret app-preference subset only.
  */
 export interface ExportDoc {
-  /** Identity tag; always `"clavis"`. */
+  /** Identity tag; always `"cchive"`. */
   app: string;
   /** Export schema version. */
   schema: number;
@@ -268,7 +268,7 @@ export interface LatencyResult {
  * MCP-server DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`).
  *
  * One global MCP server normalized from `~/.claude.json` `mcpServers` (or the
- * Clavis disabled stash). Optional Rust fields serialize as `null`, so they are
+ * cchive disabled stash). Optional Rust fields serialize as `null`, so they are
  * typed `T | null` to match the wire shape exactly.
  *
  * SAFETY: `env` is the user's OWN per-server MCP config (it may hold a server's
@@ -292,7 +292,7 @@ export interface McpServer {
   url: string | null;
   /** `"user" | "project"` (global servers are `"user"`). */
   scope: string;
-  /** `false` when the definition is parked in the Clavis disabled stash. */
+  /** `false` when the definition is parked in the cchive disabled stash. */
   enabled: boolean;
   /** Optional free-text hint about the tools the server exposes (display only). */
   toolsHint: string | null;
@@ -484,7 +484,7 @@ export interface ActivityEntry {
  * Notification-hook DTOs — mirror `src-tauri/src/model.rs` (serde `camelCase`,
  * `NotificationKind` lowerCamel).
  *
- * A Clavis-marked `command` hook in `~/.claude/settings.json` `hooks` fires a
+ * A cchive-marked `command` hook in `~/.claude/settings.json` `hooks` fires a
  * desktop notification on a Claude Code event. Each kind maps to one event
  * (in `core::notify_hook`): completion→Stop, general→Notification,
  * toolUse→PreToolUse. Booleans/labels only — never a credential.
@@ -493,7 +493,7 @@ export interface ActivityEntry {
 /** Which desktop-notification event a toggle controls (mirrors the Rust enum). */
 export type NotificationKind = "completion" | "general" | "toolUse";
 
-/** Whether each Clavis-marked notification hook is currently installed. */
+/** Whether each cchive-marked notification hook is currently installed. */
 export interface NotificationState {
   completion: boolean;
   general: boolean;

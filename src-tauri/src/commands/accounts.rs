@@ -11,11 +11,11 @@ use crate::core::switch;
 use crate::model::{AccountMeta, ActiveIdentity, CoreError, SwitchResult};
 
 /// Store file + key holding the non-secret account index (no tokens).
-const ACCOUNTS_FILE: &str = "clavis-accounts.json";
+const ACCOUNTS_FILE: &str = "cchive-accounts.json";
 const ACCOUNTS_KEY: &str = "accounts";
 
 /// List saved accounts as non-secret metadata.
-/// On-disk effect: reads the account index from the Clavis store; no credential I/O.
+/// On-disk effect: reads the account index from the cchive store; no credential I/O.
 #[tauri::command]
 pub fn list_accounts<R: Runtime>(app: AppHandle<R>) -> Result<Vec<AccountMeta>, CoreError> {
     read_index(&app, ACCOUNTS_FILE, ACCOUNTS_KEY)
@@ -30,8 +30,8 @@ pub fn get_active_identity() -> Result<ActiveIdentity, CoreError> {
 }
 
 /// Capture the currently-logged-in account into the vault and the account index.
-/// On-disk effect: writes the secret blob to the OS keyring (`app.clavis.accounts`)
-/// and upserts the non-secret `AccountMeta` into the Clavis store.
+/// On-disk effect: writes the secret blob to the OS keyring (`app.cchive.accounts`)
+/// and upserts the non-secret `AccountMeta` into the cchive store.
 #[tauri::command]
 pub fn add_account_from_active<R: Runtime>(app: AppHandle<R>) -> Result<AccountMeta, CoreError> {
     let meta = switch::add_account_from_active()?;
@@ -52,7 +52,7 @@ pub fn switch_account(id: String) -> Result<SwitchResult, CoreError> {
 
 /// Remove a saved account from the vault and the account index.
 /// On-disk effect: deletes the secret blob from the OS keyring and drops the
-/// matching `AccountMeta` from the Clavis store; the live Claude files are untouched.
+/// matching `AccountMeta` from the cchive store; the live Claude files are untouched.
 #[tauri::command]
 pub fn remove_account<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), CoreError> {
     switch::remove_account(&id)?;

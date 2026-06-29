@@ -1,5 +1,5 @@
 /**
- * Clavis StatTile — a single headline metric.
+ * cchive StatTile — a single headline metric.
  *
  * A small medium-weight label + an optional accent-tinted icon chip on top,
  * then a large Geist-Mono-Light numeral (`--fs-stat`, 30px) below. Renders a

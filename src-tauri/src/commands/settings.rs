@@ -14,7 +14,7 @@ pub fn read_settings_summary() -> Result<SettingsSummary, CoreError> {
     settings::read_summary()
 }
 
-/// Detect auth-relevant env vars that override or relocate what Clavis writes
+/// Detect auth-relevant env vars that override or relocate what cchive writes
 /// (`CLAUDE_CODE_OAUTH_TOKEN`, `CLAUDE_CONFIG_DIR`, any `ANTHROPIC_*` names).
 /// On-disk effect: reads process environment only; touches no files.
 #[tauri::command]

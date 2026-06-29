@@ -1,7 +1,7 @@
 /**
  * Non-secret preference persistence.
  *
- * Primary backing store is `tauri-plugin-store` (`clavis.store.json` in the
+ * Primary backing store is `tauri-plugin-store` (`cchive.store.json` in the
  * platform app-config dir). When the Tauri store is unavailable — e.g. the
  * component gallery running in a plain browser, or a corrupt/locked store —
  * this transparently falls back to `localStorage`, then to an in-memory copy.
@@ -16,9 +16,9 @@ import {
   type ThemePrefs,
 } from "./types";
 
-const STORE_FILE = "clavis.store.json";
+const STORE_FILE = "cchive.store.json";
 const STORE_KEY = "theme";
-const LS_KEY = "clavis.theme";
+const LS_KEY = "cchive.theme";
 
 /** Minimal surface of `tauri-plugin-store` that we rely on. */
 interface TauriStore {
@@ -141,7 +141,7 @@ export async function setPref<K extends keyof ThemePrefs>(
 
 const LANG_STORE_KEY = "language";
 /** Shared with the i18next language detector (`lookupLocalStorage`). */
-export const LANGUAGE_LS_KEY = "clavis.language";
+export const LANGUAGE_LS_KEY = "cchive.language";
 const DEFAULT_LANGUAGE = "en";
 
 /** Last-known language, the final fallback when no backend is readable. */
@@ -207,7 +207,7 @@ export async function setLanguagePref(language: string): Promise<void> {
 /* ------------------------------------------------------------------------- *
  * Experimental flags slice.
  *
- * Clavis-local toggles for unstable features. These are app preferences only —
+ * cchive-local toggles for unstable features. These are app preferences only —
  * NO Claude Code files are touched. Stored alongside the theme + language prefs
  * in the same backends, under its own key. Corrupt or partial data degrades to
  * the defaults (everything off, mode "auto"); never throws.
@@ -229,7 +229,7 @@ export const DEFAULT_EXPERIMENTAL_PREFS: ExperimentalPrefs = {
 };
 
 const EXPERIMENTAL_STORE_KEY = "experimental";
-const EXPERIMENTAL_LS_KEY = "clavis.experimental";
+const EXPERIMENTAL_LS_KEY = "cchive.experimental";
 const TEAMMATE_MODES: readonly TeammateMode[] = [
   "auto",
   "inProcess",

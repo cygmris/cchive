@@ -1,5 +1,5 @@
 /**
- * Shell-level domain types for the Clavis app shell.
+ * Shell-level domain types for the cchive app shell.
  *
  * These shapes mirror the real domain so S3/S4 can swap the mock seed in
  * `lib/store.ts` for Rust-backed data without touching shell components.

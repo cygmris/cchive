@@ -4,7 +4,7 @@
  * Card 1 collects the app-level preferences: the UI Language (an i18n
  * `setLanguage` that switches + persists), Appearance (light/dark via the S1
  * `useTheme`), an Accent picker (5 token swatches → `setAccent`), a Density
- * toggle (`setDensity`), and a Version row showing "Clavis v{version}" with a
+ * toggle (`setDensity`), and a Version row showing "cchive v{version}" with a
  * status chip and a guarded "Check for updates" button. Card 2 is Contact &
  * support with a "Report an issue" link.
  *
@@ -41,7 +41,7 @@ import { SUPPORTED_LANGUAGES, setLanguage, type Language } from "@/i18n";
 import type { AccentName, BackupEntry, Density, Theme } from "@/lib/types";
 
 /** Where the "Report an issue" button sends the user (github.com per capability). */
-const ISSUE_URL = "https://github.com/clavis-app/clavis/issues/new";
+const ISSUE_URL = "https://github.com/cygmris/cchive/issues/new";
 
 /** Shown when `@tauri-apps/api/app` getVersion is unavailable (off-Tauri / gallery). */
 const FALLBACK_VERSION = "1.0.0";

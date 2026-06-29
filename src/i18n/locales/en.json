@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Clavis",
+    "appName": "cchive",
     "on": "On",
     "off": "Off",
     "save": "Save",
@@ -95,10 +95,10 @@
   },
   "settings": {
     "title": "Settings",
-    "description": "Clavis application preferences.",
+    "description": "cchive application preferences.",
     "language": {
       "label": "Language",
-      "description": "Choose the language Clavis is displayed in."
+      "description": "Choose the language cchive is displayed in."
     },
     "appearance": {
       "label": "Appearance",
@@ -123,11 +123,11 @@
     },
     "launchAtLogin": {
       "label": "Launch at login",
-      "description": "Start Clavis automatically when you sign in."
+      "description": "Start cchive automatically when you sign in."
     },
     "version": {
       "label": "Version",
-      "value": "Clavis v{{version}}",
+      "value": "cchive v{{version}}",
       "upToDate": "Up to date",
       "notConfigured": "Updates not configured yet",
       "checkForUpdates": "Check for updates"

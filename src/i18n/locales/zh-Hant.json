@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Clavis",
+    "appName": "cchive",
     "on": "開啟",
     "off": "關閉",
     "save": "儲存",
@@ -95,10 +95,10 @@
   },
   "settings": {
     "title": "設定",
-    "description": "Clavis 應用程式偏好設定。",
+    "description": "cchive 應用程式偏好設定。",
     "language": {
       "label": "語言",
-      "description": "選擇 Clavis 的顯示語言。"
+      "description": "選擇 cchive 的顯示語言。"
     },
     "appearance": {
       "label": "外觀",
@@ -123,11 +123,11 @@
     },
     "launchAtLogin": {
       "label": "登入時啟動",
-      "description": "登入後自動啟動 Clavis。"
+      "description": "登入後自動啟動 cchive。"
     },
     "version": {
       "label": "版本",
-      "value": "Clavis v{{version}}",
+      "value": "cchive v{{version}}",
       "upToDate": "已是最新",
       "notConfigured": "尚未設定更新",
       "checkForUpdates": "檢查更新"

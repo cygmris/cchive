@@ -1,4 +1,4 @@
-//! Cross-platform resolution of every Claude Code path Clavis touches, plus
+//! Cross-platform resolution of every Claude Code path cchive touches, plus
 //! detection of the env vars that override or relocate the credential.
 //!
 //! Pure path logic: nothing here reads or writes a file. The home directory is
@@ -24,14 +24,14 @@ fn home_dir() -> PathBuf {
     dirs::home_dir().expect("home directory could not be resolved")
 }
 
-/// The Clavis app config dir (`<config_dir>/app.clavis`) — where the provider/pref
+/// The cchive app config dir (`<config_dir>/app.cchive`) — where the provider/pref
 /// index files and the rotating backups store live. This mirrors Tauri's
-/// `app_config_dir()` for the `app.clavis` identifier, so the secret-free backup
+/// `app_config_dir()` for the `app.cchive` identifier, so the secret-free backup
 /// hook (which has no `AppHandle`) and the command layer resolve the SAME directory.
-pub fn clavis_config_dir() -> PathBuf {
+pub fn cchive_config_dir() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| home_dir().join(".config"))
-        .join("app.clavis")
+        .join("app.cchive")
 }
 
 /// `<claude_dir>/.credentials.json` — the live credential on Linux/Windows.
@@ -100,7 +100,7 @@ pub fn macos_keychain_service() -> KeychainService {
     }
 }
 
-/// Detect auth-relevant env vars that override or relocate what Clavis writes:
+/// Detect auth-relevant env vars that override or relocate what cchive writes:
 /// `CLAUDE_CODE_OAUTH_TOKEN` (bypasses the credential file/keychain entirely),
 /// `CLAUDE_CONFIG_DIR` (relocation), and the presence of any `ANTHROPIC_*` vars.
 /// Values are never captured — only the `ANTHROPIC_*` names.

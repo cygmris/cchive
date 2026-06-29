@@ -1,9 +1,9 @@
-//! The Clavis provider index — persist + read saved API-provider configs.
+//! The cchive provider index — persist + read saved API-provider configs.
 //!
 //! Each provider is stored as non-secret metadata + a full settings payload in a
-//! Clavis-managed `providers.json` (written through `atomic_fs`, NOT the JS store
+//! cchive-managed `providers.json` (written through `atomic_fs`, NOT the JS store
 //! plugin, which the Rust side cannot easily reach). The auth token lives apart in
-//! the OS keyring vault (`app.clavis.providers/<id>`) and is composed back into the
+//! the OS keyring vault (`app.cchive.providers/<id>`) and is composed back into the
 //! `env` block only at apply time — so no token ever rides on the index or any view.
 //!
 //! `apply` builds the `ANTHROPIC_*` env block (incl. the vaulted token) plus the

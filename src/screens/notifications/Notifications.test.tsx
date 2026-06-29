@@ -2,7 +2,7 @@
  * NotificationsScreen tests — the desktop-notification-hook manager wired through
  * the (mocked) query layer: it renders the three toggle rows (Completion /
  * General / Tool-use) from the derived state, flipping a row installs or removes
- * the Clavis-marked hook via `set_notification`, and "Test" fires a live preview
+ * the cchive-marked hook via `set_notification`, and "Test" fires a live preview
  * via `test_notification`.
  *
  * `@tauri-apps/api/core` is mocked true so the query layer hits the real backend

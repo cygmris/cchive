@@ -1,10 +1,10 @@
-//! Clavis's own vaults in the OS keyring.
+//! cchive's own vaults in the OS keyring.
 //!
 //! Two sibling service namespaces, each keyed by entry id:
-//! - `app.clavis.accounts` — saved-account secret blobs (subscription switch).
-//! - `app.clavis.providers` — per-provider auth tokens (API-provider mode).
+//! - `app.cchive.accounts` — saved-account secret blobs (subscription switch).
+//! - `app.cchive.providers` — per-provider auth tokens (API-provider mode).
 //!
-//! This is the ONLY place that touches the Clavis vault namespaces; the live
+//! This is the ONLY place that touches the cchive vault namespaces; the live
 //! Claude Code credential (`Claude Code-credentials`) is handled separately in
 //! `core::credentials`. Secret blobs are opaque strings here and are NEVER
 //! logged — only ids and outcomes ever appear in any diagnostic.
@@ -16,10 +16,10 @@
 use crate::model::CoreError;
 
 /// Keyring service under which every saved-account secret blob is stored.
-const ACCOUNTS_SERVICE: &str = "app.clavis.accounts";
+const ACCOUNTS_SERVICE: &str = "app.cchive.accounts";
 
 /// Keyring service under which every provider auth token is stored.
-const PROVIDERS_SERVICE: &str = "app.clavis.providers";
+const PROVIDERS_SERVICE: &str = "app.cchive.providers";
 
 /// Backend the vault dispatches to. `Sync` so the `'static` trait object can be
 /// shared across cargo's parallel test threads. Every call is namespaced by

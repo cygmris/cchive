@@ -1,7 +1,7 @@
 //! Resource commands: list/get/save/delete the markdown resources (agents,
 //! commands, skills) + a safe skill enable/disable toggle.
 //!
-//! These touch ONLY `~/.claude/{agents,commands,skills}` and the Clavis
+//! These touch ONLY `~/.claude/{agents,commands,skills}` and the cchive
 //! disabled-skills stash under the app config dir. `.credentials.json`,
 //! `~/.claude.json`, and any `mcpOAuth` data are never read or written here.
 
@@ -12,7 +12,7 @@ use tauri::{AppHandle, Manager, Runtime};
 use crate::core::{paths, resources};
 use crate::model::{CoreError, Resource, ResourceDetail, ResourceKind};
 
-/// The Clavis-managed stash for disabled skills, under the app config dir.
+/// The cchive-managed stash for disabled skills, under the app config dir.
 const DISABLED_SKILLS_STASH: &str = "disabled-skills";
 
 /// The `~/.claude` directory backing a resource kind.

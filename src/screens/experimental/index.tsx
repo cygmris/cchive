@@ -2,11 +2,11 @@
  * Experimental — the real screen (replaces the S2 placeholder).
  *
  * A warning banner (warning tint + dot) over an "Agent Teams" Card: a title +
- * description with a Switch bound to the Clavis-local `experimental.agentTeams`
+ * description with a Switch bound to the cchive-local `experimental.agentTeams`
  * pref; when on it reveals a "Teammate display mode" sub-row with a Select bound
  * to `experimental.teammateMode`. Both persist on change.
  *
- * These are Clavis app preferences only — NO Claude Code files are touched. The
+ * These are cchive app preferences only — NO Claude Code files are touched. The
  * flags hydrate from {@link getExperimentalPrefs} (corrupt/missing → defaults,
  * so this never throws and renders in `vite dev` / the gallery). All labels come
  * from i18n via {@link useTranslation}; styling is tokens-only.

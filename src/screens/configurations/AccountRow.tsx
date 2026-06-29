@@ -58,8 +58,8 @@ export function AccountRow({ account, active, index, divider }: AccountRowProps)
 
   function signOut() {
     const message = active
-      ? `Sign out ${name}? This is the active account. Clavis forgets only its saved copy — your live Claude Code credential is untouched.`
-      : `Sign out ${name}? Clavis forgets its saved copy — your live Claude Code credential is untouched.`;
+      ? `Sign out ${name}? This is the active account. cchive forgets only its saved copy — your live Claude Code credential is untouched.`
+      : `Sign out ${name}? cchive forgets its saved copy — your live Claude Code credential is untouched.`;
     if (!window.confirm(message)) return;
     removeAccount.mutate(account.id, {
       onSuccess: () =>

@@ -19,7 +19,7 @@ pub fn read_notification_state() -> Result<NotificationState, CoreError> {
     notify_hook::read_state()
 }
 
-/// Install (`on`) or remove (`!on`) the Clavis-marked hook for `kind`.
+/// Install (`on`) or remove (`!on`) the cchive-marked hook for `kind`.
 /// On-disk effect: backs up then atomically rewrites only the mapped `hooks`
 /// event in `settings.json`, preserving the user's hooks + every other key.
 #[tauri::command]
@@ -36,7 +36,7 @@ pub fn test_notification<R: Runtime>(
 ) -> Result<(), CoreError> {
     app.notification()
         .builder()
-        .title("Clavis")
+        .title("cchive")
         .body(notify_hook::message(kind))
         .show()
         .map_err(|e| CoreError::Io(e.to_string()))

@@ -1,35 +1,46 @@
-# Clavis
+# cchive
 
-Clavis is a local, offline-first desktop manager for your Claude Code configuration and
-accounts. It runs as a native [Tauri](https://tauri.app) app (Rust shell + React UI) and
-keeps everything on your machine: switch between provider accounts, edit Claude Code config,
-and review usage without anything leaving your device.
+**A calm desktop hub for Claude Code — switch accounts and configurations the moment one runs out.**
 
-The application identity is `app.clavis`.
+cchive (cc + hive) is a local, offline-first desktop app that gathers everything about your
+Claude Code setup in one place: switch between subscription accounts and API providers, manage
+MCP servers, agents, commands, skills and memory, and read your local usage — all on your
+machine, nothing leaving your device. It runs as a native [Tauri](https://tauri.app) app
+(Rust shell + React UI) and stores secrets in your OS keyring.
 
 ## What it does
 
-- **Account switching** — capture the active Claude Code subscription credential and switch
+- **Account switching** — capture the account you're signed into in Claude Code and switch
   between saved accounts. Switches are atomic and reversible (capture → backup → write →
   verify → rollback on failure) and preserve your per-MCP OAuth tokens (`mcpOAuth`).
-- **Provider switching** — apply a saved provider profile (the `env` block in
-  `settings.json`) for Anthropic-compatible endpoints, via a shallow merge that leaves your
-  other settings untouched.
-- **Config editing** — view and edit Claude Code config surfaces (settings, MCP servers,
-  agents, commands, memory) and review token usage.
-- **System tray** — a tray icon with a dynamic quick-switch menu listing your saved accounts
-  and providers (the active one is checked). Selecting one runs the **same** safe switch core
-  as the in-app UI, fires a desktop notification, and refreshes the window. Left-click toggles
-  the main window; a single-instance guard focuses the existing window on relaunch.
-- **Launch at login** — an optional autostart toggle in Settings (powered by
-  `tauri-plugin-autostart`) registers only Clavis's own launch.
+- **Provider switching** — apply a saved provider profile (the `env` block in `settings.json`)
+  for Anthropic-compatible endpoints, via a shallow merge that leaves your other settings
+  untouched; a built-in **latency test** helps you pick the fastest endpoint.
+- **Config management** — view and edit MCP servers, agents, commands, skills, and project /
+  global memory (`CLAUDE.md`), with a CodeMirror editor.
+- **Usage analytics** — daily output-token chart + tokens-by-model breakdown and a cost
+  estimate, parsed from your local usage logs.
+- **System tray quick-switch** — a tray menu lists your accounts and providers (active one
+  checked); selecting one runs the **same** safe switch core as the in-app UI, fires a desktop
+  notification, and refreshes the window. Left-click toggles the window; single-instance
+  focuses the existing window on relaunch.
+- **Notifications, import/export, backups** — opt-in desktop notifications via a surgical
+  `settings.json` hook; secret-free export/import of your provider list + preferences; rotating
+  backups of the Claude files with one-click restore (auto-snapshotted before every switch).
+- **Personalization** — light/dark, swappable accent + density, and five UI languages
+  (English / 中文 / 繁體中文 / 日本語 / Français); launch-at-login.
 
-## Identity
+## Security model
 
-Clavis is its own application with its own identity — `app.clavis`, product name **Clavis**,
-its own icon set generated from the C-Key gradient mark, its own storage namespace, and no
-telemetry. It does not carry over any third-party identifiers, storage directories, hook
-markers, analytics keys, or update endpoints from any other tool.
+- **Secrets live only in your OS keyring** (Secret Service / Keychain / Credential Manager) and
+  **never cross the IPC boundary to the WebView** — Rust commands return labels and metadata
+  only (enforced by tests + a repo-wide leak audit).
+- **Export never contains secrets** — it writes your provider list and preferences without any
+  key or token (a unit test asserts this).
+- **Every write is atomic, backed up, and preserves unknown keys** — your hand-edited settings
+  and `mcpOAuth` are never clobbered.
+- No telemetry; narrow OS capabilities (notification, dialog, autostart self-launch, an opener
+  scoped to the project's issue page).
 
 ## Stack
 
@@ -89,7 +100,7 @@ builds on every push.
 ```bash
 # The .AppImage is the most portable Linux artifact (runs on any distro).
 APPIMAGE_EXTRACT_AND_RUN=1 NO_STRIP=true pnpm tauri build --bundles appimage
-# -> src-tauri/target/release/bundle/appimage/Clavis_<ver>_amd64.AppImage
+# -> src-tauri/target/release/bundle/appimage/cchive_<ver>_amd64.AppImage
 ```
 
 `APPIMAGE_EXTRACT_AND_RUN=1` lets `linuxdeploy` (itself an AppImage) run on hosts
@@ -111,13 +122,13 @@ desktops. Two distro notes:
 
 An AppImage is a portable single file: the desktop integration keys its menu
 entry on the AppImage's **path**, so a new build at a new path/name adds a second
-"Clavis (1)" entry instead of updating — there is no in‑place update. On Arch,
+"cchive (1)" entry instead of updating — there is no in‑place update. On Arch,
 install the native package instead, which `pacman` updates in place by the
-`clavis` package name (one menu entry, never a `(1)`):
+`cchive` package name (one menu entry, never a `(1)`):
 
 ```bash
 bash scripts/build-arch-pkg.sh          # builds the release if needed, then makepkg
-sudo pacman -U packaging/arch/clavis-*.pkg.tar.zst
+sudo pacman -U packaging/arch/cchive-*.pkg.tar.zst
 ```
 
 To **update** later: build the new version and `pacman -U` the new package — it
@@ -172,14 +183,14 @@ src-tauri/
 
 ## Enabling updates
 
-Clavis is built to support signed in-app updates via `tauri-plugin-updater`, but **no signing
+cchive is built to support signed in-app updates via `tauri-plugin-updater`, but **no signing
 key or update endpoint is committed to this repository** — those are supplied at release time
 so each maintainer controls their own signing identity and hosting. To enable updates for your
 own builds:
 
 1. **Generate a minisign keypair** with the Tauri CLI:
    ```bash
-   pnpm tauri signer generate -w ~/.tauri/clavis-updater.key
+   pnpm tauri signer generate -w ~/.tauri/cchive-updater.key
    ```
    Keep the **private** key secret (store it in your CI secrets, e.g.
    `TAURI_SIGNING_PRIVATE_KEY` + its password); the command also prints the matching **public**
@@ -193,7 +204,7 @@ own builds:
    "plugins": {
      "updater": {
        "pubkey": "<YOUR_MINISIGN_PUBLIC_KEY>",
-       "endpoints": ["https://<your-host>/clavis/latest.json"]
+       "endpoints": ["https://<your-host>/cchive/latest.json"]
      }
    }
    ```
@@ -206,3 +217,12 @@ own builds:
 
 Until you complete those steps, the app simply ships without an update channel — there are no
 placeholder keys or endpoints baked into the source.
+
+## License
+
+[MIT](LICENSE) © 2026 Chris.
+
+## Colophon
+
+cchive was designed and built end-to-end with [Claude Code](https://claude.com/claude-code) —
+spec-driven, screen by screen, with the safe-switch core and security model verified by tests.

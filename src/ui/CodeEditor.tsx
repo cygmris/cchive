@@ -6,7 +6,7 @@
  * the {@link MarkdownEditor} modal wrapper). The `language` prop selects
  * `markdown()` (with line wrapping) or `json()`; a `Mod-s` keymap calls
  * {@link CodeEditorProps.onSave} with the live document. Chrome (surface, text,
- * cursor, selection, gutter) reads entirely from the Clavis tokens, so it tracks
+ * cursor, selection, gutter) reads entirely from the cchive tokens, so it tracks
  * the active light/dark theme via {@link useTheme}.
  *
  * Token-only styling; full-height mono; no secret handling.
@@ -38,11 +38,11 @@ export interface CodeEditorProps {
 }
 
 /**
- * Build a CodeMirror theme from the Clavis tokens. Values reference the CSS
+ * Build a CodeMirror theme from the cchive tokens. Values reference the CSS
  * custom properties directly, so a single extension renders correctly in both
  * light and dark — `dark` only flags CodeMirror's own base assumptions.
  */
-function clavisTheme(dark: boolean): Extension {
+function cchiveTheme(dark: boolean): Extension {
   return EditorView.theme(
     {
       "&": {
@@ -124,7 +124,7 @@ export function CodeEditor({
     return [...lang, saveKeymap];
   }, [language]);
 
-  const editorTheme = useMemo(() => clavisTheme(theme === "dark"), [theme]);
+  const editorTheme = useMemo(() => cchiveTheme(theme === "dark"), [theme]);
 
   return (
     <CodeMirror

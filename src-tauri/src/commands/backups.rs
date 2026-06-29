@@ -12,8 +12,8 @@ use tauri::{AppHandle, Manager, Runtime};
 use crate::core::backups;
 use crate::model::{BackupEntry, CoreError};
 
-/// Resolve the Clavis app config dir (the parent of the `backups/` store).
-fn clavis_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, CoreError> {
+/// Resolve the cchive app config dir (the parent of the `backups/` store).
+fn cchive_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, CoreError> {
     app.path()
         .app_config_dir()
         .map_err(|e| CoreError::Io(e.to_string()))
@@ -23,7 +23,7 @@ fn clavis_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, CoreError> {
 /// On-disk effect: reads the `backups/` store; no credential I/O.
 #[tauri::command]
 pub fn list_backups<R: Runtime>(app: AppHandle<R>) -> Result<Vec<BackupEntry>, CoreError> {
-    Ok(backups::list(&clavis_dir(&app)?))
+    Ok(backups::list(&cchive_dir(&app)?))
 }
 
 /// Restore the backup `id` back to its original Claude file, snapshotting the
@@ -31,5 +31,5 @@ pub fn list_backups<R: Runtime>(app: AppHandle<R>) -> Result<Vec<BackupEntry>, C
 /// On-disk effect: snapshots then atomically overwrites the original; no keyring I/O.
 #[tauri::command]
 pub fn restore_backup<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), CoreError> {
-    backups::restore(&clavis_dir(&app)?, &id)
+    backups::restore(&cchive_dir(&app)?, &id)
 }

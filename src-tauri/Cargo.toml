@@ -1,13 +1,13 @@
 [package]
-name = "clavis"
+name = "cchive"
 version = "0.1.0"
-description = "Clavis"
+description = "cchive"
 edition = "2021"
 rust-version = "1.77.2"
 
 # The library powering the desktop binary; the GUI entry point lives in main.rs.
 [lib]
-name = "clavis_lib"
+name = "cchive_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -35,7 +35,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 # RustCrypto so the binary has no OpenSSL runtime dependency (matches the keyring
 # crypto-rust choice); blocking drives its own internal runtime off a worker thread.
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
-# OS keyring for Clavis's own account vault.
+# OS keyring for cchive's own account vault.
 #   Linux  -> persistent Secret Service (GNOME Keyring / KWallet) via
 #            dbus-secret-service. `vendored` statically links libdbus from source
 #            (libdbus-sys/vendored), so the shipped binary has NO runtime libdbus

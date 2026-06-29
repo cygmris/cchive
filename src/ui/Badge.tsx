@@ -1,5 +1,5 @@
 /**
- * Clavis badges — small uppercase status pills, provider brand chips, and the
+ * cchive badges — small uppercase status pills, provider brand chips, and the
  * categorical model / source tags.
  *
  * Everything is token-driven (no hardcoded hex):

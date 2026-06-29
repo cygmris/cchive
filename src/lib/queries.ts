@@ -371,7 +371,7 @@ function demoResources(kind: ResourceKind): Resource[] {
  */
 const DEMO_GLOBAL_MEMORY = `# DEMO · User memory (CLAUDE.md)
 
-<!-- This is labelled demo content shown only outside the Clavis desktop app. -->
+<!-- This is labelled demo content shown only outside the cchive desktop app. -->
 
 ## Coding style
 - Prefer the smallest change that solves the problem.
@@ -388,7 +388,7 @@ const DEMO_GLOBAL_MEMORY = `# DEMO · User memory (CLAUDE.md)
  */
 const DEMO_PROJECT_MEMORY = `# DEMO · Project memory (CLAUDE.md)
 
-<!-- This is labelled demo content shown only outside the Clavis desktop app. -->
+<!-- This is labelled demo content shown only outside the cchive desktop app. -->
 
 ## This project
 - Frontend in \`src/\`, tests alongside the code they cover.
@@ -409,8 +409,8 @@ const DEMO_PROJECTS: Project[] = [
     lastActivity: 1_717_200_000_000,
   },
   {
-    path: "/home/demo/code/demo-clavis",
-    name: "demo-clavis",
+    path: "/home/demo/code/demo-cchive",
+    name: "demo-cchive",
     hasLocalSettings: true,
     lastActivity: 1_716_000_000_000,
   },
@@ -428,7 +428,7 @@ const DEMO_PROJECTS: Project[] = [
  * key makes it obvious this is not a real settings file.
  */
 const DEMO_PROJECT_SETTINGS_RAW = `{
-  "_demo": "labelled demo content — shown only outside the Clavis desktop app",
+  "_demo": "labelled demo content — shown only outside the cchive desktop app",
   "permissions": {
     "allow": ["Bash(pnpm test:*)", "Read(./src/**)"],
     "deny": []
@@ -616,7 +616,7 @@ function formatTokensCompact(n: number): string {
 
 /** Message surfaced when a mutation is attempted outside the desktop app. */
 export const DESKTOP_ONLY_MESSAGE =
-  "This action is available in the Clavis desktop app only.";
+  "This action is available in the cchive desktop app only.";
 
 /* ------------------------------------------------------------------------- *
  * Boundary helpers.
@@ -784,7 +784,7 @@ export function useActiveAccountCapture(): {
   };
 }
 
-/** Auth-relevant env vars that override what Clavis writes. */
+/** Auth-relevant env vars that override what cchive writes. */
 export function useEnvOverrides(): UseQueryResult<EnvOverrides, Error> {
   return useQuery({
     queryKey: queryKeys.envOverrides,
@@ -934,7 +934,7 @@ export function useActivity(
 }
 
 /**
- * The installed notification-hook state (which Clavis-marked hooks live in
+ * The installed notification-hook state (which cchive-marked hooks live in
  * `~/.claude/settings.json`). Off-Tauri it resolves to a demo state so the
  * gallery renders.
  */
@@ -947,7 +947,7 @@ export function useNotifications(): UseQueryResult<NotificationState, Error> {
 }
 
 /**
- * Whether Clavis is registered to launch at login (the OS autostart entry).
+ * Whether cchive is registered to launch at login (the OS autostart entry).
  * Off-Tauri (no OS integration) it resolves to `false` so the toggle renders off.
  */
 export function useAutostart(): UseQueryResult<boolean, Error> {
@@ -1364,7 +1364,7 @@ export interface SetNotificationInput {
 }
 
 /**
- * Install/remove the Clavis-marked notification hook for `kind` (surgical edit
+ * Install/remove the cchive-marked notification hook for `kind` (surgical edit
  * of `~/.claude/settings.json` `hooks`); invalidates the notification state so
  * the toggle re-derives from disk.
  */
@@ -1384,7 +1384,7 @@ export function useSetNotification(): UseMutationResult<
 }
 
 /**
- * Register/remove Clavis's launch-at-login entry over the OS autostart plugin;
+ * Register/remove cchive's launch-at-login entry over the OS autostart plugin;
  * invalidates the autostart query so the toggle re-derives from the real
  * `is_enabled` state (no optimistic flip).
  */
@@ -1399,7 +1399,7 @@ export function useSetAutostart(): UseMutationResult<void, Error, boolean> {
 }
 
 /**
- * Export the Clavis setup to a JSON file the user picks via the native save
+ * Export the cchive setup to a JSON file the user picks via the native save
  * dialog. Resolves to the chosen path, or `null` when the dialog was cancelled (a
  * no-op). Off-Tauri it rejects with the desktop-only message so the caller toasts
  * it. The written document is secret-free (providers carry no key).
@@ -1411,7 +1411,7 @@ export function useExportConfig(): UseMutationResult<string | null, Error, void>
 }
 
 /**
- * Import a Clavis setup from a JSON file the user picks via the native open
+ * Import a cchive setup from a JSON file the user picks via the native open
  * dialog, merging it back KEYLESS. Resolves to the {@link ImportSummary} counts, or
  * `null` when cancelled. On a real (non-cancelled) import it invalidates the
  * providers + settings-summary + active-identity queries so the merged shells +

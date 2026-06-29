@@ -1,7 +1,7 @@
 /**
- * Clavis icon set — curated Lucide line icons, tuned to the house style.
+ * cchive icon set — curated Lucide line icons, tuned to the house style.
  *
- * Every export is a thin wrapper that defaults to the Clavis stroke weight
+ * Every export is a thin wrapper that defaults to the cchive stroke weight
  * (1.7) on Lucide's 24px grid and paints in `currentColor`, so an icon inherits
  * the text/`--text-3` color of its row. Pass `active` to recolor the stroke to
  * `var(--accent)` (active nav items / rows). All native Lucide props
@@ -62,7 +62,7 @@ import {
   type LucideProps,
 } from "lucide-react";
 
-/** Clavis default stroke weight — Lucide's line language at ~1.7. */
+/** cchive default stroke weight — Lucide's line language at ~1.7. */
 export const DEFAULT_STROKE_WIDTH = 1.7;
 
 export interface IconProps extends LucideProps {

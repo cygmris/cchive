@@ -26,7 +26,7 @@ export const ACCENTS: Record<AccentName, string> = {
 export const THEME_TRANSITION_MS = 300;
 
 const TRANSITION_ATTR = "data-theme-transition";
-const TRANSITION_STYLE_ID = "clavis-theme-transition";
+const TRANSITION_STYLE_ID = "cchive-theme-transition";
 
 /**
  * Mirror the current theme/accent/density onto `<html>`.

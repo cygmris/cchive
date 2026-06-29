@@ -1,7 +1,7 @@
 /**
  * Sidebar — the 248px navigation rail.
  *
- * Top to bottom: the clay logo tile + "Clavis" wordmark + version pill; a
+ * Top to bottom: the clay logo tile + "cchive" wordmark + version pill; a
  * full-width "Search…" launcher (opens the command palette, ⌘K hint); the three
  * nav groups from `router.NAV` (uppercase eyebrows on Customize / System) with
  * the active item lit by an accent tint + 2.5px inset clay bar + accent icon +
@@ -72,7 +72,7 @@ export function Sidebar() {
             color: "var(--text)",
           }}
         >
-          Clavis
+          cchive
         </span>
         <span
           style={{

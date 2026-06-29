@@ -1,4 +1,4 @@
-//! Clavis backend entry point.
+//! cchive backend entry point.
 //!
 //! S1 keeps the Rust side intentionally minimal: open the window, register the
 //! single-instance guard (first) and the store plugin (for non-secret prefs).
@@ -93,5 +93,5 @@ pub fn run() {
             commands::app_prefs::set_autostart,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running the Clavis application");
+        .expect("error while running the cchive application");
 }

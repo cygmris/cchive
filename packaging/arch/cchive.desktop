@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Clavis
+Name=cchive
 GenericName=Claude Code account & config switcher
 Comment=Switch Claude Code accounts and configurations
-Exec=clavis
-Icon=clavis
+Exec=cchive
+Icon=cchive
 Terminal=false
 Categories=Development;Utility;
-StartupWMClass=Clavis
+StartupWMClass=cchive

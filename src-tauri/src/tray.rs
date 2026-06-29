@@ -2,11 +2,11 @@
 //!
 //! A single `TrayIcon` (the app's C-Key mark) carries a dynamic menu that lists
 //! the saved vault accounts + the configured API-provider presets as CHECKABLE
-//! rows (the active one checked), plus "Add current account" / "Open Clavis" /
+//! rows (the active one checked), plus "Add current account" / "Open cchive" /
 //! "Quit". Selecting an account routes through `core::switch::switch_account` and
 //! a provider through `core::providers::apply` — the SAME safe paths the in-app UI
 //! uses (capture/atomic/rollback/preserve `mcpOAuth`); the tray adds NO switch
-//! logic of its own. After a switch it emits `clavis-switched` (so the webview
+//! logic of its own. After a switch it emits `cchive-switched` (so the webview
 //! invalidates its queries), fires a "Now: LABEL" notification, and rebuilds the
 //! menu from truth so the check always lands on the real active config. Left-click
 //! toggles the main window.
@@ -29,14 +29,14 @@ use crate::core::{paths, providers, switch};
 use crate::model::{AccountMeta, ActiveIdentity, CoreError, ProviderMeta};
 
 /// Stable id so the tray can be fetched again (`tray_by_id`) to swap its menu.
-const TRAY_ID: &str = "clavis-tray";
+const TRAY_ID: &str = "cchive-tray";
 
 /// Store file + key holding the non-secret account index (mirrors the accounts
 /// command); the secret blobs live only in the OS keyring vault.
-const ACCOUNTS_FILE: &str = "clavis-accounts.json";
+const ACCOUNTS_FILE: &str = "cchive-accounts.json";
 const ACCOUNTS_KEY: &str = "accounts";
 
-/// The Clavis-managed provider index under the app config dir (same as the
+/// The cchive-managed provider index under the app config dir (same as the
 /// providers command).
 const PROVIDERS_INDEX: &str = "providers.json";
 
@@ -136,7 +136,7 @@ fn provider_is_active(provider: &ProviderMeta, identity: Option<&ActiveIdentity>
 pub fn build_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let menu = build_menu(app)?;
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
-        .tooltip("Clavis")
+        .tooltip("cchive")
         .menu(&menu)
         // Left-click toggles the window; the menu opens on right-click.
         .show_menu_on_left_click(false)
@@ -186,7 +186,7 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let sep_top = PredefinedMenuItem::separator(app)?;
     let add_current =
         MenuItem::with_id(app, ID_ADD_CURRENT, "Add current account", true, None::<&str>)?;
-    let open = MenuItem::with_id(app, ID_OPEN, "Open Clavis", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, ID_OPEN, "Open cchive", true, None::<&str>)?;
     let sep_bottom = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, ID_QUIT, "Quit", true, None::<&str>)?;
 
@@ -266,7 +266,7 @@ fn perform_switch<R: Runtime>(app: &AppHandle<R>, target: Target) {
     };
     match outcome {
         Ok(identity) => {
-            let _ = app.emit("clavis-switched", &identity);
+            let _ = app.emit("cchive-switched", &identity);
             notify(app, &format!("Now: {}", identity.label));
         }
         Err(e) => notify(app, &format!("Switch failed: {e}")),
@@ -324,12 +324,12 @@ fn notify<R: Runtime>(app: &AppHandle<R>, body: &str) {
     let _ = app
         .notification()
         .builder()
-        .title("Clavis")
+        .title("cchive")
         .body(body)
         .show();
 }
 
-/// Read the saved-account index (labels + ids) from the Clavis store.
+/// Read the saved-account index (labels + ids) from the cchive store.
 fn read_accounts<R: Runtime>(app: &AppHandle<R>) -> Vec<AccountMeta> {
     app.store(ACCOUNTS_FILE)
         .ok()

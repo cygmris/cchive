@@ -1,10 +1,10 @@
-//! Portable, SECRET-FREE export/import of the Clavis setup.
+//! Portable, SECRET-FREE export/import of the cchive setup.
 //!
-//! `build_export` assembles an `ExportDoc` from the Clavis-managed files under the
+//! `build_export` assembles an `ExportDoc` from the cchive-managed files under the
 //! app config dir: the provider index (label + base URL + model — NEVER the vaulted
 //! key), the non-secret app preferences (theme / language / experimental only), and
 //! the saved-account labels (no token). `apply_import` validates the header
-//! (`app == "clavis"`) then merges providers back KEYLESS (a created/updated provider
+//! (`app == "cchive"`) then merges providers back KEYLESS (a created/updated provider
 //! never gets a token written) and applies the allow-listed preference keys; any
 //! foreign header is rejected before a single byte is written.
 //!
@@ -23,17 +23,17 @@ use crate::model::{
     ProviderConfigInput, ProviderEnv, ProviderSettings,
 };
 
-/// Identity tag every Clavis export carries; an import rejects anything else.
-const APP_ID: &str = "clavis";
+/// Identity tag every cchive export carries; an import rejects anything else.
+const APP_ID: &str = "cchive";
 /// Current export schema version.
 const SCHEMA: u32 = 1;
 
-/// The Clavis-managed provider index, under the app config dir.
+/// The cchive-managed provider index, under the app config dir.
 const PROVIDERS_INDEX: &str = "providers.json";
 /// The `tauri-plugin-store` file holding the non-secret app preferences.
-const STORE_FILE: &str = "clavis.store.json";
+const STORE_FILE: &str = "cchive.store.json";
 /// The store file holding the non-secret account index.
-const ACCOUNTS_FILE: &str = "clavis-accounts.json";
+const ACCOUNTS_FILE: &str = "cchive-accounts.json";
 /// Store key inside `ACCOUNTS_FILE` holding the account array.
 const ACCOUNTS_KEY: &str = "accounts";
 
@@ -46,7 +46,7 @@ const PREF_KEYS: &[&str] = &["theme", "language", "experimental"];
 // Export
 // ---------------------------------------------------------------------------
 
-/// Build a secret-free `ExportDoc` from the Clavis files under `config_dir`.
+/// Build a secret-free `ExportDoc` from the cchive files under `config_dir`.
 pub fn build_export(config_dir: &Path) -> Result<ExportDoc, CoreError> {
     // Providers as non-secret metadata (label + base URL + model). `list` reads
     // only the index and never probes the vault, so no token is in reach.
@@ -124,7 +124,7 @@ pub fn apply_import(config_dir: &Path, doc: &ExportDoc) -> Result<ImportSummary,
     // Reject a foreign export up front — no partial state.
     if doc.app != APP_ID {
         return Err(CoreError::InvalidInput(format!(
-            "not a Clavis export (app = {:?})",
+            "not a cchive export (app = {:?})",
             doc.app
         )));
     }
@@ -301,7 +301,7 @@ mod tests {
         let doc = build_export(dir.path()).unwrap();
 
         // Header + content present.
-        assert_eq!(doc.app, "clavis");
+        assert_eq!(doc.app, "cchive");
         assert_eq!(doc.schema, SCHEMA);
         assert_eq!(doc.providers.len(), 2);
         assert_eq!(doc.accounts.len(), 1);
@@ -332,7 +332,7 @@ mod tests {
         let config = dir.path();
 
         let doc = ExportDoc {
-            app: "clavis".to_string(),
+            app: "cchive".to_string(),
             schema: 1,
             exported_at: 0,
             providers: vec![
@@ -400,7 +400,7 @@ mod tests {
         .unwrap();
 
         let doc = ExportDoc {
-            app: "clavis".to_string(),
+            app: "cchive".to_string(),
             schema: 1,
             exported_at: 0,
             providers: vec![],
@@ -421,7 +421,7 @@ mod tests {
         let config = dir.path();
 
         let doc = ExportDoc {
-            app: "not-clavis".to_string(),
+            app: "not-cchive".to_string(),
             schema: 1,
             exported_at: 0,
             providers: vec![ExportProvider {
@@ -446,7 +446,7 @@ mod tests {
     fn build_export_empty_config_dir_is_a_valid_empty_doc() {
         let dir = tempfile::tempdir().unwrap();
         let doc = build_export(dir.path()).unwrap();
-        assert_eq!(doc.app, "clavis");
+        assert_eq!(doc.app, "cchive");
         assert!(doc.providers.is_empty());
         assert!(doc.accounts.is_empty());
         assert_eq!(doc.prefs, json!({}));

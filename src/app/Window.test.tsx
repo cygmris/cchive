@@ -10,7 +10,7 @@
  * lazy split; only the shell has to be Suspense-aware — which is what this
  * asserts.
  *
- * `experimental` is the probe screen: it's self-contained (Clavis-local prefs,
+ * `experimental` is the probe screen: it's self-contained (cchive-local prefs,
  * no IPC/query), so the test exercises the lazy boundary itself rather than a
  * screen's data layer. The shell mounts under the app's provider stack so the
  * Sidebar/StatusBar render exactly as they do in production.

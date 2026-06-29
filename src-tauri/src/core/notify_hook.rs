@@ -1,4 +1,4 @@
-//! Installs/removes a Clavis-marked desktop-notification `command` hook in
+//! Installs/removes a cchive-marked desktop-notification `command` hook in
 //! `~/.claude/settings.json` `hooks` for the Stop / Notification / PreToolUse
 //! events (mapped to Completion / General / Tool-use).
 //!
@@ -8,7 +8,7 @@
 //! in place via `atomic_fs::write_json_preserving` after a backup (G2/G11).
 //!
 //! The installed state is derived purely from the presence of the marker, so
-//! there is no separate state file to drift. De-fingerprinted: a `clavis-notify`
+//! there is no separate state file to drift. De-fingerprinted: a `cchive-notify`
 //! marker, a per-OS notification command, no server, no fixed port.
 #![allow(dead_code)] // some helpers are exercised only by commands/tests
 
@@ -19,9 +19,9 @@ use serde_json::{json, Map, Value};
 use super::{atomic_fs, paths};
 use crate::model::{CoreError, NotificationKind, NotificationState};
 
-/// The substring embedded in every Clavis-installed hook command. Its presence
+/// The substring embedded in every cchive-installed hook command. Its presence
 /// in a `hooks[].command` is the single source of truth for "installed".
-pub const MARKER: &str = "clavis-notify";
+pub const MARKER: &str = "cchive-notify";
 
 /// The `settings.json` `hooks` event a notification kind maps to.
 pub fn event_for(kind: NotificationKind) -> &'static str {
@@ -51,26 +51,26 @@ pub fn message(kind: NotificationKind) -> &'static str {
     }
 }
 
-/// A per-OS shell command that fires a desktop notification, with the Clavis
-/// marker embedded as a trailing comment (`# clavis-notify:<kind>`). The comment
-/// is inert to every shell yet lets Clavis derive and remove its own entry.
+/// A per-OS shell command that fires a desktop notification, with the cchive
+/// marker embedded as a trailing comment (`# cchive-notify:<kind>`). The comment
+/// is inert to every shell yet lets cchive derive and remove its own entry.
 pub fn notify_command(kind: NotificationKind) -> String {
     let msg = message(kind);
     let marker = format!("# {MARKER}:{}", kind_slug(kind));
 
     #[cfg(target_os = "macos")]
     {
-        format!("osascript -e 'display notification \"{msg}\" with title \"Clavis\"' {marker}")
+        format!("osascript -e 'display notification \"{msg}\" with title \"cchive\"' {marker}")
     }
     #[cfg(target_os = "windows")]
     {
         format!(
-            "powershell -NoProfile -WindowStyle Hidden -Command \"[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType=WindowsRuntime] | Out-Null; $t=[Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $t.GetElementsByTagName('text').Item(0).AppendChild($t.CreateTextNode('Clavis')) | Out-Null; $t.GetElementsByTagName('text').Item(1).AppendChild($t.CreateTextNode('{msg}')) | Out-Null; [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Clavis').Show([Windows.UI.Notifications.ToastNotification]::new($t))\" {marker}"
+            "powershell -NoProfile -WindowStyle Hidden -Command \"[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType=WindowsRuntime] | Out-Null; $t=[Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $t.GetElementsByTagName('text').Item(0).AppendChild($t.CreateTextNode('cchive')) | Out-Null; $t.GetElementsByTagName('text').Item(1).AppendChild($t.CreateTextNode('{msg}')) | Out-Null; [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('cchive').Show([Windows.UI.Notifications.ToastNotification]::new($t))\" {marker}"
         )
     }
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
-        format!("notify-send \"Clavis\" \"{msg}\" {marker}")
+        format!("notify-send \"cchive\" \"{msg}\" {marker}")
     }
 }
 
@@ -146,7 +146,7 @@ pub(crate) fn set_enabled_at(
                 }));
             }
         } else {
-            // Remove only Clavis's marked elements; the user's stay.
+            // Remove only cchive's marked elements; the user's stay.
             arr.retain(|entry| !entry_has_marker(entry));
         }
     })
@@ -162,7 +162,7 @@ fn entries<'a>(settings: &'a Value, event: &str) -> &'a [Value] {
         .unwrap_or(&[])
 }
 
-/// Whether an event has at least one marked (Clavis-installed) entry.
+/// Whether an event has at least one marked (cchive-installed) entry.
 fn event_has_marker(settings: &Value, event: &str) -> bool {
     entries(settings, event).iter().any(entry_has_marker)
 }
@@ -176,7 +176,7 @@ fn entry_has_marker(entry: &Value) -> bool {
         .unwrap_or(false)
 }
 
-/// Whether a `{ type, command }` hook's command contains the Clavis marker.
+/// Whether a `{ type, command }` hook's command contains the cchive marker.
 fn command_has_marker(hook: &Value) -> bool {
     hook.get("command")
         .and_then(Value::as_str)
@@ -240,7 +240,7 @@ mod tests {
         set_enabled_at(&path, NotificationKind::Completion, true).unwrap();
 
         let after = read(&path);
-        // Two Stop entries now: the user's + exactly one marked Clavis element.
+        // Two Stop entries now: the user's + exactly one marked cchive element.
         assert_eq!(entries(&after, "Stop").len(), 2);
         assert_eq!(marked_count(&after, "Stop"), 1);
         // The user's Stop hook is untouched.
@@ -284,7 +284,7 @@ mod tests {
 
         let after = read(&path);
         assert_eq!(marked_count(&after, "Stop"), 1, "no duplicate marked element");
-        assert_eq!(entries(&after, "Stop").len(), 2, "user + one Clavis only");
+        assert_eq!(entries(&after, "Stop").len(), 2, "user + one cchive only");
     }
 
     #[test]
@@ -340,9 +340,9 @@ mod tests {
 
     #[test]
     fn installed_command_carries_marker_only() {
-        // The marker is `clavis-notify` — and nothing else fingerprinted.
+        // The marker is `cchive-notify` — and nothing else fingerprinted.
         let cmd = notify_command(NotificationKind::Completion);
         assert!(cmd.contains(MARKER));
-        assert!(cmd.contains("clavis-notify:completion"));
+        assert!(cmd.contains("cchive-notify:completion"));
     }
 }
