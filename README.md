@@ -8,6 +8,10 @@ MCP servers, agents, commands, skills and memory, and read your local usage — 
 machine, nothing leaving your device. It runs as a native [Tauri](https://tauri.app) app
 (Rust shell + React UI) and stores secrets in your OS keyring.
 
+![cchive overview](docs/images/overview.png)
+
+> Screenshots use built-in demo data — no real account is shown.
+
 ## What it does
 
 - **Account switching** — capture the account you're signed into in Claude Code and switch
@@ -41,6 +45,20 @@ machine, nothing leaving your device. It runs as a native [Tauri](https://tauri.
   and `mcpOAuth` are never clobbered.
 - No telemetry; narrow OS capabilities (notification, dialog, autostart self-launch, an opener
   scoped to the project's issue page).
+
+## Screenshots
+
+**Configurations** — switch between saved accounts and API providers in one place:
+
+![Configurations](docs/images/configurations.png)
+
+**Usage** — local token usage, per day and per model, with a cost estimate:
+
+![Usage](docs/images/usage.png)
+
+**Settings** — language, light/dark, swappable accent + density:
+
+![Settings](docs/images/settings.png)
 
 ## Stack
 
