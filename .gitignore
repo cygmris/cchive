@@ -37,3 +37,8 @@ pnpm-debug.log*
 # --- spec-workflow runtime artifacts (keep specs + steering; ignore transient research scratch & approvals) ---
 .spec-workflow/approvals/
 .spec-workflow/research/
+
+# Arch package build artifacts
+packaging/arch/*.pkg.tar.*
+packaging/arch/pkg/
+packaging/arch/src/

@@ -1,0 +1,42 @@
+# Maintainer: Chris
+# Packages the already-built Clavis release binary into a native Arch package, so
+# `pacman -U` installs/updates it in place (one menu entry, no AppImage "(1)").
+# Build the release first (pnpm tauri build, or scripts/build-arch-pkg.sh), then
+# run `makepkg -f` in this directory.
+pkgname=clavis
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A calm desktop tool to switch Claude Code accounts and configurations"
+arch=('x86_64')
+url="https://github.com/clavis-app/clavis"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+options=('!strip' '!debug')
+# Packages a prebuilt binary from the repo — no sources fetched/compiled here.
+source=()
+
+package() {
+  # PKGBUILD lives in <repo>/packaging/arch ; reach the repo root from $startdir.
+  local _root="$startdir/../.."
+  local _bin="$_root/src-tauri/target/release/clavis"
+  local _icons="$_root/src-tauri/icons"
+
+  if [[ ! -f "$_bin" ]]; then
+    echo "ERROR: release binary not found at $_bin" >&2
+    echo "Build it first:  (cd $_root && pnpm tauri build)" >&2
+    return 1
+  fi
+
+  install -Dm755 "$_bin" "$pkgdir/usr/bin/clavis"
+  install -Dm644 "$startdir/clavis.desktop" "$pkgdir/usr/share/applications/clavis.desktop"
+
+  # hicolor icons (install only the sizes that exist).
+  local _map=( "32x32.png:32x32" "64x64.png:64x64" "128x128.png:128x128" "128x128@2x.png:256x256" "icon.png:512x512" )
+  local _entry _src _size
+  for _entry in "${_map[@]}"; do
+    _src="$_icons/${_entry%%:*}"
+    _size="${_entry##*:}"
+    [[ -f "$_src" ]] && install -Dm644 "$_src" \
+      "$pkgdir/usr/share/icons/hicolor/$_size/apps/clavis.png"
+  done
+}

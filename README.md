@@ -107,6 +107,23 @@ desktops. Two distro notes:
 - **FUSE:** to *run* an AppImage on a host without the `fuse` module, either
   `sudo modprobe fuse` once, or launch it with `--appimage-extract-and-run`.
 
+### Arch Linux — native package (recommended for clean updates)
+
+An AppImage is a portable single file: the desktop integration keys its menu
+entry on the AppImage's **path**, so a new build at a new path/name adds a second
+"Clavis (1)" entry instead of updating — there is no in‑place update. On Arch,
+install the native package instead, which `pacman` updates in place by the
+`clavis` package name (one menu entry, never a `(1)`):
+
+```bash
+bash scripts/build-arch-pkg.sh          # builds the release if needed, then makepkg
+sudo pacman -U packaging/arch/clavis-*.pkg.tar.zst
+```
+
+To **update** later: build the new version and `pacman -U` the new package — it
+replaces the old in place. (If you prefer the AppImage, overwrite the *same*
+file at the *same* path so its integration entry updates rather than duplicating.)
+
 ## Code signing & notarization
 
 The installers build **unsigned** by default — fine for local use and testing,

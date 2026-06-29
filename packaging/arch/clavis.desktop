@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Clavis
+GenericName=Claude Code account & config switcher
+Comment=Switch Claude Code accounts and configurations
+Exec=clavis
+Icon=clavis
+Terminal=false
+Categories=Development;Utility;
+StartupWMClass=Clavis
