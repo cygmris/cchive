@@ -18,10 +18,13 @@ function render(): void {
   );
 }
 
-// Apply the persisted language (authoritative under Tauri, where it lives in the
-// store) before the first paint, then render. Any failure is non-fatal — i18n is
-// already initialized with the detected/fallback language.
+// Paint immediately: i18n is already initialized with the detected/fallback
+// language, so the first frame is correct for most users and never blank.
+render();
+
+// Then apply the persisted language (authoritative under Tauri, where it lives
+// in the store) — i18n re-renders in place after first paint. Fire-and-forget:
+// any failure is non-fatal and the detected/fallback language stands.
 void getLanguagePref()
   .then((lng) => (lng && lng !== i18n.language ? i18n.changeLanguage(lng) : undefined))
-  .catch(() => undefined)
-  .finally(render);
+  .catch(() => undefined);

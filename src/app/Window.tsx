@@ -19,11 +19,12 @@
  * double-click to toggle maximize; it sits above the sidebar's controls so it
  * never covers an interactive element. Token-only styling.
  */
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Sidebar } from "@/app/Sidebar";
 import { StatusBar } from "@/app/StatusBar";
 import { getScreen } from "@/screens/registry";
 import { useShellStore } from "@/lib/store";
+import { Loader } from "@/ui/icons";
 import {
   closeWindow,
   minimizeWindow,
@@ -90,6 +91,28 @@ function TrafficLight({
         {glyph}
       </span>
     </button>
+  );
+}
+
+/**
+ * Calm placeholder shown while a lazily-loaded screen chunk resolves. A
+ * full-height surface with one subtle, slowly spinning loader — token-only, so
+ * it sits quietly in the active theme instead of flashing a blank panel.
+ */
+function ScreenFallback() {
+  return (
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--app-bg)",
+        color: "var(--text-3)",
+      }}
+    >
+      <Loader className="animate-spin" size={20} aria-hidden />
+    </div>
   );
 }
 
@@ -178,7 +201,9 @@ export function Window() {
             position: "relative",
           }}
         >
-          <ActiveScreen />
+          <Suspense fallback={<ScreenFallback />}>
+            <ActiveScreen />
+          </Suspense>
         </main>
       </div>
 

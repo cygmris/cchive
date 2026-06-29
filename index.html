@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Clavis</title>
+    <!--
+      Pre-React paint: show the app surface (not white) on the very first frame.
+      The hex mirrors the --app-bg token (sand-50 light / espresso-750 dark);
+      once the bundle's tokens load, body keeps the same surface seamlessly.
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #faf8f4;
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background: #1a1714;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

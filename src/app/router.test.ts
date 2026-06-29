@@ -13,12 +13,20 @@ import { SCREENS } from "@/lib/shell-types";
 describe("registry", () => {
   it("resolves a component for every Screen", () => {
     for (const screen of SCREENS) {
-      expect(registry[screen]).toBeTypeOf("function");
+      // Each screen is a React.lazy component (a react.lazy-tagged object, not
+      // a plain function), so the shell code-splits it out of the entry chunk.
+      expect(registry[screen]).toHaveProperty(
+        "$$typeof",
+        Symbol.for("react.lazy"),
+      );
     }
   });
 
   it("includes the editor screen (reached from actions, not the nav)", () => {
-    expect(registry.editor).toBeTypeOf("function");
+    expect(registry.editor).toHaveProperty(
+      "$$typeof",
+      Symbol.for("react.lazy"),
+    );
   });
 
   it("getScreen returns the registered component for a known key", () => {
