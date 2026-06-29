@@ -88,7 +88,6 @@ beforeEach(() => {
     activeScreen: "editor",
     editingProviderId: "prov-1",
     paletteOpen: false,
-    switcherOpen: false,
     addAccountOpen: false,
   });
   (ipc.getProvider as Mock).mockResolvedValue(VIEW);

@@ -24,7 +24,6 @@ export function useGlobalShortcuts(): void {
       if (e.key === "Escape") {
         const state = useShellStore.getState();
         if (state.paletteOpen) state.closePalette();
-        if (state.switcherOpen) state.closeSwitcher();
       }
     };
     window.addEventListener("keydown", onKeyDown);

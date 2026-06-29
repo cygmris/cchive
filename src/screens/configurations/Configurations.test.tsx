@@ -104,7 +104,6 @@ beforeEach(() => {
   useShellStore.setState({
     activeScreen: "configs",
     paletteOpen: false,
-    switcherOpen: false,
     addAccountOpen: false,
     openAddAccount,
   });

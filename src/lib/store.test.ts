@@ -24,7 +24,6 @@ beforeEach(() => {
   useShellStore.setState({
     activeScreen: "overview",
     paletteOpen: false,
-    switcherOpen: false,
     addAccountOpen: false,
     activeIdentity: { ...DEFAULT_IDENTITY },
   });
@@ -52,17 +51,6 @@ describe("overlay open-states", () => {
     expect(s().paletteOpen).toBe(true);
     s().togglePalette();
     expect(s().paletteOpen).toBe(false);
-  });
-
-  it("opens, closes and toggles the account switcher", () => {
-    s().openSwitcher();
-    expect(s().switcherOpen).toBe(true);
-    s().toggleSwitcher();
-    expect(s().switcherOpen).toBe(false);
-    s().toggleSwitcher();
-    expect(s().switcherOpen).toBe(true);
-    s().closeSwitcher();
-    expect(s().switcherOpen).toBe(false);
   });
 
   it("opens and closes the add-account modal", () => {

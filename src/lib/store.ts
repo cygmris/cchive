@@ -51,7 +51,6 @@ export interface ShellState {
   // --- Navigation + overlays ---
   activeScreen: Screen;
   paletteOpen: boolean;
-  switcherOpen: boolean;
   addAccountOpen: boolean;
 
   // --- Thin active-identity cache (hydrated by the queries layer) ---
@@ -77,9 +76,6 @@ export interface ShellState {
   openPalette: () => void;
   closePalette: () => void;
   togglePalette: () => void;
-  openSwitcher: () => void;
-  closeSwitcher: () => void;
-  toggleSwitcher: () => void;
   openAddAccount: () => void;
   closeAddAccount: () => void;
   /** Merge a partial active-identity snapshot into the cache (queries layer). */
@@ -93,7 +89,6 @@ export interface ShellState {
 export const useShellStore = create<ShellState>((set) => ({
   activeScreen: "overview",
   paletteOpen: false,
-  switcherOpen: false,
   addAccountOpen: false,
 
   activeIdentity: INITIAL_IDENTITY,
@@ -104,9 +99,6 @@ export const useShellStore = create<ShellState>((set) => ({
   openPalette: () => set({ paletteOpen: true }),
   closePalette: () => set({ paletteOpen: false }),
   togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
-  openSwitcher: () => set({ switcherOpen: true }),
-  closeSwitcher: () => set({ switcherOpen: false }),
-  toggleSwitcher: () => set((s) => ({ switcherOpen: !s.switcherOpen })),
   openAddAccount: () => set({ addAccountOpen: true }),
   closeAddAccount: () => set({ addAccountOpen: false }),
   setActiveIdentity: (patch) =>

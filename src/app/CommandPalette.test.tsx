@@ -16,7 +16,6 @@ beforeEach(() => {
   useShellStore.setState({
     activeScreen: "overview",
     paletteOpen: true,
-    switcherOpen: false,
   });
 });
 
