@@ -15,16 +15,44 @@
         margin: 0;
         background: #faf8f4;
       }
+      /* Pre-React boot spinner inside #root; React replaces #root's contents on
+         mount, so it vanishes the instant the app paints. Muted tone mirrors
+         --border / --text-3 so it reads as a calm "loading", never a blank wait. */
+      .clavis-boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .clavis-boot::after {
+        content: "";
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2.5px solid #e4dccf;
+        border-top-color: #9a8f80;
+        animation: clavis-spin 0.7s linear infinite;
+      }
+      @keyframes clavis-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       @media (prefers-color-scheme: dark) {
         html,
         body {
           background: #1a1714;
         }
+        .clavis-boot::after {
+          border-color: #36302a;
+          border-top-color: #8a8073;
+        }
       }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="clavis-boot"></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
