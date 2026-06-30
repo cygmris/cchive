@@ -170,7 +170,7 @@ const DEMO_ACTIVE_IDENTITY: ActiveIdentity = {
   email: "demo@example.com",
   org: "DEMO · Acme Org",
   tier: "Max 5×",
-  model: "claude-sonnet-4-5",
+  model: "claude-opus-4-8",
   expiresAt: null,
 };
 
@@ -181,7 +181,7 @@ const DEMO_ENV_OVERRIDES: EnvOverrides = {
 };
 
 const DEMO_SETTINGS_SUMMARY: SettingsSummary = {
-  model: "claude-sonnet-4-5",
+  model: "claude-opus-4-8",
   hasEnv: false,
   topLevelKeys: ["model", "permissions"],
 };
@@ -552,7 +552,7 @@ function demoUsageSummary(rangeDays: number): UsageSummary {
   const perDay: DayPoint[] = [];
   for (let back = rangeDays - 1; back >= 0; back--) {
     const wave = (Math.sin(back * 1.3) + 1) / 2;
-    const output = Math.round(40_000 + wave * 260_000);
+    const output = Math.round(220_000 + wave * 1_700_000);
     perDay.push({
       date: demoDay(today, back),
       output,
@@ -584,6 +584,9 @@ function demoUsageSummary(rangeDays: number): UsageSummary {
     { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 },
   );
 
+  const grand =
+    totals.input + totals.output + totals.cacheCreation + totals.cacheRead;
+
   const estCostUsd =
     Math.round(
       (totals.input * 3e-6 +
@@ -599,8 +602,10 @@ function demoUsageSummary(rangeDays: number): UsageSummary {
     unknownModels: [],
     perDay,
     perModel: [
-      { model: "DEMO · claude-sonnet-4-5", tokens: Math.round(totals.output * 9) },
-      { model: "DEMO · claude-haiku-4-5", tokens: Math.round(totals.output * 3) },
+      { model: "DEMO · claude-opus-4-8", tokens: Math.round(grand * 0.6) },
+      { model: "DEMO · claude-sonnet-4-5", tokens: Math.round(grand * 0.24) },
+      { model: "DEMO · claude-fable-5", tokens: Math.round(grand * 0.11) },
+      { model: "DEMO · claude-haiku-4-5", tokens: Math.round(grand * 0.05) },
     ],
     heatmap,
   };

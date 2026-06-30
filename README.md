@@ -8,7 +8,7 @@ MCP servers, agents, commands, skills and memory, and read your local usage — 
 machine, nothing leaving your device. It runs as a native [Tauri](https://tauri.app) app
 (Rust shell + React UI) and stores secrets in your OS keyring.
 
-![cchive overview](docs/images/overview.png)
+![cchive](docs/images/hero.png)
 
 > Screenshots use built-in demo data — no real account is shown.
 
