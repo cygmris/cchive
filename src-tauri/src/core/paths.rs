@@ -39,6 +39,21 @@ pub fn credentials_path() -> PathBuf {
     claude_dir().join(".credentials.json")
 }
 
+/// The Codex config directory: `$CODEX_HOME` when set (and non-empty), otherwise
+/// `$HOME/.codex`. A sibling of `.claude/`; cchive only ever touches `auth.json` here.
+pub fn codex_dir() -> PathBuf {
+    match std::env::var_os("CODEX_HOME") {
+        Some(v) if !v.is_empty() => PathBuf::from(v),
+        _ => home_dir().join(".codex"),
+    }
+}
+
+/// `<codex_dir>/auth.json` — Codex's live auth. The whole file IS one "account":
+/// `auth_mode` + optional `OPENAI_API_KEY` + a `tokens` block. Switching swaps it.
+pub fn codex_auth_path() -> PathBuf {
+    codex_dir().join("auth.json")
+}
+
 /// `<claude_dir>/settings.json`.
 pub fn settings_path() -> PathBuf {
     claude_dir().join("settings.json")
@@ -180,6 +195,22 @@ mod tests {
         let home = dirs::home_dir().unwrap();
         assert_eq!(claude_dir(), home.join(".claude"));
         assert_eq!(credentials_path(), home.join(".claude").join(".credentials.json"));
+    }
+
+    #[test]
+    fn codex_home_override_resolves_auth_path() {
+        let _g = ENV_LOCK.lock().unwrap();
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().to_path_buf();
+        std::env::set_var("CODEX_HOME", &dir);
+
+        assert_eq!(codex_dir(), dir);
+        assert_eq!(codex_auth_path(), dir.join("auth.json"));
+
+        std::env::remove_var("CODEX_HOME");
+        // Default falls back to $HOME/.codex (never under CLAUDE_CONFIG_DIR).
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(codex_dir(), home.join(".codex"));
     }
 
     #[test]

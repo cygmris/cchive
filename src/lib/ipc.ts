@@ -23,6 +23,8 @@ import {
 import type {
   AccountMeta,
   ActiveIdentity,
+  CodexAccountMeta,
+  CodexIdentity,
   ActivityEntry,
   BackupEntry,
   EnvOverrides,
@@ -84,6 +86,36 @@ export function switchAccount(id: string): Promise<SwitchResult> {
 export function removeAccount(id: string): Promise<void> {
   ensureTauri("remove_account");
   return invoke<void>("remove_account", { id });
+}
+
+/** List saved Codex accounts (non-secret metadata only). */
+export function listCodexAccounts(): Promise<CodexAccountMeta[]> {
+  ensureTauri("list_codex_accounts");
+  return invoke<CodexAccountMeta[]>("list_codex_accounts");
+}
+
+/** Report the active Codex identity (label/email/plan/expiry). */
+export function getActiveCodexIdentity(): Promise<CodexIdentity> {
+  ensureTauri("get_active_codex_identity");
+  return invoke<CodexIdentity>("get_active_codex_identity");
+}
+
+/** Capture the currently-signed-in Codex account into the vault + index. */
+export function addCodexAccountFromActive(): Promise<CodexAccountMeta> {
+  ensureTauri("add_codex_account_from_active");
+  return invoke<CodexAccountMeta>("add_codex_account_from_active");
+}
+
+/** Switch the active Codex account to `id`; returns the new active identity. */
+export function switchCodexAccount(id: string): Promise<CodexIdentity> {
+  ensureTauri("switch_codex_account");
+  return invoke<CodexIdentity>("switch_codex_account", { id });
+}
+
+/** Remove a saved Codex account from the vault + index. */
+export function removeCodexAccount(id: string): Promise<void> {
+  ensureTauri("remove_codex_account");
+  return invoke<void>("remove_codex_account", { id });
 }
 
 /** List configured API-provider presets (non-secret metadata only). */

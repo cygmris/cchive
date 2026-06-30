@@ -1,8 +1,9 @@
 # cchive — Architecture & Security
 
-cchive is a calm, cross‑platform desktop tool for managing Claude Code: switch
-between accounts (e.g. two Max plans — flip the moment one runs out), manage API
-providers, MCP servers, agents/commands/skills, memory, and read local usage.
+cchive is a calm, cross‑platform desktop tool for managing your coding agents:
+switch between Claude Code accounts (e.g. two Max plans — flip the moment one runs
+out) **and** Codex accounts, manage API providers, MCP servers,
+agents/commands/skills, memory, and read local usage.
 This document captures the durable design that isn't obvious from the code alone.
 
 ## Stack
@@ -25,8 +26,14 @@ This document captures the durable design that isn't obvious from the code alone
   backup‑first; the single safe‑write primitive everything else uses.
 - `core/credentials`, `core/claude_json`, `core/settings` — read/merge the three
   Claude files **preserving all unknown keys**.
-- `core/keyring_store` — the secret vault (account tokens, provider API keys).
+- `core/keyring_store` — the secret vault (Claude account tokens, provider API
+  keys, and Codex `auth.json` payloads — three isolated namespaces:
+  `app.cchive.accounts`, `app.cchive.providers`, `app.cchive.codex.accounts`).
 - `core/switch` — the account‑switch engine (below).
+- `core/codex` — the **Codex** account‑switch engine: capture / switch / identity
+  against `~/.codex/auth.json` (the single‑file Codex twin of `core/switch`).
+  Identity (email + plan, e.g. ChatGPT Pro) is read from the `id_token` claims;
+  the whole auth payload stays in the keyring — never a token across IPC.
 - `core/providers` — third‑party provider configs + `apply` (merge `env` into
   settings); the index is store‑backed.
 - `core/usage` — parse local Claude usage JSONL → token totals + a documented

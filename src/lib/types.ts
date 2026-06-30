@@ -160,6 +160,27 @@ export interface ActiveIdentity {
   expiresAt: number | null;
 }
 
+/** Non-secret metadata for one saved Codex account (the `auth.json` payload lives
+ * in the OS keyring, never here). The Codex twin of {@link AccountMeta}. */
+export interface CodexAccountMeta {
+  id: string;
+  label: string;
+  email: string | null;
+  /** Plan label, e.g. "ChatGPT Pro", or "API key" in apikey mode. */
+  plan: string | null;
+  lastUsed: number | null;
+}
+
+/** The active Codex identity from `~/.codex/auth.json`. `kind`: "account" |
+ * "apikey" | "none". Never carries a token. */
+export interface CodexIdentity {
+  kind: string;
+  label: string;
+  email: string | null;
+  plan: string | null;
+  expiresAt: number | null;
+}
+
 /** Result of a successful switch: the new identity + a per-OS apply note. */
 export interface SwitchResult {
   identity: ActiveIdentity;

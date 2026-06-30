@@ -1,12 +1,12 @@
 # cchive
 
-**A calm desktop hub for Claude Code — switch accounts and configurations the moment one runs out.**
+**A calm desktop hub for your coding agents — switch Claude Code and Codex accounts the moment one runs out.**
 
 cchive (cc + hive) is a local, offline-first desktop app that gathers everything about your
-Claude Code setup in one place: switch between subscription accounts and API providers, manage
-MCP servers, agents, commands, skills and memory, and read your local usage — all on your
-machine, nothing leaving your device. It runs as a native [Tauri](https://tauri.app) app
-(Rust shell + React UI) and stores secrets in your OS keyring.
+Claude Code and Codex setup in one place: switch between subscription accounts (Claude **and**
+Codex) and API providers, manage MCP servers, agents, commands, skills and memory, and read
+your local usage — all on your machine, nothing leaving your device. It runs as a native
+[Tauri](https://tauri.app) app (Rust shell + React UI) and stores secrets in your OS keyring.
 
 ![cchive](docs/images/hero.png)
 
@@ -15,6 +15,9 @@ machine, nothing leaving your device. It runs as a native [Tauri](https://tauri.
 - **Account switching** — capture the account you're signed into in Claude Code and switch
   between saved accounts. Switches are atomic and reversible (capture → backup → write →
   verify → rollback on failure) and preserve your per-MCP OAuth tokens (`mcpOAuth`).
+- **Codex account switching** — the same safe switch for OpenAI Codex: capture and flip
+  between saved `~/.codex/auth.json` logins (ChatGPT or API-key), atomic and backup-first,
+  with the plan (e.g. ChatGPT Pro) shown per account. Claude and Codex live side by side.
 - **Provider switching** — apply a saved provider profile (the `env` block in `settings.json`)
   for Anthropic-compatible endpoints, via a shallow merge that leaves your other settings
   untouched; a built-in **latency test** helps you pick the fastest endpoint.

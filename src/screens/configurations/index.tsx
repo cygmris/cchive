@@ -18,16 +18,26 @@ import { Card } from "@/ui/Card";
 import { useTranslation } from "react-i18next";
 import { Plus, UserPlus } from "@/ui/icons";
 import { ScreenHeader } from "@/app/ScreenHeader";
+import { useToast } from "@/ui/Toast";
 import {
   accountIsActive,
   useAccounts,
   useActiveAccountCapture,
+  useActiveCodexIdentity,
   useActiveIdentity,
+  useAddCurrentCodexAccount,
+  useCodexAccounts,
   useProviders,
 } from "@/lib/queries";
 import { useShellStore } from "@/lib/store";
-import type { ActiveIdentity, ProviderMeta } from "@/lib/types";
+import type {
+  ActiveIdentity,
+  CodexAccountMeta,
+  CodexIdentity,
+  ProviderMeta,
+} from "@/lib/types";
 import { AccountRow } from "./AccountRow";
+import { CodexAccountRow } from "./CodexAccountRow";
 import { EnvOverrideBanner } from "./EnvOverrideBanner";
 import { NewProviderMenu } from "./NewProviderMenu";
 import { ProviderRow } from "./ProviderRow";
@@ -40,6 +50,16 @@ function providerIsActive(
   if (!identity || identity.kind !== "provider") return false;
   if (identity.label === provider.label) return true;
   return Boolean(provider.model && identity.model === provider.model);
+}
+
+/** Is `account` the live active Codex account? Match on email, else label. */
+function codexAccountIsActive(
+  account: CodexAccountMeta,
+  identity: CodexIdentity | undefined,
+): boolean {
+  if (!identity || identity.kind === "none") return false;
+  if (identity.email && account.email) return identity.email === account.email;
+  return identity.label === account.label;
 }
 
 /** Uppercase section eyebrow + a trailing action, e.g. a primary button. */
@@ -206,6 +226,70 @@ function CaptureActiveRow({
   );
 }
 
+/**
+ * Empty state for the Codex section. When the live Codex login is itself
+ * uncaptured, `signedInAs` names it so the first capture is one click.
+ */
+function CodexEmptyState({
+  onAdd,
+  signedInAs,
+}: {
+  onAdd: () => void;
+  signedInAs: string | null;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "var(--space-3)",
+        padding: "var(--space-8) var(--space-6)",
+        textAlign: "center",
+      }}
+    >
+      {signedInAs ? (
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body)",
+            color: "var(--text-2)",
+            maxWidth: 320,
+          }}
+        >
+          {signedInAs}
+        </span>
+      ) : (
+        <>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body)",
+              color: "var(--text-2)",
+            }}
+          >
+            No Codex accounts captured yet.
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body-sm)",
+              color: "var(--text-3)",
+              maxWidth: 320,
+            }}
+          >
+            Capture the account you are signed into in Codex to add it to your
+            keyring.
+          </span>
+        </>
+      )}
+      <Button icon={<Plus size={16} />} onClick={onAdd}>
+        Add current Codex account
+      </Button>
+    </div>
+  );
+}
+
 /** A muted single-line message inside a section card (loading / empty providers). */
 function CardNote({ children }: { children: React.ReactNode }) {
   return (
@@ -230,9 +314,42 @@ export function ConfigurationsScreen() {
   const providers = useProviders();
   const { data: identity } = useActiveIdentity();
   const { needsCapture, email } = useActiveAccountCapture();
+  const { toast } = useToast();
+  const codexAccounts = useCodexAccounts();
+  const { data: codexIdentity } = useActiveCodexIdentity();
+  const addCodex = useAddCurrentCodexAccount();
 
   const accountList = accounts.data ?? [];
   const providerList = providers.data ?? [];
+  const codexList = codexAccounts.data ?? [];
+
+  function captureCodex() {
+    addCodex.mutate(undefined, {
+      onSuccess: (m) =>
+        toast({
+          title: "Codex account added",
+          description: m.label,
+          variant: "success",
+        }),
+      onError: (e) =>
+        toast({
+          title: "Couldn't add Codex account",
+          description: e.message,
+          variant: "danger",
+        }),
+    });
+  }
+
+  // Name the live Codex login when it isn't captured yet (one-click first add).
+  const codexCaptured = codexIdentity
+    ? codexList.some((a) => codexAccountIsActive(a, codexIdentity))
+    : true;
+  const codexSignedInAs =
+    codexIdentity && codexIdentity.kind !== "none" && !codexCaptured
+      ? `You're signed into Codex as ${
+          codexIdentity.email ?? codexIdentity.label
+        } — add it to your keyring.`
+      : null;
 
   // Concrete empty-state copy that names the detected account; null falls back
   // to the generic invitation (no email, or already captured).
@@ -303,6 +420,40 @@ export function ConfigurationsScreen() {
                   />
                 ))}
               </>
+            )}
+          </Card>
+        </section>
+
+        {/* Codex accounts ------------------------------------------------- */}
+        <section>
+          <SectionHeader
+            label="Codex accounts"
+            action={
+              <Button
+                size="sm"
+                icon={<Plus size={15} />}
+                onClick={captureCodex}
+                disabled={addCodex.isPending}
+              >
+                Add current Codex account
+              </Button>
+            }
+          />
+          <Card pad={0} style={{ overflow: "hidden" }}>
+            {codexAccounts.isLoading ? (
+              <CardNote>Loading Codex accounts…</CardNote>
+            ) : codexList.length === 0 ? (
+              <CodexEmptyState onAdd={captureCodex} signedInAs={codexSignedInAs} />
+            ) : (
+              codexList.map((account, i) => (
+                <CodexAccountRow
+                  key={account.id}
+                  account={account}
+                  index={i}
+                  divider={i > 0}
+                  active={codexAccountIsActive(account, codexIdentity)}
+                />
+              ))
             )}
           </Card>
         </section>

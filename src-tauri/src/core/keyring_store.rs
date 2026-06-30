@@ -21,6 +21,10 @@ const ACCOUNTS_SERVICE: &str = "app.cchive.accounts";
 /// Keyring service under which every provider auth token is stored.
 const PROVIDERS_SERVICE: &str = "app.cchive.providers";
 
+/// Keyring service under which every saved **Codex** account (`auth.json` payload)
+/// is stored — isolated from the Claude account + provider namespaces.
+const CODEX_ACCOUNTS_SERVICE: &str = "app.cchive.codex.accounts";
+
 /// Backend the vault dispatches to. `Sync` so the `'static` trait object can be
 /// shared across cargo's parallel test threads. Every call is namespaced by
 /// `service` so accounts and providers never collide.
@@ -146,6 +150,38 @@ pub fn provider_vault_has(id: &str) -> Result<bool, CoreError> {
         return Err(CoreError::InvalidInput("empty provider id".to_string()));
     }
     backend().has(PROVIDERS_SERVICE, id)
+}
+
+/// Store (or replace) the `auth.json` payload for Codex account `id`.
+pub fn codex_vault_put(id: &str, blob: &str) -> Result<(), CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty codex account id".to_string()));
+    }
+    backend().put(CODEX_ACCOUNTS_SERVICE, id, blob)
+}
+
+/// Read the `auth.json` payload for Codex account `id`. Absent -> `CoreError::NotFound`.
+pub fn codex_vault_get(id: &str) -> Result<String, CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty codex account id".to_string()));
+    }
+    backend().get(CODEX_ACCOUNTS_SERVICE, id)
+}
+
+/// Delete the payload for Codex account `id`. Absent entry is a no-op (idempotent).
+pub fn codex_vault_delete(id: &str) -> Result<(), CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty codex account id".to_string()));
+    }
+    backend().delete(CODEX_ACCOUNTS_SERVICE, id)
+}
+
+/// Whether a payload exists for Codex account `id`.
+pub fn codex_vault_has(id: &str) -> Result<bool, CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty codex account id".to_string()));
+    }
+    backend().has(CODEX_ACCOUNTS_SERVICE, id)
 }
 
 // ---------------------------------------------------------------------------

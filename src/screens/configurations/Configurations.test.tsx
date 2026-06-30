@@ -25,6 +25,11 @@ vi.mock("@/lib/ipc", () => ({
   clearProvider: vi.fn(),
   readSettingsSummary: vi.fn(),
   detectEnvOverrides: vi.fn(),
+  listCodexAccounts: vi.fn(),
+  getActiveCodexIdentity: vi.fn(),
+  addCodexAccountFromActive: vi.fn(),
+  switchCodexAccount: vi.fn(),
+  removeCodexAccount: vi.fn(),
 }));
 
 import * as ipc from "@/lib/ipc";
@@ -32,7 +37,13 @@ import { ConfigurationsScreen } from "./index";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { ToastProvider } from "@/ui/Toast";
 import { useShellStore } from "@/lib/store";
-import type { AccountMeta, ActiveIdentity, ProviderMeta } from "@/lib/types";
+import type {
+  AccountMeta,
+  ActiveIdentity,
+  CodexAccountMeta,
+  CodexIdentity,
+  ProviderMeta,
+} from "@/lib/types";
 
 const ACCOUNTS: AccountMeta[] = [
   {
@@ -95,6 +106,31 @@ const NO_OVERRIDE = {
   configDirOverride: null,
 };
 
+const CODEX_ACCOUNTS: CodexAccountMeta[] = [
+  {
+    id: "codex-1",
+    label: "Ada Codex",
+    email: "ada@codex.dev",
+    plan: "ChatGPT Pro",
+    lastUsed: null,
+  },
+  {
+    id: "codex-2",
+    label: "Studio Codex",
+    email: "studio@codex.dev",
+    plan: "ChatGPT Plus",
+    lastUsed: null,
+  },
+];
+
+const CODEX_NONE: CodexIdentity = {
+  kind: "none",
+  label: "No Codex account",
+  email: null,
+  plan: null,
+  expiresAt: null,
+};
+
 // The explicit add-account trigger; swapped for a spy so the capture path is
 // observable without rendering the (shell-owned) modal.
 const openAddAccount = vi.fn();
@@ -122,6 +158,11 @@ beforeEach(() => {
   });
   (ipc.removeAccount as Mock).mockResolvedValue(undefined);
   (ipc.applyProvider as Mock).mockResolvedValue(undefined);
+  (ipc.listCodexAccounts as Mock).mockResolvedValue(CODEX_ACCOUNTS);
+  (ipc.getActiveCodexIdentity as Mock).mockResolvedValue(CODEX_NONE);
+  (ipc.switchCodexAccount as Mock).mockResolvedValue(CODEX_NONE);
+  (ipc.removeCodexAccount as Mock).mockResolvedValue(undefined);
+  (ipc.addCodexAccountFromActive as Mock).mockResolvedValue(CODEX_ACCOUNTS[0]);
 });
 
 function renderScreen() {
@@ -269,5 +310,43 @@ describe("ConfigurationsScreen", () => {
       screen.queryByText("Add the account you're signed into"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/You're signed in as/)).not.toBeInTheDocument();
+  });
+
+  it("renders Codex accounts with plan + email and no token", async () => {
+    renderScreen();
+
+    expect(await screen.findByText("Ada Codex")).toBeInTheDocument();
+    expect(screen.getByText("Studio Codex")).toBeInTheDocument();
+    expect(screen.getByText("ada@codex.dev")).toBeInTheDocument();
+    expect(screen.getByText("ChatGPT Pro")).toBeInTheDocument();
+    // The section is labelled and never surfaces a token-shaped value.
+    expect(screen.getByText("Codex accounts")).toBeInTheDocument();
+    expect(screen.queryByText(/sk-/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/id_token|access_token/)).not.toBeInTheDocument();
+  });
+
+  it("selecting a Codex account row triggers a Codex switch", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.click(await screen.findByText("Studio Codex"));
+
+    await waitFor(() =>
+      expect(ipc.switchCodexAccount).toHaveBeenCalledWith("codex-2"),
+    );
+  });
+
+  it("captures the live Codex account from the section header", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await screen.findByText("Ada Codex");
+    await user.click(
+      screen.getByRole("button", { name: "Add current Codex account" }),
+    );
+
+    await waitFor(() =>
+      expect(ipc.addCodexAccountFromActive).toHaveBeenCalled(),
+    );
   });
 });

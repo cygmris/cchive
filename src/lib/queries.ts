@@ -32,6 +32,8 @@ import type {
   AccountMeta,
   ActiveIdentity,
   ActivityEntry,
+  CodexAccountMeta,
+  CodexIdentity,
   BackupEntry,
   DayPoint,
   EnvOverrides,
@@ -65,6 +67,9 @@ export const queryKeys = {
   /** One provider's full editor view, keyed by id (`provider:<id>`). */
   provider: (id: string) => ["provider", id] as const,
   activeIdentity: ["activeIdentity"] as const,
+  /** Saved Codex accounts + the active Codex identity (Codex switch path). */
+  codexAccounts: ["codexAccounts"] as const,
+  codexIdentity: ["codexIdentity"] as const,
   envOverrides: ["envOverrides"] as const,
   settingsSummary: ["settingsSummary"] as const,
   /** The usage aggregate for one range window (`usage:<rangeDays>`). */
@@ -171,6 +176,33 @@ const DEMO_ACTIVE_IDENTITY: ActiveIdentity = {
   org: "Rivoli Labs",
   tier: "Max 20×",
   model: "claude-opus-4-8",
+  expiresAt: null,
+};
+
+/** Demo Codex accounts (off-Tauri) — the same fictional persona as the Claude
+ * demo, now with ChatGPT logins. Never a `demo@`/`DEMO` placeholder. */
+const DEMO_CODEX_ACCOUNTS: CodexAccountMeta[] = [
+  {
+    id: "codex-demo-personal",
+    label: "Lucas Moreau",
+    email: "lucas.moreau@gmail.com",
+    plan: "ChatGPT Pro",
+    lastUsed: null,
+  },
+  {
+    id: "codex-demo-studio",
+    label: "Rivoli Labs",
+    email: "lucas@rivoli.dev",
+    plan: "ChatGPT Plus",
+    lastUsed: null,
+  },
+];
+
+const DEMO_CODEX_IDENTITY: CodexIdentity = {
+  kind: "account",
+  label: "Lucas Moreau",
+  email: "lucas.moreau@gmail.com",
+  plan: "ChatGPT Pro",
   expiresAt: null,
 };
 
@@ -1102,6 +1134,71 @@ export function useRemoveAccount(): UseMutationResult<void, Error, string> {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.accounts });
       void qc.invalidateQueries({ queryKey: queryKeys.activeIdentity });
+    },
+  });
+}
+
+/* ------------------------------------------------------------------------- *
+ * Codex account switching — the Codex twin of the account hooks above.
+ * ------------------------------------------------------------------------- */
+
+/** Saved Codex accounts (non-secret metadata only). */
+export function useCodexAccounts(): UseQueryResult<CodexAccountMeta[], Error> {
+  return useQuery({
+    queryKey: queryKeys.codexAccounts,
+    queryFn: () => runQuery(DEMO_CODEX_ACCOUNTS, ipc.listCodexAccounts),
+  });
+}
+
+/** The active Codex identity from `~/.codex/auth.json` (label/email/plan). */
+export function useActiveCodexIdentity(): UseQueryResult<CodexIdentity, Error> {
+  return useQuery({
+    queryKey: queryKeys.codexIdentity,
+    queryFn: () => runQuery(DEMO_CODEX_IDENTITY, ipc.getActiveCodexIdentity),
+  });
+}
+
+/** Capture the signed-in Codex account into the vault + the Codex index. */
+export function useAddCurrentCodexAccount(): UseMutationResult<
+  CodexAccountMeta,
+  Error,
+  void
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => runMutation(() => ipc.addCodexAccountFromActive()),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.codexAccounts });
+      void qc.invalidateQueries({ queryKey: queryKeys.codexIdentity });
+    },
+  });
+}
+
+/** Switch the active Codex account to `id`. */
+export function useSwitchCodexAccount(): UseMutationResult<
+  CodexIdentity,
+  Error,
+  string
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => runMutation(() => ipc.switchCodexAccount(id)),
+    onSuccess: (identity) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.codexAccounts });
+      void qc.invalidateQueries({ queryKey: queryKeys.codexIdentity });
+      recordActivity(qc, "account", `Switched Codex to ${identity.label}`);
+    },
+  });
+}
+
+/** Forget a saved Codex account (the live `~/.codex/auth.json` is untouched). */
+export function useRemoveCodexAccount(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => runMutation(() => ipc.removeCodexAccount(id)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.codexAccounts });
+      void qc.invalidateQueries({ queryKey: queryKeys.codexIdentity });
     },
   });
 }

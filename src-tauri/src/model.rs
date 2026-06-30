@@ -280,6 +280,34 @@ pub struct SwitchResult {
     pub apply_note: String,
 }
 
+/// Non-secret metadata for one saved **Codex** account (the `auth.json` payload
+/// lives in the keyring, never here). Mirrors `AccountMeta` for the Codex path.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexAccountMeta {
+    pub id: String,
+    pub label: String,
+    pub email: Option<String>,
+    /// Plan label, e.g. "ChatGPT Pro" (from the `id_token` `chatgpt_plan_type`) or
+    /// "API key" in apikey mode. Never a token.
+    pub plan: Option<String>,
+    /// Epoch milliseconds of the last switch-in, if ever used.
+    pub last_used: Option<i64>,
+}
+
+/// The currently-active **Codex** identity, derived from `~/.codex/auth.json`.
+/// `kind`: "account" (ChatGPT login) | "apikey" | "none". Never carries a token.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexIdentity {
+    pub kind: String,
+    pub label: String,
+    pub email: Option<String>,
+    pub plan: Option<String>,
+    /// Epoch milliseconds the `id_token` expires at, if known.
+    pub expires_at: Option<i64>,
+}
+
 /// Auth-relevant environment variables that can override what cchive writes.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
