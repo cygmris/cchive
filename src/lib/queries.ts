@@ -101,15 +101,15 @@ function scopeKey(scope: MemoryScope): string {
 const DEMO_ACCOUNTS: AccountMeta[] = [
   {
     id: "demo-personal",
-    label: "Ka-ho Chan",
-    email: "kaho.chan@gmail.com",
+    label: "Lucas Moreau",
+    email: "lucas.moreau@gmail.com",
     tier: "Max 20×",
     lastUsed: null,
   },
   {
     id: "demo-team",
-    label: "Pierhead Studio",
-    email: "kaho@pierhead.studio",
+    label: "Rivoli Labs",
+    email: "lucas@rivoli.dev",
     tier: "Max 5×",
     lastUsed: null,
   },
@@ -166,9 +166,9 @@ function demoProviderView(id: string): ProviderConfigView {
 
 const DEMO_ACTIVE_IDENTITY: ActiveIdentity = {
   kind: "account",
-  label: "Ka-ho Chan",
-  email: "kaho.chan@gmail.com",
-  org: "Pierhead Studio",
+  label: "Lucas Moreau",
+  email: "lucas.moreau@gmail.com",
+  org: "Rivoli Labs",
   tier: "Max 20×",
   model: "claude-opus-4-8",
   expiresAt: null,
@@ -462,7 +462,7 @@ function demoProjectSettings(path: string): ProjectSettings {
 const DEMO_ACTIVITY: ActivityEntry[] = [
   {
     kind: "account",
-    message: "Switched account to Pierhead Studio",
+    message: "Switched account to Rivoli Labs",
     timestamp: Date.now() - 4 * 60_000,
   },
   {
