@@ -10,8 +10,6 @@ machine, nothing leaving your device. It runs as a native [Tauri](https://tauri.
 
 ![cchive](docs/images/hero.png)
 
-> Screenshots use built-in demo data — no real account is shown.
-
 ## What it does
 
 - **Account switching** — capture the account you're signed into in Claude Code and switch

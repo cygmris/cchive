@@ -95,22 +95,22 @@ function scopeKey(scope: MemoryScope): string {
 }
 
 /* ------------------------------------------------------------------------- *
- * Demo seed — shown ONLY when not under Tauri. Every label is prefixed "DEMO"
+ * Demo seed — shown ONLY when not under Tauri. Every label is fictional sample data
  * so it can never be mistaken for a real captured account/provider.
  * ------------------------------------------------------------------------- */
 const DEMO_ACCOUNTS: AccountMeta[] = [
   {
     id: "demo-personal",
-    label: "DEMO · Personal",
-    email: "demo@example.com",
-    tier: "Max 5×",
+    label: "Ka-ho Chan",
+    email: "kaho.chan@gmail.com",
+    tier: "Max 20×",
     lastUsed: null,
   },
   {
     id: "demo-team",
-    label: "DEMO · Team",
-    email: "demo@team.example",
-    tier: "Max 20×",
+    label: "Pierhead Studio",
+    email: "kaho@pierhead.studio",
+    tier: "Max 5×",
     lastUsed: null,
   },
 ];
@@ -118,13 +118,13 @@ const DEMO_ACCOUNTS: AccountMeta[] = [
 const DEMO_PROVIDERS: ProviderMeta[] = [
   {
     id: "demo-zai",
-    label: "DEMO · Z.ai",
+    label: "Z.ai",
     baseUrl: "https://api.z.ai/api/anthropic",
     model: "glm-4.6",
   },
   {
     id: "demo-kimi",
-    label: "DEMO · Kimi K2",
+    label: "Kimi K2",
     baseUrl: "https://api.moonshot.cn/anthropic",
     model: "kimi-k2-turbo",
   },
@@ -139,7 +139,7 @@ function demoProviderView(id: string): ProviderConfigView {
   const seed = DEMO_PROVIDERS.find((p) => p.id === id);
   return {
     id: id || "demo-new",
-    title: seed?.label ?? "DEMO · New provider",
+    title: seed?.label ?? "New provider",
     brand: "anthropic",
     env: {
       baseUrl: seed?.baseUrl ?? "",
@@ -166,10 +166,10 @@ function demoProviderView(id: string): ProviderConfigView {
 
 const DEMO_ACTIVE_IDENTITY: ActiveIdentity = {
   kind: "account",
-  label: "DEMO · Personal",
-  email: "demo@example.com",
-  org: "DEMO · Acme Org",
-  tier: "Max 5×",
+  label: "Ka-ho Chan",
+  email: "kaho.chan@gmail.com",
+  org: "Pierhead Studio",
+  tier: "Max 20×",
   model: "claude-opus-4-8",
   expiresAt: null,
 };
@@ -188,13 +188,13 @@ const DEMO_SETTINGS_SUMMARY: SettingsSummary = {
 
 /**
  * A clearly-LABELLED demo set of MCP servers for off-Tauri rendering (the gallery
- * / a plain browser). Every name is prefixed "DEMO ·" so it can never be mistaken
+ * / a plain browser). Every name is fictional sample data so it can never be mistaken
  * for a real `~/.claude.json` server. Covers stdio + http transports and an
  * enabled/disabled mix so the count + the disabled-dimming both render.
  */
 const DEMO_MCP_SERVERS: McpServer[] = [
   {
-    name: "DEMO · context7",
+    name: "context7",
     transport: "stdio",
     command: "npx",
     args: ["-y", "@upstash/context7-mcp"],
@@ -205,7 +205,7 @@ const DEMO_MCP_SERVERS: McpServer[] = [
     toolsHint: "resolve-library-id, query-docs",
   },
   {
-    name: "DEMO · exa",
+    name: "exa",
     transport: "http",
     command: null,
     args: null,
@@ -216,7 +216,7 @@ const DEMO_MCP_SERVERS: McpServer[] = [
     toolsHint: "web_search, web_fetch",
   },
   {
-    name: "DEMO · serena",
+    name: "serena",
     transport: "stdio",
     command: "uvx",
     args: ["--from", "serena", "serena-mcp-server"],
@@ -230,7 +230,7 @@ const DEMO_MCP_SERVERS: McpServer[] = [
 
 /**
  * Clearly-LABELLED demo markdown resources for off-Tauri rendering (the gallery /
- * a plain browser). Every name/description is prefixed "DEMO ·" so it can never be
+ * a plain browser). Every name/description is fictional sample data so it can never be
  * mistaken for a real `~/.claude/{agents,commands,skills}` resource. Each kind
  * exercises its kind-specific fields (agent model badge, command leading `/` +
  * argument-hint, skill source badge + an enabled/disabled mix for the count).
@@ -238,7 +238,7 @@ const DEMO_MCP_SERVERS: McpServer[] = [
 const DEMO_AGENTS: Resource[] = [
   {
     kind: "agent",
-    name: "DEMO · code-reviewer",
+    name: "code-reviewer",
     description: "Reviews diffs for correctness and style.",
     bodyLines: 42,
     model: "sonnet",
@@ -250,7 +250,7 @@ const DEMO_AGENTS: Resource[] = [
   },
   {
     kind: "agent",
-    name: "DEMO · doc-writer",
+    name: "doc-writer",
     description: "Drafts and updates documentation.",
     bodyLines: 27,
     model: "haiku",
@@ -262,7 +262,7 @@ const DEMO_AGENTS: Resource[] = [
   },
   {
     kind: "agent",
-    name: "DEMO · security-auditor",
+    name: "security-auditor",
     description: "Audits code for vulnerabilities.",
     bodyLines: 64,
     model: "opus",
@@ -278,7 +278,7 @@ const DEMO_COMMANDS: Resource[] = [
   {
     kind: "command",
     name: "/demo-write-tests",
-    description: "DEMO · Generate tests for the target file.",
+    description: "Generate tests for the target file.",
     bodyLines: 12,
     model: null,
     source: null,
@@ -290,7 +290,7 @@ const DEMO_COMMANDS: Resource[] = [
   {
     kind: "command",
     name: "/demo-review-pr",
-    description: "DEMO · Review the current pull request.",
+    description: "Review the current pull request.",
     bodyLines: 20,
     model: null,
     source: null,
@@ -302,7 +302,7 @@ const DEMO_COMMANDS: Resource[] = [
   {
     kind: "command",
     name: "/demo-changelog",
-    description: "DEMO · Summarize changes into a changelog.",
+    description: "Summarize changes into a changelog.",
     bodyLines: 9,
     model: null,
     source: null,
@@ -316,7 +316,7 @@ const DEMO_COMMANDS: Resource[] = [
 const DEMO_SKILLS: Resource[] = [
   {
     kind: "skill",
-    name: "DEMO · pdf-forms",
+    name: "pdf-forms",
     description: "Fill and parse PDF forms.",
     bodyLines: 30,
     model: null,
@@ -328,7 +328,7 @@ const DEMO_SKILLS: Resource[] = [
   },
   {
     kind: "skill",
-    name: "DEMO · design-review",
+    name: "design-review",
     description: "Review UI against the design tokens.",
     bodyLines: 24,
     model: null,
@@ -340,7 +340,7 @@ const DEMO_SKILLS: Resource[] = [
   },
   {
     kind: "skill",
-    name: "DEMO · slack-digest",
+    name: "slack-digest",
     description: "Summarize Slack channels on demand.",
     bodyLines: 18,
     model: null,
@@ -366,10 +366,10 @@ function demoResources(kind: ResourceKind): Resource[] {
 
 /**
  * A clearly-LABELLED sample global `CLAUDE.md` for off-Tauri rendering (the
- * gallery / a plain browser). The leading comment marks it DEMO so it can never be
+ * gallery / a plain browser). The leading comment marks it fictional so it can never be
  * mistaken for a real `~/.claude/CLAUDE.md`.
  */
-const DEMO_GLOBAL_MEMORY = `# DEMO · User memory (CLAUDE.md)
+const DEMO_GLOBAL_MEMORY = `# User memory (CLAUDE.md)
 
 <!-- This is labelled demo content shown only outside the cchive desktop app. -->
 
@@ -384,9 +384,9 @@ const DEMO_GLOBAL_MEMORY = `# DEMO · User memory (CLAUDE.md)
 
 /**
  * A clearly-LABELLED sample project `CLAUDE.md` for off-Tauri rendering. Marked
- * DEMO in its heading so it cannot be mistaken for a real project memory file.
+ * a fictional heading so it cannot be mistaken for a real project memory file.
  */
-const DEMO_PROJECT_MEMORY = `# DEMO · Project memory (CLAUDE.md)
+const DEMO_PROJECT_MEMORY = `# Project memory (CLAUDE.md)
 
 <!-- This is labelled demo content shown only outside the cchive desktop app. -->
 
@@ -454,7 +454,7 @@ function demoProjectSettings(path: string): ProjectSettings {
 
 /**
  * A clearly-LABELLED demo recent-activity feed for off-Tauri rendering (the
- * gallery / a plain browser). Every message is prefixed "DEMO ·" so it can never
+ * gallery / a plain browser). Every message is fictional sample data so it can never
  * be mistaken for a real append, and it exercises each `kind` icon. Newest-first,
  * with timestamps spread across the last couple of days for the relative-time
  * column. Labels only — no token.
@@ -462,27 +462,27 @@ function demoProjectSettings(path: string): ProjectSettings {
 const DEMO_ACTIVITY: ActivityEntry[] = [
   {
     kind: "account",
-    message: "DEMO · Switched account to Personal",
+    message: "Switched account to Pierhead Studio",
     timestamp: Date.now() - 4 * 60_000,
   },
   {
     kind: "provider",
-    message: "DEMO · Switched to Z.ai",
+    message: "Switched to Z.ai",
     timestamp: Date.now() - 38 * 60_000,
   },
   {
     kind: "mcp",
-    message: "DEMO · Enabled MCP server context7",
+    message: "Enabled MCP server context7",
     timestamp: Date.now() - 3 * 3_600_000,
   },
   {
     kind: "skill",
-    message: "DEMO · Enabled skill pdf-forms",
+    message: "Enabled skill pdf-forms",
     timestamp: Date.now() - 27 * 3_600_000,
   },
   {
     kind: "memory",
-    message: "DEMO · Updated memory global",
+    message: "Updated memory global",
     timestamp: Date.now() - 50 * 3_600_000,
   },
 ];
@@ -543,7 +543,7 @@ function demoDay(from: Date, back: number): string {
 
 /**
  * A clearly-LABELLED demo usage aggregate for off-Tauri rendering (the gallery /
- * a plain browser). Its model rows are prefixed "DEMO ·" so it can never be
+ * a plain browser). Its model rows are fictional sample data so it can never be
  * mistaken for real parsed usage. Shaped exactly like the Rust `UsageSummary`.
  */
 function demoUsageSummary(rangeDays: number): UsageSummary {
@@ -602,10 +602,10 @@ function demoUsageSummary(rangeDays: number): UsageSummary {
     unknownModels: [],
     perDay,
     perModel: [
-      { model: "DEMO · claude-opus-4-8", tokens: Math.round(grand * 0.6) },
-      { model: "DEMO · claude-sonnet-4-5", tokens: Math.round(grand * 0.24) },
-      { model: "DEMO · claude-fable-5", tokens: Math.round(grand * 0.11) },
-      { model: "DEMO · claude-haiku-4-5", tokens: Math.round(grand * 0.05) },
+      { model: "claude-opus-4-8", tokens: Math.round(grand * 0.6) },
+      { model: "claude-sonnet-4-5", tokens: Math.round(grand * 0.24) },
+      { model: "claude-fable-5", tokens: Math.round(grand * 0.11) },
+      { model: "claude-haiku-4-5", tokens: Math.round(grand * 0.05) },
     ],
     heatmap,
   };
