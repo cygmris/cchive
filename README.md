@@ -154,6 +154,15 @@ To **update** later: build the new version and `pacman -U` the new package — i
 replaces the old in place. (If you prefer the AppImage, overwrite the *same*
 file at the *same* path so its integration entry updates rather than duplicating.)
 
+> **The installed app is a snapshot of the build.** Editing the source (or pulling
+> new features) does **not** change the running app — the code is compiled and the
+> frontend is bundled into the binary. To pick up changes you must rebuild and
+> reinstall: bump `pkgrel` in `packaging/arch/PKGBUILD` (so `pacman` sees a newer
+> package), re-run `bash scripts/build-arch-pkg.sh`, `sudo pacman -U` the new
+> `.pkg.tar.zst`, then **fully quit and relaunch** cchive (a window left open from
+> the old build keeps running the old binary until you close it). For iterating on
+> the app itself, `pnpm tauri dev` runs the current source directly — no packaging.
+
 ## Code signing & notarization
 
 The installers build **unsigned** by default — fine for local use and testing,
