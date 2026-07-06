@@ -54,6 +54,12 @@ pub fn codex_auth_path() -> PathBuf {
     codex_dir().join("auth.json")
 }
 
+/// `<cchive_config_dir>/usage-parse-cache.json` — the incremental usage parse cache
+/// (per-file parsed events keyed by mtime+size). Non-secret: token counts only.
+pub fn usage_cache_path() -> PathBuf {
+    cchive_config_dir().join("usage-parse-cache.json")
+}
+
 /// `<claude_dir>/settings.json`.
 pub fn settings_path() -> PathBuf {
     claude_dir().join("settings.json")

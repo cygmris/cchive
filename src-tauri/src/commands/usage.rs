@@ -6,15 +6,22 @@
 
 use chrono::Local;
 
-use crate::core::{paths, usage};
+use crate::core::{paths, usage_cache};
 use crate::model::{CoreError, UsageSummary};
 
 /// Aggregate token usage from `~/.claude/projects/**/*.jsonl` over the last
-/// `range_days` days (0 ⇒ default 30). On-disk effect: reads the `.jsonl` logs;
-/// writes nothing. Never returns a secret.
+/// `range_days` days (0 ⇒ default 30). Uses the incremental parse cache so only
+/// changed files are re-parsed (a cold cache does one full pass). On-disk effect:
+/// reads the `.jsonl` logs + reads/writes the non-secret parse cache
+/// (`usage-parse-cache.json`, token counts only). Never returns a secret.
 #[tauri::command]
 pub fn read_usage(range_days: u32) -> Result<UsageSummary, CoreError> {
     let range = if range_days == 0 { 30 } else { range_days };
     let today = Local::now().date_naive();
-    Ok(usage::aggregate(&paths::projects_dir(), range, today))
+    Ok(usage_cache::aggregate_incremental(
+        &paths::projects_dir(),
+        &paths::usage_cache_path(),
+        range,
+        today,
+    ))
 }

@@ -43,6 +43,12 @@ This document captures the durable design that isn't obvious from the code alone
   (`cchive-usage-cache.json`) and paints it **instantly** on open while the fresh
   recompute runs in the background (`lib/usageCache` + `useUsage` + `useGlobalData`;
   a 60 s stale window skips re‑parsing on quick revisits).
+- `core/usage_cache` — the **incremental** parse cache behind that background recompute:
+  each file's parsed events are cached by (mtime, size) in `usage-parse-cache.json`, so a
+  repeat run re‑parses only changed files (cold cache = one full pass). The summary is
+  byte‑identical to `usage::aggregate` — the walk is sorted and the cost is summed in
+  sorted model order, so the output is deterministic (which is also what lets the two
+  paths match). Cross‑file retry dedup is preserved (measured: 443 keys span >1 file).
 - `core/mcp`, `core/resources`, `core/memory`, `core/projects` — the manager
   backends for those screens.
 - `core/notify_hook` — install/remove a `cchive-notify`‑marked command hook in

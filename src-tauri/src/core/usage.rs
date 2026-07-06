@@ -100,16 +100,130 @@ fn level_of(tokens: u64, max: u64) -> u8 {
     }
 }
 
-/// Walk `projects_dir` for `*.jsonl`, stream-parse the assistant usage lines, and
-/// aggregate into a [`UsageSummary`]. `today_local` is injected so the range /
-/// year windows are deterministic in tests (callers pass the real local today).
-pub fn aggregate(projects_dir: &Path, range_days: u32, today_local: NaiveDate) -> UsageSummary {
+/// One parsed assistant-usage line, reduced to what the aggregation needs. `key`
+/// is the cross-file retry-dedup token (a 64-bit hash of `requestId` + `message.id`;
+/// `0` means "no id" — never treated as a duplicate, matching the old skip rule).
+#[derive(Debug, Clone)]
+pub(crate) struct UsageEvent {
+    pub key: u64,
+    pub date: NaiveDate,
+    pub model: String,
+    pub input: u64,
+    pub output: u64,
+    pub cache_creation: u64,
+    pub cache_read: u64,
+}
+
+/// FNV-1a 64-bit dedup token for `(requestId, message.id)`. `0` is reserved to mean
+/// "both ids absent" (never a duplicate); a real pair that hashes to 0 maps to 1.
+fn dedup_key(req_id: &str, msg_id: &str) -> u64 {
+    if req_id.is_empty() && msg_id.is_empty() {
+        return 0;
+    }
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in req_id
+        .bytes()
+        .chain(std::iter::once(0x1f))
+        .chain(msg_id.bytes())
+    {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    if h == 0 {
+        1
+    } else {
+        h
+    }
+}
+
+/// Parse one `.jsonl` into its usage events, in file order, collapsing within-file
+/// duplicate keys (identical retries). Unreadable file/line → skipped; never fails.
+/// The range window is NOT applied here — that is the summary's job, so a parsed
+/// file can be cached once and reused for any range.
+pub(crate) fn parse_file_events(path: &Path) -> Vec<UsageEvent> {
+    let file = match File::open(path) {
+        Ok(f) => f,
+        Err(_) => return Vec::new(), // unreadable file → no events, never fail
+    };
+    let mut events: Vec<UsageEvent> = Vec::new();
+    let mut seen_in_file: HashSet<u64> = HashSet::new();
+
+    for line in BufReader::new(file).lines() {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => continue, // unreadable line → skip
+        };
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let v: Value = match serde_json::from_str(trimmed) {
+            Ok(v) => v,
+            Err(_) => continue, // malformed JSON → skip
+        };
+
+        // Only assistant lines that actually carry a usage block.
+        if v.get("type").and_then(Value::as_str) != Some("assistant") {
+            continue;
+        }
+        let message = match v.get("message") {
+            Some(m) => m,
+            None => continue,
+        };
+        let usage = match message.get("usage") {
+            Some(u) => u,
+            None => continue,
+        };
+
+        // Dedup retries by (requestId, message.id) — within-file here, globally at
+        // summary time. Skip dedup only when both ids are absent.
+        let req_id = v.get("requestId").and_then(Value::as_str).unwrap_or("");
+        let msg_id = message.get("id").and_then(Value::as_str).unwrap_or("");
+        let key = dedup_key(req_id, msg_id);
+        if key != 0 && !seen_in_file.insert(key) {
+            continue;
+        }
+
+        let date = match v.get("timestamp").and_then(Value::as_str).and_then(local_date) {
+            Some(d) => d,
+            None => continue,
+        };
+
+        let u = |k: &str| usage.get(k).and_then(Value::as_u64).unwrap_or(0);
+        let model = message
+            .get("model")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown")
+            .to_string();
+        events.push(UsageEvent {
+            key,
+            date,
+            model,
+            input: u("input_tokens"),
+            output: u("output_tokens"),
+            cache_creation: u("cache_creation_input_tokens"),
+            cache_read: u("cache_read_input_tokens"),
+        });
+    }
+
+    events
+}
+
+/// Roll a stream of events (in walk order) into a [`UsageSummary`]: global retry
+/// dedup by `key`, a past-year heatmap over every day, and range-scoped totals /
+/// per-day / per-model / cost. Pure over the event multiset (dedup keeps the first
+/// occurrence; duplicates carry identical tokens, so the result is order-stable).
+pub(crate) fn events_to_summary(
+    events: impl IntoIterator<Item = UsageEvent>,
+    range_days: u32,
+    today_local: NaiveDate,
+) -> UsageSummary {
     let range_days = if range_days == 0 { 30 } else { range_days };
     let range_start = today_local - Duration::days(range_days as i64 - 1);
     let year_start = today_local - Duration::days(364);
 
     // Retry dedup across all files.
-    let mut seen: HashSet<(String, String)> = HashSet::new();
+    let mut seen: HashSet<u64> = HashSet::new();
     // Every observed day → total tokens (feeds the past-year heatmap).
     let mut by_date_total: HashMap<NaiveDate, u64> = HashMap::new();
     // Range-scoped day → token kinds (feeds the per-day series + totals).
@@ -117,90 +231,29 @@ pub fn aggregate(projects_dir: &Path, range_days: u32, today_local: NaiveDate) -
     // Range-scoped model → token kinds (feeds per-model ranking + cost).
     let mut by_model: HashMap<String, TokenTotals> = HashMap::new();
 
-    for entry in WalkDir::new(projects_dir).into_iter().filter_map(|e| e.ok()) {
-        if !entry.file_type().is_file() {
+    for ev in events {
+        // Global dedup: key 0 (no id) is never treated as a duplicate.
+        if ev.key != 0 && !seen.insert(ev.key) {
             continue;
         }
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
-            continue;
-        }
-        let file = match File::open(path) {
-            Ok(f) => f,
-            Err(_) => continue, // unreadable file → skip, never fail
-        };
+        let total = ev.input + ev.output + ev.cache_creation + ev.cache_read;
 
-        for line in BufReader::new(file).lines() {
-            let line = match line {
-                Ok(l) => l,
-                Err(_) => continue, // unreadable line → skip
-            };
-            let trimmed = line.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-            let v: Value = match serde_json::from_str(trimmed) {
-                Ok(v) => v,
-                Err(_) => continue, // malformed JSON → skip
-            };
+        // Past-year heatmap counts every day.
+        *by_date_total.entry(ev.date).or_insert(0) += total;
 
-            // Only assistant lines that actually carry a usage block.
-            if v.get("type").and_then(Value::as_str) != Some("assistant") {
-                continue;
-            }
-            let message = match v.get("message") {
-                Some(m) => m,
-                None => continue,
-            };
-            let usage = match message.get("usage") {
-                Some(u) => u,
-                None => continue,
-            };
+        // Totals / per-day / per-model are scoped to the active range window.
+        if ev.date >= range_start && ev.date <= today_local {
+            let d = by_date_kinds.entry(ev.date).or_default();
+            d.input += ev.input;
+            d.output += ev.output;
+            d.cache_creation += ev.cache_creation;
+            d.cache_read += ev.cache_read;
 
-            // Dedup retries by (requestId, message.id). Skip dedup only when both
-            // ids are absent (don't collapse all id-less lines into one).
-            let req_id = v.get("requestId").and_then(Value::as_str).unwrap_or("");
-            let msg_id = message.get("id").and_then(Value::as_str).unwrap_or("");
-            if !(req_id.is_empty() && msg_id.is_empty())
-                && !seen.insert((req_id.to_string(), msg_id.to_string()))
-            {
-                continue;
-            }
-
-            let date = match v.get("timestamp").and_then(Value::as_str).and_then(local_date) {
-                Some(d) => d,
-                None => continue,
-            };
-
-            let u = |k: &str| usage.get(k).and_then(Value::as_u64).unwrap_or(0);
-            let input = u("input_tokens");
-            let output = u("output_tokens");
-            let cache_creation = u("cache_creation_input_tokens");
-            let cache_read = u("cache_read_input_tokens");
-            let total = input + output + cache_creation + cache_read;
-
-            // Past-year heatmap counts every day.
-            *by_date_total.entry(date).or_insert(0) += total;
-
-            // Totals / per-day / per-model are scoped to the active range window.
-            if date >= range_start && date <= today_local {
-                let d = by_date_kinds.entry(date).or_default();
-                d.input += input;
-                d.output += output;
-                d.cache_creation += cache_creation;
-                d.cache_read += cache_read;
-
-                let model = message
-                    .get("model")
-                    .and_then(Value::as_str)
-                    .unwrap_or("unknown")
-                    .to_string();
-                let m = by_model.entry(model).or_default();
-                m.input += input;
-                m.output += output;
-                m.cache_creation += cache_creation;
-                m.cache_read += cache_read;
-            }
+            let m = by_model.entry(ev.model).or_default();
+            m.input += ev.input;
+            m.output += ev.output;
+            m.cache_creation += ev.cache_creation;
+            m.cache_read += ev.cache_read;
         }
     }
 
@@ -209,7 +262,12 @@ pub fn aggregate(projects_dir: &Path, range_days: u32, today_local: NaiveDate) -
     let mut per_model: Vec<ModelTotal> = Vec::new();
     let mut unknown_models: Vec<String> = Vec::new();
     let mut est_cost_usd = 0.0_f64;
-    for (model, t) in &by_model {
+    // Iterate in sorted model order: `by_model` is a HashMap (randomized iteration),
+    // and f64 addition isn't associative, so summing the cost in hash order would make
+    // `est_cost_usd` wobble in its last bits run-to-run. Sorted order → deterministic.
+    let mut by_model_sorted: Vec<(&String, &TokenTotals)> = by_model.iter().collect();
+    by_model_sorted.sort_by(|a, b| a.0.cmp(b.0));
+    for (model, t) in by_model_sorted {
         totals.input += t.input;
         totals.output += t.output;
         totals.cache_creation += t.cache_creation;
@@ -272,6 +330,26 @@ pub fn aggregate(projects_dir: &Path, range_days: u32, today_local: NaiveDate) -
         per_model,
         heatmap,
     }
+}
+
+/// Walk `projects_dir` for `*.jsonl`, parse every file fresh, and aggregate into a
+/// [`UsageSummary`]. The no-cache reference path (the incremental cache in
+/// `usage_cache` produces the same result by reusing unchanged files). `today_local`
+/// is injected so the range / year windows are deterministic in tests.
+pub fn aggregate(projects_dir: &Path, range_days: u32, today_local: NaiveDate) -> UsageSummary {
+    // Sorted walk → deterministic file order → the cross-file retry-dedup winner is
+    // stable run-to-run (and matches `usage_cache::aggregate_incremental`, which walks
+    // the same order).
+    let events = WalkDir::new(projects_dir)
+        .sort_by_file_name()
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.file_type().is_file()
+                && e.path().extension().and_then(|x| x.to_str()) == Some("jsonl")
+        })
+        .flat_map(|e| parse_file_events(e.path()));
+    events_to_summary(events, range_days, today_local)
 }
 
 #[cfg(test)]

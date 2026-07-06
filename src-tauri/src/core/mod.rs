@@ -22,3 +22,4 @@ pub mod settings;
 pub mod providers;
 pub mod switch;
 pub mod usage;
+pub mod usage_cache;
