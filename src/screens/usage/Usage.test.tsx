@@ -92,7 +92,7 @@ describe("UsageScreen", () => {
     expect(screen.getByText("$128.40")).toBeInTheDocument();
   });
 
-  it("re-queries with 7 then 30 as the range toggles", async () => {
+  it("queries each range window on toggle, and serves a recent window from cache", async () => {
     const user = userEvent.setup();
     renderScreen();
 
@@ -100,15 +100,19 @@ describe("UsageScreen", () => {
     await screen.findByText("Input tokens");
     await waitFor(() => expect(ipc.readUsage).toHaveBeenCalledWith(30));
 
+    // A new window (7 days) triggers a fresh parse.
     await user.click(screen.getByRole("radio", { name: "7 days" }));
     await waitFor(() => expect(ipc.readUsage).toHaveBeenCalledWith(7));
 
+    // Returning to the just-parsed 30-day window is served from cache within the
+    // stale window — no second parse of the (potentially huge) logs. Explicit
+    // refresh (its own test) is how you force a re-parse.
     await user.click(screen.getByRole("radio", { name: "30 days" }));
-    await waitFor(() => {
-      const ranges = (ipc.readUsage as Mock).mock.calls.map((c) => c[0]);
-      expect(ranges.indexOf(7)).toBeGreaterThanOrEqual(0);
-      expect(ranges.lastIndexOf(30)).toBeGreaterThan(ranges.indexOf(7));
-    });
+    await new Promise((r) => setTimeout(r, 50));
+    const thirtyCalls = (ipc.readUsage as Mock).mock.calls.filter(
+      (c) => c[0] === 30,
+    ).length;
+    expect(thirtyCalls).toBe(1);
   });
 
   it("refresh re-parses the logs", async () => {

@@ -37,7 +37,12 @@ This document captures the durable design that isn't obvious from the code alone
 - `core/providers` — third‑party provider configs + `apply` (merge `env` into
   settings); the index is store‑backed.
 - `core/usage` — parse local Claude usage JSONL → token totals + a documented
-  cost estimate (cache‑read ≈ 0.1× input, cache‑write ≈ 1.25× input).
+  cost estimate (cache‑read ≈ 0.1× input, cache‑write ≈ 1.25× input). This scan is
+  O(all history) and can take seconds on a large `~/.claude/projects` (thousands of
+  files), so the frontend caches each computed summary to disk
+  (`cchive-usage-cache.json`) and paints it **instantly** on open while the fresh
+  recompute runs in the background (`lib/usageCache` + `useUsage` + `useGlobalData`;
+  a 60 s stale window skips re‑parsing on quick revisits).
 - `core/mcp`, `core/resources`, `core/memory`, `core/projects` — the manager
   backends for those screens.
 - `core/notify_hook` — install/remove a `cchive-notify`‑marked command hook in

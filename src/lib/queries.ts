@@ -17,6 +17,7 @@
  */
 import { useEffect } from "react";
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -28,6 +29,7 @@ import { isTauri } from "@tauri-apps/api/core";
 
 import * as ipc from "./ipc";
 import { useShellStore } from "./store";
+import { writeUsageCache } from "./usageCache";
 import type {
   AccountMeta,
   ActiveIdentity,
@@ -851,8 +853,19 @@ export function useUsage(rangeDays: number): UseQueryResult<UsageSummary, Error>
   const setActiveIdentity = useShellStore((s) => s.setActiveIdentity);
   const query = useQuery({
     queryKey: queryKeys.usage(rangeDays),
-    queryFn: () =>
-      runQuery(demoUsageSummary(rangeDays), () => ipc.readUsage(rangeDays)),
+    queryFn: async () => {
+      const summary = await runQuery(demoUsageSummary(rangeDays), () =>
+        ipc.readUsage(rangeDays),
+      );
+      // Persist the fresh result so the NEXT open paints instantly from disk
+      // while the (seconds-long over a large projects dir) recompute reruns.
+      void writeUsageCache(rangeDays, summary);
+      return summary;
+    },
+    // Keep the last summary on screen while a slower recompute runs (no flash to
+    // the loading placeholder), and don't re-parse on every quick revisit.
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
   });
 
   const data = query.data;

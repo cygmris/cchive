@@ -14,13 +14,21 @@
  * cache by query key, these calls de-duplicate with the very same hooks the
  * Overview / Usage / MCP / Skills screens call — there is no extra refetch, the
  * screens just read the shared in-flight / cached result.
+ *
+ * It also seeds the usage query from the on-disk cache at boot so the Overview
+ * paints last-known numbers INSTANTLY while the (seconds-long over a large
+ * `~/.claude/projects`) recompute runs in the background.
  */
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
+  queryKeys,
   useAccounts,
   useMcpServers,
   useResources,
   useUsage,
 } from "@/lib/queries";
+import { readUsageCache } from "@/lib/usageCache";
 
 /** Usage window the status-bar tokens-today + Overview tiles read (matches Overview). */
 const GLOBAL_USAGE_RANGE_DAYS = 30;
@@ -31,4 +39,23 @@ export function useGlobalData(): void {
   useMcpServers();
   useResources("skill");
   useUsage(GLOBAL_USAGE_RANGE_DAYS);
+
+  // Cache-first paint: seed the usage query from disk before the (slow) recompute
+  // resolves. Only seeds if nothing is present yet, so the in-flight fresh read
+  // (started on mount) always wins when it lands.
+  const qc = useQueryClient();
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const cached = await readUsageCache(GLOBAL_USAGE_RANGE_DAYS);
+      if (cancelled || !cached) return;
+      const key = queryKeys.usage(GLOBAL_USAGE_RANGE_DAYS);
+      if (qc.getQueryData(key) === undefined) {
+        qc.setQueryData(key, cached);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [qc]);
 }
