@@ -36,6 +36,9 @@ import type {
   ActivityEntry,
   CodexAccountMeta,
   CodexIdentity,
+  CodexProviderConfigView,
+  CodexProviderInput,
+  CodexProviderMeta,
   BackupEntry,
   DayPoint,
   EnvOverrides,
@@ -72,6 +75,9 @@ export const queryKeys = {
   /** Saved Codex accounts + the active Codex identity (Codex switch path). */
   codexAccounts: ["codexAccounts"] as const,
   codexIdentity: ["codexIdentity"] as const,
+  /** Saved Codex providers (gateways) + one provider's editor view. */
+  codexProviders: ["codexProviders"] as const,
+  codexProvider: (id: string) => ["codexProvider", id] as const,
   envOverrides: ["envOverrides"] as const,
   settingsSummary: ["settingsSummary"] as const,
   /** The usage aggregate for one range window (`usage:<rangeDays>`). */
@@ -207,6 +213,30 @@ const DEMO_CODEX_IDENTITY: CodexIdentity = {
   plan: "ChatGPT Pro",
   expiresAt: null,
 };
+
+/** Demo Codex provider (off-Tauri) — a fictional OpenAI-compatible gateway. */
+const DEMO_CODEX_PROVIDERS: CodexProviderMeta[] = [
+  {
+    id: "pixie-gateway",
+    label: "Pixie Gateway",
+    baseUrl: "https://pixie.example/v1",
+    wireApi: "chat",
+    model: "gpt-5.5",
+  },
+];
+
+/** Off-Tauri editor view for one Codex provider (seeded from the demo, else a draft). */
+function demoCodexProviderView(id: string): CodexProviderConfigView {
+  const seed = DEMO_CODEX_PROVIDERS.find((p) => p.id === id);
+  return {
+    id: id || "codex-new",
+    label: seed?.label ?? "New gateway",
+    baseUrl: seed?.baseUrl ?? "",
+    wireApi: seed?.wireApi ?? "chat",
+    model: seed?.model ?? null,
+    hasToken: false,
+  };
+}
 
 const DEMO_ENV_OVERRIDES: EnvOverrides = {
   oauthTokenSet: false,
@@ -1211,6 +1241,93 @@ export function useRemoveCodexAccount(): UseMutationResult<void, Error, string> 
     mutationFn: (id: string) => runMutation(() => ipc.removeCodexAccount(id)),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.codexAccounts });
+      void qc.invalidateQueries({ queryKey: queryKeys.codexIdentity });
+    },
+  });
+}
+
+/* ------------------------------------------------------------------------- *
+ * Codex providers (gateways) — the Codex twin of the Claude API providers.
+ * ------------------------------------------------------------------------- */
+
+/** Saved Codex providers (gateway routing metadata; no keys). */
+export function useCodexProviders(): UseQueryResult<CodexProviderMeta[], Error> {
+  return useQuery({
+    queryKey: queryKeys.codexProviders,
+    queryFn: () => runQuery(DEMO_CODEX_PROVIDERS, ipc.listCodexProviders),
+  });
+}
+
+/** One Codex provider's editor view (fields + `hasToken`, never the key). Disabled
+ * when `id` is null (a brand-new draft has no row to load yet). */
+export function useCodexProvider(
+  id: string | null,
+): UseQueryResult<CodexProviderConfigView, Error> {
+  return useQuery({
+    queryKey: queryKeys.codexProvider(id ?? ""),
+    queryFn: () =>
+      runQuery(demoCodexProviderView(id ?? ""), () =>
+        ipc.getCodexProvider(id as string),
+      ),
+    enabled: id != null,
+  });
+}
+
+/** Input for {@link useSaveCodexProvider}: the upsert payload + an optional key. */
+export interface SaveCodexProviderInput {
+  input: CodexProviderInput;
+  /** Sent ONLY when the user (re)types it; never stored in state. */
+  token?: string;
+}
+
+/** Create or replace a Codex provider. */
+export function useSaveCodexProvider(): UseMutationResult<
+  CodexProviderConfigView,
+  Error,
+  SaveCodexProviderInput
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ input, token }: SaveCodexProviderInput) =>
+      runMutation(() => ipc.saveCodexProvider(input, token)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.codexProviders });
+    },
+  });
+}
+
+/** Delete a Codex provider (index + vaulted key). */
+export function useDeleteCodexProvider(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => runMutation(() => ipc.deleteCodexProvider(id)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.codexProviders });
+      void qc.invalidateQueries({ queryKey: queryKeys.codexIdentity });
+    },
+  });
+}
+
+/** Apply a Codex provider — point Codex at that gateway. */
+export function useApplyCodexProvider(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => runMutation(() => ipc.applyCodexProvider(id)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.codexProviders });
+      void qc.invalidateQueries({ queryKey: queryKeys.codexIdentity });
+      recordActivity(qc, "provider", "Switched Codex to a gateway");
+    },
+  });
+}
+
+/** Clear the active Codex provider — back to the Codex account. */
+export function useClearCodexProvider(): UseMutationResult<void, Error, void> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => runMutation(() => ipc.clearCodexProvider()),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.codexProviders });
       void qc.invalidateQueries({ queryKey: queryKeys.codexIdentity });
     },
   });

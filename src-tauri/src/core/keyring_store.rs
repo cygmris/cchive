@@ -25,6 +25,9 @@ const PROVIDERS_SERVICE: &str = "app.cchive.providers";
 /// is stored — isolated from the Claude account + provider namespaces.
 const CODEX_ACCOUNTS_SERVICE: &str = "app.cchive.codex.accounts";
 
+/// Keyring service under which every **Codex provider** (gateway) API key is stored.
+const CODEX_PROVIDERS_SERVICE: &str = "app.cchive.codex.providers";
+
 /// Backend the vault dispatches to. `Sync` so the `'static` trait object can be
 /// shared across cargo's parallel test threads. Every call is namespaced by
 /// `service` so accounts and providers never collide.
@@ -182,6 +185,38 @@ pub fn codex_vault_has(id: &str) -> Result<bool, CoreError> {
         return Err(CoreError::InvalidInput("empty codex account id".to_string()));
     }
     backend().has(CODEX_ACCOUNTS_SERVICE, id)
+}
+
+/// Store (or replace) the API key for Codex provider `id`.
+pub fn codex_provider_vault_put(id: &str, token: &str) -> Result<(), CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty codex provider id".to_string()));
+    }
+    backend().put(CODEX_PROVIDERS_SERVICE, id, token)
+}
+
+/// Read the API key for Codex provider `id`. Absent -> `CoreError::NotFound`.
+pub fn codex_provider_vault_get(id: &str) -> Result<String, CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty codex provider id".to_string()));
+    }
+    backend().get(CODEX_PROVIDERS_SERVICE, id)
+}
+
+/// Delete the key for Codex provider `id`. Absent entry is a no-op (idempotent).
+pub fn codex_provider_vault_delete(id: &str) -> Result<(), CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty codex provider id".to_string()));
+    }
+    backend().delete(CODEX_PROVIDERS_SERVICE, id)
+}
+
+/// Whether a key exists for Codex provider `id`.
+pub fn codex_provider_vault_has(id: &str) -> Result<bool, CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty codex provider id".to_string()));
+    }
+    backend().has(CODEX_PROVIDERS_SERVICE, id)
 }
 
 // ---------------------------------------------------------------------------

@@ -18,6 +18,11 @@ your local usage — all on your machine, nothing leaving your device. It runs a
 - **Codex account switching** — the same safe switch for OpenAI Codex: capture and flip
   between saved `~/.codex/auth.json` logins (ChatGPT or API-key), atomic and backup-first,
   with the plan (e.g. ChatGPT Pro) shown per account. Claude and Codex live side by side.
+- **Codex providers (gateways)** — point Codex at any OpenAI-compatible endpoint (e.g. your
+  own LLM gateway): save a base URL + key and cchive surgically writes a
+  `[model_providers.*]` block into `~/.codex/config.toml` (inline bearer token, preserving
+  your MCP servers and ChatGPT login). Hand a friend the app + a key and they're on your
+  gateway; one click switches back to your account.
 - **Provider switching** — apply a saved provider profile (the `env` block in `settings.json`)
   for Anthropic-compatible endpoints, via a shallow merge that leaves your other settings
   untouched; a built-in **latency test** helps you pick the fastest endpoint.

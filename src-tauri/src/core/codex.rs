@@ -19,9 +19,33 @@ use crate::model::{CodexAccountMeta, CodexIdentity, CoreError};
 // Public API (mirrors core/switch.rs)
 // ---------------------------------------------------------------------------
 
-/// Report the active Codex identity from `~/.codex/auth.json` (no token leaves).
+/// Report the active Codex identity. When a gateway provider is active in
+/// `config.toml`, that takes precedence (Codex routes there); otherwise the
+/// `auth.json` account/apikey. No token ever leaves.
 pub fn read_active_codex_identity() -> Result<CodexIdentity, CoreError> {
+    if let Some((_id, label, base_url)) =
+        super::codex_provider::read_active_provider(&paths::codex_config_path())
+    {
+        return Ok(CodexIdentity {
+            kind: "provider".to_string(),
+            label,
+            email: base_url_host(&base_url), // the gateway host in the hero sub
+            plan: Some("Gateway".to_string()),
+            expires_at: None,
+        });
+    }
     Ok(identity_from_file(&paths::codex_auth_path()))
+}
+
+/// Host of a base URL for display (e.g. `https://pixie.example/v1` -> `pixie.example`).
+fn base_url_host(base_url: &str) -> Option<String> {
+    let s = base_url.trim();
+    if s.is_empty() {
+        return None;
+    }
+    let no_scheme = s.split("://").last().unwrap_or(s);
+    let host = no_scheme.split('/').next().unwrap_or(no_scheme).trim();
+    (!host.is_empty()).then(|| host.to_string())
 }
 
 /// Capture the live Codex account into the vault and return its non-secret meta.

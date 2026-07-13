@@ -25,6 +25,9 @@ import type {
   ActiveIdentity,
   CodexAccountMeta,
   CodexIdentity,
+  CodexProviderConfigView,
+  CodexProviderInput,
+  CodexProviderMeta,
   ActivityEntry,
   BackupEntry,
   EnvOverrides,
@@ -116,6 +119,45 @@ export function switchCodexAccount(id: string): Promise<CodexIdentity> {
 export function removeCodexAccount(id: string): Promise<void> {
   ensureTauri("remove_codex_account");
   return invoke<void>("remove_codex_account", { id });
+}
+
+/** List saved Codex providers (gateway routing metadata; no keys). */
+export function listCodexProviders(): Promise<CodexProviderMeta[]> {
+  ensureTauri("list_codex_providers");
+  return invoke<CodexProviderMeta[]>("list_codex_providers");
+}
+
+/** Read one Codex provider as a key-free view. */
+export function getCodexProvider(id: string): Promise<CodexProviderConfigView> {
+  ensureTauri("get_codex_provider");
+  return invoke<CodexProviderConfigView>("get_codex_provider", { id });
+}
+
+/** Upsert a Codex provider; `token` is sent only when the user (re)types the key. */
+export function saveCodexProvider(
+  input: CodexProviderInput,
+  token?: string,
+): Promise<CodexProviderConfigView> {
+  ensureTauri("save_codex_provider");
+  return invoke<CodexProviderConfigView>("save_codex_provider", { input, token });
+}
+
+/** Delete a Codex provider + its vaulted key. */
+export function deleteCodexProvider(id: string): Promise<void> {
+  ensureTauri("delete_codex_provider");
+  return invoke<void>("delete_codex_provider", { id });
+}
+
+/** Apply a Codex provider — point Codex at the gateway (writes config.toml). */
+export function applyCodexProvider(id: string): Promise<void> {
+  ensureTauri("apply_codex_provider");
+  return invoke<void>("apply_codex_provider", { id });
+}
+
+/** Clear the active Codex provider — back to the Codex account. */
+export function clearCodexProvider(): Promise<void> {
+  ensureTauri("clear_codex_provider");
+  return invoke<void>("clear_codex_provider");
 }
 
 /** List configured API-provider presets (non-secret metadata only). */

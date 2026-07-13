@@ -34,6 +34,13 @@ This document captures the durable design that isn't obvious from the code alone
   against `~/.codex/auth.json` (the single‑file Codex twin of `core/switch`).
   Identity (email + plan, e.g. ChatGPT Pro) is read from the `id_token` claims;
   the whole auth payload stays in the keyring — never a token across IPC.
+- `core/codex_provider` — the **Codex provider (gateway)** engine, the Codex twin of
+  `core/providers`: surgically edits `~/.codex/config.toml` (via `toml_edit`, preserving
+  the user's MCP servers / projects / comments) to set `model_provider` + a
+  `[model_providers.<id>]` table (`base_url`, `wire_api`, `experimental_bearer_token`).
+  The key lives in the `app.cchive.codex.providers` keyring namespace and is written inline
+  only on apply; `auth.json` (the ChatGPT OAuth login) is never touched, so clearing the
+  provider returns Codex to the account.
 - `core/providers` — third‑party provider configs + `apply` (merge `env` into
   settings); the index is store‑backed.
 - `core/usage` — parse local Claude usage JSONL → token totals + a documented

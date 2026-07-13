@@ -30,6 +30,12 @@ vi.mock("@/lib/ipc", () => ({
   addCodexAccountFromActive: vi.fn(),
   switchCodexAccount: vi.fn(),
   removeCodexAccount: vi.fn(),
+  listCodexProviders: vi.fn(),
+  getCodexProvider: vi.fn(),
+  saveCodexProvider: vi.fn(),
+  deleteCodexProvider: vi.fn(),
+  applyCodexProvider: vi.fn(),
+  clearCodexProvider: vi.fn(),
 }));
 
 import * as ipc from "@/lib/ipc";
@@ -163,6 +169,18 @@ beforeEach(() => {
   (ipc.switchCodexAccount as Mock).mockResolvedValue(CODEX_NONE);
   (ipc.removeCodexAccount as Mock).mockResolvedValue(undefined);
   (ipc.addCodexAccountFromActive as Mock).mockResolvedValue(CODEX_ACCOUNTS[0]);
+  (ipc.listCodexProviders as Mock).mockResolvedValue([
+    {
+      id: "gw-1",
+      label: "My Gateway",
+      baseUrl: "https://gw.example/v1",
+      wireApi: "chat",
+      model: "gpt-5.5",
+    },
+  ]);
+  (ipc.applyCodexProvider as Mock).mockResolvedValue(undefined);
+  (ipc.clearCodexProvider as Mock).mockResolvedValue(undefined);
+  (ipc.deleteCodexProvider as Mock).mockResolvedValue(undefined);
 });
 
 function renderScreen() {
@@ -347,6 +365,22 @@ describe("ConfigurationsScreen", () => {
 
     await waitFor(() =>
       expect(ipc.addCodexAccountFromActive).toHaveBeenCalled(),
+    );
+  });
+
+  it("renders Codex providers and applies one on select, showing no key", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    expect(await screen.findByText("Codex providers")).toBeInTheDocument();
+    expect(await screen.findByText("My Gateway")).toBeInTheDocument();
+    expect(screen.getByText("https://gw.example/v1")).toBeInTheDocument();
+    // No key/token value is ever surfaced in the list.
+    expect(screen.queryByText(/sk-/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("My Gateway"));
+    await waitFor(() =>
+      expect(ipc.applyCodexProvider).toHaveBeenCalledWith("gw-1"),
     );
   });
 });

@@ -30,6 +30,9 @@ dirs = "5"
 thiserror = "2"
 # Streaming usage parser: recursive *.jsonl walk + ISO-8601 → local-date bucketing.
 walkdir = "2"
+# Format-preserving TOML editor for surgical ~/.codex/config.toml edits (keeps the
+# user's MCP servers / projects / comments intact).
+toml_edit = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 # Bounded endpoint latency probe (no auth header). rustls-tls keeps TLS in
 # RustCrypto so the binary has no OpenSSL runtime dependency (matches the keyring

@@ -54,6 +54,13 @@ pub fn codex_auth_path() -> PathBuf {
     codex_dir().join("auth.json")
 }
 
+/// `<codex_dir>/config.toml` — Codex's routing/config (model, `model_provider`,
+/// `[model_providers.*]`, MCP servers). Provider switching edits this file only,
+/// surgically, never touching `auth.json`.
+pub fn codex_config_path() -> PathBuf {
+    codex_dir().join("config.toml")
+}
+
 /// `<cchive_config_dir>/usage-parse-cache.json` — the incremental usage parse cache
 /// (per-file parsed events keyed by mtime+size). Non-secret: token counts only.
 pub fn usage_cache_path() -> PathBuf {

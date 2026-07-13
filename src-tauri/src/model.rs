@@ -295,8 +295,10 @@ pub struct CodexAccountMeta {
     pub last_used: Option<i64>,
 }
 
-/// The currently-active **Codex** identity, derived from `~/.codex/auth.json`.
-/// `kind`: "account" (ChatGPT login) | "apikey" | "none". Never carries a token.
+/// The currently-active **Codex** identity, derived from `~/.codex/auth.json` (or,
+/// when a gateway provider is active, from `~/.codex/config.toml`).
+/// `kind`: "account" (ChatGPT login) | "apikey" | "provider" (gateway) | "none".
+/// Never carries a token.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexIdentity {
@@ -306,6 +308,48 @@ pub struct CodexIdentity {
     pub plan: Option<String>,
     /// Epoch milliseconds the `id_token` expires at, if known.
     pub expires_at: Option<i64>,
+}
+
+/// Non-secret metadata for one saved **Codex provider** (an OpenAI-compatible
+/// gateway). The API key lives in the keyring; here we keep only the routing
+/// fields cchive writes into `config.toml`. The Codex twin of `ProviderMeta`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexProviderMeta {
+    pub id: String,
+    pub label: String,
+    /// The gateway `base_url` (e.g. `https://host/v1`).
+    pub base_url: String,
+    /// Codex `wire_api`: "chat" (`/v1/chat/completions`) or "responses".
+    pub wire_api: String,
+    /// Optional top-level `model` to select on apply.
+    pub model: Option<String>,
+}
+
+/// Editor view of one Codex provider — its routing fields plus whether a key is
+/// vaulted. NEVER carries the key.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexProviderConfigView {
+    pub id: String,
+    pub label: String,
+    pub base_url: String,
+    pub wire_api: String,
+    pub model: Option<String>,
+    pub has_token: bool,
+}
+
+/// Upsert input for a Codex provider. `id` is absent for a new profile (the core
+/// mints one from the label) and present when editing. The key NEVER travels here
+/// — it is passed as a separate `Option<String>`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexProviderInput {
+    pub id: Option<String>,
+    pub label: String,
+    pub base_url: String,
+    pub wire_api: String,
+    pub model: Option<String>,
 }
 
 /// Auth-relevant environment variables that can override what cchive writes.

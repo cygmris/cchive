@@ -14,6 +14,7 @@
  * screen still renders in `vite dev` / the gallery.
  */
 import { Button } from "@/ui/Button";
+import { useState } from "react";
 import { Card } from "@/ui/Card";
 import { useTranslation } from "react-i18next";
 import { Plus, UserPlus } from "@/ui/icons";
@@ -26,7 +27,9 @@ import {
   useActiveCodexIdentity,
   useActiveIdentity,
   useAddCurrentCodexAccount,
+  useClearCodexProvider,
   useCodexAccounts,
+  useCodexProviders,
   useProviders,
 } from "@/lib/queries";
 import { useShellStore } from "@/lib/store";
@@ -34,13 +37,27 @@ import type {
   ActiveIdentity,
   CodexAccountMeta,
   CodexIdentity,
+  CodexProviderMeta,
   ProviderMeta,
 } from "@/lib/types";
 import { AccountRow } from "./AccountRow";
 import { CodexAccountRow } from "./CodexAccountRow";
+import { CodexProviderForm } from "./CodexProviderForm";
+import { CodexProviderRow } from "./CodexProviderRow";
 import { EnvOverrideBanner } from "./EnvOverrideBanner";
 import { NewProviderMenu } from "./NewProviderMenu";
 import { ProviderRow } from "./ProviderRow";
+
+/** Is `provider` the live active Codex gateway? Match on label, else base-url host. */
+function codexProviderIsActive(
+  provider: CodexProviderMeta,
+  identity: CodexIdentity | undefined,
+): boolean {
+  if (!identity || identity.kind !== "provider") return false;
+  if (identity.label === provider.label) return true;
+  const host = provider.baseUrl.split("://").pop()?.split("/")[0] ?? "";
+  return Boolean(identity.email && host && identity.email === host);
+}
 
 /** Is `provider` the live active configuration? Match on label, else model. */
 function providerIsActive(
@@ -318,10 +335,15 @@ export function ConfigurationsScreen() {
   const codexAccounts = useCodexAccounts();
   const { data: codexIdentity } = useActiveCodexIdentity();
   const addCodex = useAddCurrentCodexAccount();
+  const codexProviders = useCodexProviders();
+  const clearCodexProvider = useClearCodexProvider();
+  const [addingGateway, setAddingGateway] = useState(false);
 
   const accountList = accounts.data ?? [];
   const providerList = providers.data ?? [];
   const codexList = codexAccounts.data ?? [];
+  const codexProviderList = codexProviders.data ?? [];
+  const codexProviderActive = codexIdentity?.kind === "provider";
 
   function captureCodex() {
     addCodex.mutate(undefined, {
@@ -452,6 +474,73 @@ export function ConfigurationsScreen() {
                   index={i}
                   divider={i > 0}
                   active={codexAccountIsActive(account, codexIdentity)}
+                />
+              ))
+            )}
+          </Card>
+        </section>
+
+        {/* Codex providers (gateways) ------------------------------------- */}
+        <section>
+          <SectionHeader
+            label="Codex providers"
+            action={
+              <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                {codexProviderActive && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={clearCodexProvider.isPending}
+                    onClick={() =>
+                      clearCodexProvider.mutate(undefined, {
+                        onSuccess: () =>
+                          toast({
+                            title: "Back to your Codex account",
+                            variant: "success",
+                          }),
+                        onError: (e) =>
+                          toast({
+                            title: "Couldn't clear gateway",
+                            description: e.message,
+                            variant: "danger",
+                          }),
+                      })
+                    }
+                  >
+                    Use my account
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  icon={<Plus size={15} />}
+                  onClick={() => setAddingGateway((v) => !v)}
+                >
+                  Add gateway
+                </Button>
+              </div>
+            }
+          />
+          <Card pad={0} style={{ overflow: "hidden" }}>
+            {addingGateway && (
+              <CodexProviderForm onClose={() => setAddingGateway(false)} />
+            )}
+            {codexProviders.isLoading ? (
+              <CardNote>Loading Codex providers…</CardNote>
+            ) : codexProviderList.length === 0 ? (
+              !addingGateway && (
+                <CardNote>
+                  No Codex gateways yet. Add one to point Codex at an
+                  OpenAI-compatible endpoint (e.g. your own LLM gateway).
+                </CardNote>
+              )
+            ) : (
+              codexProviderList.map((provider, i) => (
+                <CodexProviderRow
+                  key={provider.id}
+                  provider={provider}
+                  index={i}
+                  divider={addingGateway || i > 0}
+                  active={codexProviderIsActive(provider, codexIdentity)}
                 />
               ))
             )}

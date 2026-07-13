@@ -171,14 +171,45 @@ export interface CodexAccountMeta {
   lastUsed: number | null;
 }
 
-/** The active Codex identity from `~/.codex/auth.json`. `kind`: "account" |
- * "apikey" | "none". Never carries a token. */
+/** The active Codex identity from `~/.codex/auth.json` (or a gateway from
+ * `config.toml`). `kind`: "account" | "apikey" | "provider" | "none". Never a token. */
 export interface CodexIdentity {
   kind: string;
   label: string;
   email: string | null;
   plan: string | null;
   expiresAt: number | null;
+}
+
+/** Non-secret metadata for one saved Codex provider (OpenAI-compatible gateway).
+ * The key lives in the keyring; these are the routing fields written to config.toml. */
+export interface CodexProviderMeta {
+  id: string;
+  label: string;
+  baseUrl: string;
+  /** Codex `wire_api`: "chat" (/v1/chat/completions) or "responses". */
+  wireApi: string;
+  model: string | null;
+}
+
+/** Editor view of a Codex provider — its fields + whether a key is vaulted. */
+export interface CodexProviderConfigView {
+  id: string;
+  label: string;
+  baseUrl: string;
+  wireApi: string;
+  model: string | null;
+  hasToken: boolean;
+}
+
+/** Upsert payload for a Codex provider. `id` absent = new (core mints it). The
+ * key travels as a separate argument, never in this object. */
+export interface CodexProviderInput {
+  id?: string;
+  label: string;
+  baseUrl: string;
+  wireApi: string;
+  model: string | null;
 }
 
 /** Result of a successful switch: the new identity + a per-OS apply note. */
