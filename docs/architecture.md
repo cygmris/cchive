@@ -105,6 +105,10 @@ derived from these files (account vs provider variant), including the org name.
 - Bundle: `pnpm tauri build` (a Linux `.deb` is produced here; AppImage/mac/win
   are CI targets). Auto‑update is a documented release‑time step (a signing key +
   a hosted `latest.json`) — no keys/endpoints are committed.
+- **Screenshots / smoke test**: the `get_initial_screen` command reads a dev‑only
+  `CCHIVE_INITIAL_SCREEN` env (e.g. `configs`) that the shell honours at boot, so a
+  headless harness opens the app directly on a screen — no flaky WebKitGTK synthetic
+  navigation. See the `tauri-app-smoke-test` skill (Xvfb‑isolated capture).
 
 ## Spec history
 
