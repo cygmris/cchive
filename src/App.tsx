@@ -25,6 +25,9 @@ import { CommandPalette } from "@/app/CommandPalette";
 import { useGlobalShortcuts } from "@/app/useGlobalShortcuts";
 import { useGlobalData } from "@/app/useGlobalData";
 import { queryKeys, useActiveIdentity } from "@/lib/queries";
+import * as ipc from "@/lib/ipc";
+import { useShellStore } from "@/lib/store";
+import { SCREENS, type Screen } from "@/lib/shell-types";
 import { AddAccountModal } from "@/screens/configurations/AddAccountModal";
 import { Gallery } from "@/screens/_gallery/Gallery";
 
@@ -82,9 +85,34 @@ function useTraySwitchSync(): void {
   }, [qc]);
 }
 
+/**
+ * Dev/testing: honour `CCHIVE_INITIAL_SCREEN` so a screenshot harness can boot
+ * straight onto a screen (no flaky synthetic navigation into the WebView). Runs
+ * once at mount; no-op off-Tauri, when unset, or for an unknown screen id.
+ */
+function useInitialScreen(): void {
+  const go = useShellStore((s) => s.go);
+  useEffect(() => {
+    let cancelled = false;
+    void ipc
+      .getInitialScreen()
+      .then((screen) => {
+        if (cancelled || !screen) return;
+        if ((SCREENS as readonly string[]).includes(screen)) {
+          go(screen as Screen);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [go]);
+}
+
 /** The application shell: window chrome + screen outlet + command palette. */
 function Shell() {
   useGlobalShortcuts();
+  useInitialScreen();
   // Hydrate the store's active-identity cache so the Sidebar card + StatusBar
   // reflect the live session (demo seed outside Tauri).
   useActiveIdentity();

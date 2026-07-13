@@ -21,3 +21,15 @@ pub fn read_settings_summary() -> Result<SettingsSummary, CoreError> {
 pub fn detect_env_overrides() -> Result<EnvOverrides, CoreError> {
     Ok(paths::detect_env_overrides())
 }
+
+/// Dev/testing only: the screen to open on launch, from `CCHIVE_INITIAL_SCREEN`.
+/// Lets a screenshot harness boot straight onto a screen (no synthetic navigation).
+/// Returns `None` when unset; the frontend validates it against the real screen ids.
+/// On-disk effect: reads one env var; touches nothing.
+#[tauri::command]
+pub fn get_initial_screen() -> Option<String> {
+    std::env::var("CCHIVE_INITIAL_SCREEN")
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}

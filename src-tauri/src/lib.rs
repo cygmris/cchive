@@ -87,6 +87,7 @@ pub fn run() {
             commands::resources::set_skill_enabled,
             commands::settings::read_settings_summary,
             commands::settings::detect_env_overrides,
+            commands::settings::get_initial_screen,
             commands::usage::read_usage,
             commands::memory::read_memory,
             commands::memory::write_memory,

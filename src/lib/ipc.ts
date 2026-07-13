@@ -160,6 +160,14 @@ export function clearCodexProvider(): Promise<void> {
   return invoke<void>("clear_codex_provider");
 }
 
+/** Dev/testing: the screen to open on launch (from `CCHIVE_INITIAL_SCREEN`).
+ * Returns null off-Tauri or when unset — a screenshot harness sets it to boot
+ * straight onto a screen with no synthetic navigation. */
+export function getInitialScreen(): Promise<string | null> {
+  if (!isTauri()) return Promise.resolve(null);
+  return invoke<string | null>("get_initial_screen");
+}
+
 /** List configured API-provider presets (non-secret metadata only). */
 export function listProviders(): Promise<ProviderMeta[]> {
   ensureTauri("list_providers");
