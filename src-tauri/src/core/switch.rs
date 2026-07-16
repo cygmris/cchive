@@ -121,7 +121,10 @@ fn capture_current(backend: &dyn CredentialBackend, dot_path: &Path) -> Result<A
 
     let id = account_id(profile.oauth_account.as_ref());
     let email = email_of(profile.oauth_account.as_ref());
-    let tier = tier_label(active.descriptor.rate_limit_tier.as_deref());
+    let tier = tier_of(
+        profile.oauth_account.as_ref(),
+        active.descriptor.rate_limit_tier.as_deref(),
+    );
 
     let blob = VaultBlob {
         claude_ai_oauth,
@@ -191,7 +194,10 @@ fn switch_account_inner(
         label: email_of(target.oauth_account.as_ref()).unwrap_or_else(|| "account".to_string()),
         email: email_of(target.oauth_account.as_ref()),
         org: org_of(target.oauth_account.as_ref()),
-        tier: tier_label(descriptor.rate_limit_tier.as_deref()),
+        tier: tier_of(
+            target.oauth_account.as_ref(),
+            descriptor.rate_limit_tier.as_deref(),
+        ),
         model: None,
         expires_at: descriptor.expires_at,
     };
@@ -217,7 +223,10 @@ fn read_active_identity_inner(
         label: email.clone().unwrap_or_else(|| "Not signed in".to_string()),
         email,
         org: org_of(profile.oauth_account.as_ref()),
-        tier: tier_label(active.descriptor.rate_limit_tier.as_deref()),
+        tier: tier_of(
+            profile.oauth_account.as_ref(),
+            active.descriptor.rate_limit_tier.as_deref(),
+        ),
         model: None,
         expires_at: active.descriptor.expires_at,
     })
@@ -289,6 +298,29 @@ fn tier_label(rate_limit_tier: Option<&str>) -> Option<String> {
         Some(t) if !t.is_empty() => Some(t.to_string()),
         _ => None,
     }
+}
+
+/// The account's plan tier for display, preferring the profile
+/// (`~/.claude.json` `oauthAccount`) over the credential.
+///
+/// The credential's `rateLimitTier` is baked into the OAuth token and LAGS a plan
+/// change — it only updates when the token is re-issued — whereas the profile's
+/// `userRateLimitTier` / `organizationRateLimitTier` reflect the CURRENT plan (what
+/// claude.ai and Claude Code show). So right after an upgrade (e.g. Max 5x → 20x)
+/// the credential can still say 5x while the profile already says 20x; we show the
+/// profile, falling back to the credential when the profile carries no tier.
+fn tier_of(oauth_account: Option<&Value>, cred_rate_limit_tier: Option<&str>) -> Option<String> {
+    let profile_tier = oauth_account.and_then(Value::as_object).and_then(|m| {
+        m.get("userRateLimitTier")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                m.get("organizationRateLimitTier")
+                    .and_then(Value::as_str)
+                    .filter(|s| !s.is_empty())
+            })
+    });
+    tier_label(profile_tier.or(cred_rate_limit_tier))
 }
 
 /// Per-OS note about when Claude Code picks up the switch (G9), plus an env-override
@@ -479,6 +511,38 @@ mod tests {
         let serialized = serde_json::to_string(&identity).unwrap();
         assert!(!serialized.contains("tok-"), "identity leaked a token: {serialized}");
         assert!(!serialized.contains("accessToken"));
+    }
+
+    #[test]
+    fn tier_prefers_profile_over_stale_credential() {
+        // Repro: after upgrading Max 5x → 20x, the credential's rateLimitTier still
+        // lags at 5x (the OAuth token isn't re-issued yet) while the profile's
+        // organizationRateLimitTier already shows 20x. The displayed tier must be
+        // the fresher profile value.
+        let dir = tempfile::tempdir().unwrap();
+        let cred = dir.path().join(".credentials.json");
+        let dot = dir.path().join(".claude.json");
+        write_file(&cred, &cred_blob("tok-up", "default_claude_max_5x")); // stale token = 5x
+        write_file(
+            &dot,
+            &json!({
+                "oauthAccount": {
+                    "accountUuid": "uuid-up",
+                    "emailAddress": "up@example.test",
+                    "organizationName": "Acme Inc",
+                    "organizationRateLimitTier": "default_claude_max_20x" // fresh plan = 20x
+                },
+                "userID": "uid-up"
+            }),
+        );
+
+        let identity =
+            read_active_identity_inner(&credentials::FileBackend::new(&cred), &dot).unwrap();
+        assert_eq!(
+            identity.tier.as_deref(),
+            Some("Max 20x"),
+            "tier must reflect the profile's 20x, not the credential's stale 5x"
+        );
     }
 
     #[test]

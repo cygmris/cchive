@@ -439,6 +439,7 @@ export function ConfigurationsScreen() {
                     index={i}
                     divider={showCapture || i > 0}
                     active={accountIsActive(account, identity)}
+                    liveTier={identity?.tier}
                   />
                 ))}
               </>

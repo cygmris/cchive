@@ -28,15 +28,29 @@ export interface AccountRowProps {
   index: number;
   /** Draw a hairline divider above the row (every row but the first). */
   divider: boolean;
+  /** The live plan tier for the ACTIVE account (from the current identity). The
+   * stored `account.tier` is a capture-time snapshot that goes stale after a plan
+   * upgrade; for the active row we show this live value instead. */
+  liveTier?: string | null;
 }
 
-export function AccountRow({ account, active, index, divider }: AccountRowProps) {
+export function AccountRow({
+  account,
+  active,
+  index,
+  divider,
+  liveTier,
+}: AccountRowProps) {
   const { toast } = useToast();
   const switchAccount = useSwitchAccount();
   const removeAccount = useRemoveAccount();
 
   const name = account.label;
   const email = account.email;
+  // The active account's badge follows the live identity (fresh after an upgrade);
+  // other rows show their capture-time snapshot (their live tier is unknowable
+  // without switching to them).
+  const tier = active ? (liveTier ?? account.tier) : account.tier;
 
   function select() {
     if (active || switchAccount.isPending) return;
@@ -120,7 +134,7 @@ export function AccountRow({ account, active, index, divider }: AccountRowProps)
           >
             {name}
           </span>
-          {account.tier && <Badge variant="neutral">{account.tier}</Badge>}
+          {tier && <Badge variant="neutral">{tier}</Badge>}
           {active && <Badge variant="accent" dot>Active</Badge>}
         </div>
         {email && (
