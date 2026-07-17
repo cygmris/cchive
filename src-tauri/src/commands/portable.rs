@@ -40,5 +40,7 @@ pub fn import_config<R: Runtime>(
 ) -> Result<ImportSummary, CoreError> {
     let value = atomic_fs::read_json_value(Path::new(&path))?;
     let doc = serde_json::from_value(value).map_err(CoreError::from)?;
-    portable::apply_import(&config_dir(&app)?, &doc)
+    let summary = portable::apply_import(&config_dir(&app)?, &doc)?;
+    crate::refresh_tray(&app);
+    Ok(summary)
 }

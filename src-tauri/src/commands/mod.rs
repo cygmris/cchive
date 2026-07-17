@@ -79,12 +79,19 @@ mod tests {
         // Flip the live kind (a live provider unchecks every account row).
         ("providers.rs", "apply_provider"),
         ("providers.rs", "clear_provider"),
+        // Restoring a snapshot rewrites the live Claude files — i.e. which
+        // account is live — through a different door than a switch.
+        ("backups.rs", "restore_backup"),
+        // An import merges the provider index, changing the rows.
+        ("portable.rs", "import_config"),
     ];
 
     fn source(file: &str) -> &'static str {
         match file {
             "accounts.rs" => include_str!("accounts.rs"),
             "providers.rs" => include_str!("providers.rs"),
+            "backups.rs" => include_str!("backups.rs"),
+            "portable.rs" => include_str!("portable.rs"),
             other => panic!("no source registered for {other}"),
         }
     }

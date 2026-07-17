@@ -31,5 +31,7 @@ pub fn list_backups<R: Runtime>(app: AppHandle<R>) -> Result<Vec<BackupEntry>, C
 /// On-disk effect: snapshots then atomically overwrites the original; no keyring I/O.
 #[tauri::command]
 pub fn restore_backup<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), CoreError> {
-    backups::restore(&cchive_dir(&app)?, &id)
+    backups::restore(&cchive_dir(&app)?, &id)?;
+    crate::refresh_tray(&app);
+    Ok(())
 }
