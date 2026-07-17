@@ -151,7 +151,7 @@ install the native package instead, which `pacman` updates in place by the
 `cchive` package name (one menu entry, never a `(1)`):
 
 ```bash
-bash scripts/build-arch-pkg.sh          # builds the release if needed, then makepkg
+bash scripts/build-arch-pkg.sh          # rebuilds the release, packs it, verifies the result
 sudo pacman -U packaging/arch/cchive-*.pkg.tar.zst
 ```
 
