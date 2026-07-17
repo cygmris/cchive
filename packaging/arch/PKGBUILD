@@ -5,7 +5,7 @@
 # run `makepkg -f` in this directory.
 pkgname=cchive
 pkgver=0.1.0
-pkgrel=4
+pkgrel=5
 pkgdesc="A calm desktop tool to switch Claude Code accounts and configurations"
 arch=('x86_64')
 url="https://github.com/cygmris/cchive"
