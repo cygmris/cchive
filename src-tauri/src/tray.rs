@@ -11,6 +11,10 @@
 //! menu from truth so the check always lands on the real active config. Left-click
 //! toggles the main window.
 //!
+//! The menu is a SNAPSHOT — nothing redraws it on open — so the reverse direction
+//! must be pushed: a switch made in the app's own UI refreshes the tray through
+//! `crate::refresh_tray`, or the check would stay on the row the user left.
+//!
 //! `menu_model` is a pure function (accounts + providers + active identity → the
 //! checkable rows) so the labelling + active-detection is unit-tested without a
 //! running app.
@@ -204,7 +208,9 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
 }
 
 /// Swap the tray's menu for a freshly built one (best-effort).
-fn rebuild_menu<R: Runtime>(app: &AppHandle<R>) {
+/// Called after the tray's own actions and — via `crate::refresh_tray` — after
+/// every command that changes the lists or which entry is live.
+pub(crate) fn rebuild_menu<R: Runtime>(app: &AppHandle<R>) {
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
         if let Ok(menu) = build_menu(app) {
             let _ = tray.set_menu(Some(menu));

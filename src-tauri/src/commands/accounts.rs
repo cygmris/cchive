@@ -39,6 +39,7 @@ pub fn add_account_from_active<R: Runtime>(app: AppHandle<R>) -> Result<AccountM
     accounts.retain(|a| a.id != meta.id);
     accounts.push(meta.clone());
     write_index(&app, ACCOUNTS_FILE, ACCOUNTS_KEY, &accounts)?;
+    crate::refresh_tray(&app);
     Ok(meta)
 }
 
@@ -46,8 +47,13 @@ pub fn add_account_from_active<R: Runtime>(app: AppHandle<R>) -> Result<AccountM
 /// On-disk effect: backs up then atomically rewrites `~/.claude/.credentials.json`
 /// (or the macOS Keychain) and `~/.claude.json`; rolls both back on any failure.
 #[tauri::command]
-pub fn switch_account(id: String) -> Result<SwitchResult, CoreError> {
-    switch::switch_account(&id)
+pub fn switch_account<R: Runtime>(
+    app: AppHandle<R>,
+    id: String,
+) -> Result<SwitchResult, CoreError> {
+    let result = switch::switch_account(&id)?;
+    crate::refresh_tray(&app);
+    Ok(result)
 }
 
 /// Remove a saved account from the vault and the account index.
@@ -58,5 +64,7 @@ pub fn remove_account<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), C
     switch::remove_account(&id)?;
     let mut accounts: Vec<AccountMeta> = read_index(&app, ACCOUNTS_FILE, ACCOUNTS_KEY)?;
     accounts.retain(|a| a.id != id);
-    write_index(&app, ACCOUNTS_FILE, ACCOUNTS_KEY, &accounts)
+    write_index(&app, ACCOUNTS_FILE, ACCOUNTS_KEY, &accounts)?;
+    crate::refresh_tray(&app);
+    Ok(())
 }

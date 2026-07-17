@@ -52,14 +52,18 @@ pub fn save_provider<R: Runtime>(
     input: ProviderConfigInput,
     token: Option<String>,
 ) -> Result<ProviderConfigView, CoreError> {
-    providers::upsert(&index_path(&app)?, input, token)
+    let view = providers::upsert(&index_path(&app)?, input, token)?;
+    crate::refresh_tray(&app);
+    Ok(view)
 }
 
 /// Delete a provider from the index and its vaulted token (idempotent).
 /// On-disk effect: rewrites the provider index; deletes the keyring token.
 #[tauri::command]
 pub fn delete_provider<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), CoreError> {
-    providers::delete(&index_path(&app)?, &id)
+    providers::delete(&index_path(&app)?, &id)?;
+    crate::refresh_tray(&app);
+    Ok(())
 }
 
 /// Activate a provider by id: compose its env (incl. the vaulted token) + config
@@ -67,13 +71,17 @@ pub fn delete_provider<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), 
 /// On-disk effect: backs up then merges into `settings.json`; credentials untouched.
 #[tauri::command]
 pub fn apply_provider<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), CoreError> {
-    providers::apply(&index_path(&app)?, &paths::settings_path(), &id)
+    providers::apply(&index_path(&app)?, &paths::settings_path(), &id)?;
+    crate::refresh_tray(&app);
+    Ok(())
 }
 
 /// Reset to the subscription by clearing ONLY the `env` block.
 /// On-disk effect: backs up then removes the `env` block from `~/.claude/settings.json`,
 /// preserving every other key.
 #[tauri::command]
-pub fn clear_provider() -> Result<(), CoreError> {
-    switch::clear_provider()
+pub fn clear_provider<R: Runtime>(app: AppHandle<R>) -> Result<(), CoreError> {
+    switch::clear_provider()?;
+    crate::refresh_tray(&app);
+    Ok(())
 }

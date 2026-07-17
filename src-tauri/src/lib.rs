@@ -10,6 +10,19 @@ mod model;
 #[cfg(desktop)]
 mod tray;
 
+/// Redraw the tray menu so it reflects the state a command just wrote.
+///
+/// The tray menu is a snapshot (see `tray::build_menu`), so every mutation the
+/// tray can show — the account/provider lists, which one is live — must call
+/// this or the tray keeps drawing the pre-mutation truth. Best-effort and
+/// infallible: a redraw that fails must never fail the command. No-op off-desktop.
+pub(crate) fn refresh_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    #[cfg(desktop)]
+    tray::rebuild_menu(app);
+    #[cfg(not(desktop))]
+    let _ = app;
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
