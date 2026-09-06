@@ -17,12 +17,13 @@ vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true }));
 
 vi.mock("@/lib/ipc", () => ({
   readUsage: vi.fn(),
+  readGrokUsage: vi.fn(),
 }));
 
 import * as ipc from "@/lib/ipc";
 import { UsageScreen } from "./index";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import type { UsageSummary } from "@/lib/types";
+import type { GrokUsageSummary, UsageSummary } from "@/lib/types";
 
 const SUMMARY: UsageSummary = {
   rangeDays: 30,
@@ -47,6 +48,30 @@ const SUMMARY: UsageSummary = {
     { date: "2026-06-27", tokens: 3_500_000, level: 2 },
     { date: "2026-06-28", tokens: 5_000_000, level: 4 },
   ],
+};
+
+const GROK_SUMMARY: GrokUsageSummary = {
+  rangeDays: 30,
+  credits: {
+    percent: 73,
+    periodStart: "2026-08-30T15:02:43Z",
+    periodEnd: "2026-09-06T15:02:43Z",
+    periodType: "USAGE_PERIOD_TYPE_WEEKLY",
+    asOf: "2026-09-06T12:00:00Z",
+    ageMinutes: 3,
+    subscriptionTier: "SuperGrok Heavy",
+  },
+  totals: {
+    costUsd: 12.5,
+    tokens: 4_200_000,
+    input: 3_800_000,
+    output: 400_000,
+    cacheRead: 2_000_000,
+    calls: 48,
+  },
+  perDay: [{ date: "2026-09-06", costUsd: 8.4, tokens: 2_800_000, calls: 32 }],
+  perModel: [{ model: "grok-4.6-build", costUsd: 10.2, tokens: 0, calls: 40 }],
+  heatmap: [{ date: "2026-09-06", tokens: 2_800_000, level: 4 }],
 };
 
 const EMPTY: UsageSummary = {
@@ -75,6 +100,7 @@ function renderScreen() {
 beforeEach(() => {
   vi.clearAllMocks();
   (ipc.readUsage as Mock).mockResolvedValue(SUMMARY);
+  (ipc.readGrokUsage as Mock).mockResolvedValue(GROK_SUMMARY);
 });
 
 describe("UsageScreen", () => {
@@ -154,5 +180,25 @@ describe("UsageScreen", () => {
 
     // No activity → an empty grid (no cells).
     expect(document.querySelector('svg[aria-label*="heatmap"]')).toBeNull();
+  });
+
+  it("toggles to Grok tiles from the mocked grok summary without mixing Claude totals", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await screen.findByText("Input tokens");
+    expect(screen.getByText("84.2M")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Grok" }));
+
+    expect(await screen.findByText("Tokens")).toBeInTheDocument();
+    expect(screen.getByText("Calls")).toBeInTheDocument();
+    expect(screen.getByText("4.2M")).toBeInTheDocument();
+    expect(screen.getByText("$12.50")).toBeInTheDocument();
+    expect(screen.getByText("grok-4.6-build")).toBeInTheDocument();
+    expect(screen.getByText(/73% · SuperGrok Heavy/)).toBeInTheDocument();
+    expect(screen.queryByText("Input tokens")).not.toBeInTheDocument();
+    expect(screen.queryByText("84.2M")).not.toBeInTheDocument();
+    expect(screen.queryByText("$128.40")).not.toBeInTheDocument();
   });
 });

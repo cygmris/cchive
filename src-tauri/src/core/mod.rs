@@ -12,6 +12,8 @@ pub mod keyring_store;
 pub mod claude_json;
 pub mod codex;
 pub mod codex_provider;
+pub mod grok;
+pub mod grok_usage;
 pub mod latency;
 pub mod memory;
 pub mod notify_hook;

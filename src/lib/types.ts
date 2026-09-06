@@ -181,6 +181,27 @@ export interface CodexIdentity {
   expiresAt: number | null;
 }
 
+/** Non-secret metadata for one saved Grok account (the `auth.json` payload lives
+ * in the OS keyring, never here). The Grok twin of {@link CodexAccountMeta}. */
+export interface GrokAccountMeta {
+  id: string;
+  label: string;
+  email: string | null;
+  /** Human plan from the billing log, e.g. "SuperGrok Heavy". Never a JWT tier. */
+  plan: string | null;
+  lastUsed: number | null;
+}
+
+/** The active Grok identity from `~/.grok/auth.json`. `kind`: "account" | "none".
+ * Never a token. */
+export interface GrokIdentity {
+  kind: string;
+  label: string;
+  email: string | null;
+  plan: string | null;
+  expiresAt: number | null;
+}
+
 /** Non-secret metadata for one saved Codex provider (OpenAI-compatible gateway).
  * The key lives in the keyring; these are the routing fields written to config.toml. */
 export interface CodexProviderMeta {
@@ -419,6 +440,52 @@ export interface UsageSummary {
   /** Models ranked by token count (desc). */
   perModel: ModelTotal[];
   /** One cell per day for the trailing year (oldest → newest). */
+  heatmap: HeatCell[];
+}
+
+/** Weekly Grok credit readout from the last billing line in `unified.jsonl`. */
+export interface GrokCredits {
+  percent: number;
+  periodStart: string;
+  periodEnd: string;
+  periodType: string;
+  asOf: string;
+  ageMinutes: number | null;
+  subscriptionTier: string | null;
+}
+
+/** One day of Grok spend. */
+export interface GrokDayPoint {
+  date: string;
+  costUsd: number;
+  tokens: number;
+  calls: number;
+}
+
+/** Per-model Grok spend over the selected range. */
+export interface GrokModelTotal {
+  model: string;
+  costUsd: number;
+  tokens: number;
+  calls: number;
+}
+
+export interface GrokTokenTotals {
+  costUsd: number;
+  tokens: number;
+  input: number;
+  output: number;
+  cacheRead: number;
+  calls: number;
+}
+
+/** Grok usage aggregate. Numbers, dates, model ids, and the plan label only. */
+export interface GrokUsageSummary {
+  rangeDays: number;
+  credits: GrokCredits | null;
+  totals: GrokTokenTotals;
+  perDay: GrokDayPoint[];
+  perModel: GrokModelTotal[];
   heatmap: HeatCell[];
 }
 

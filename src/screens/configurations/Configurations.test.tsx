@@ -36,6 +36,11 @@ vi.mock("@/lib/ipc", () => ({
   deleteCodexProvider: vi.fn(),
   applyCodexProvider: vi.fn(),
   clearCodexProvider: vi.fn(),
+  listGrokAccounts: vi.fn(),
+  getActiveGrokIdentity: vi.fn(),
+  addGrokAccountFromActive: vi.fn(),
+  switchGrokAccount: vi.fn(),
+  removeGrokAccount: vi.fn(),
 }));
 
 import * as ipc from "@/lib/ipc";
@@ -48,6 +53,8 @@ import type {
   ActiveIdentity,
   CodexAccountMeta,
   CodexIdentity,
+  GrokAccountMeta,
+  GrokIdentity,
   ProviderMeta,
 } from "@/lib/types";
 
@@ -137,6 +144,39 @@ const CODEX_NONE: CodexIdentity = {
   expiresAt: null,
 };
 
+const GROK_ACCOUNTS: GrokAccountMeta[] = [
+  {
+    id: "grok-1",
+    label: "Lucas Moreau",
+    email: "lucas.moreau@gmail.com",
+    plan: "SuperGrok Heavy",
+    lastUsed: null,
+  },
+  {
+    id: "grok-2",
+    label: "Rivoli Labs",
+    email: "lucas@rivoli.dev",
+    plan: "SuperGrok",
+    lastUsed: null,
+  },
+];
+
+const GROK_ACTIVE: GrokIdentity = {
+  kind: "account",
+  label: "Lucas Moreau",
+  email: "lucas.moreau@gmail.com",
+  plan: "SuperGrok Heavy",
+  expiresAt: null,
+};
+
+const GROK_NONE: GrokIdentity = {
+  kind: "none",
+  label: "No Grok account",
+  email: null,
+  plan: null,
+  expiresAt: null,
+};
+
 // The explicit add-account trigger; swapped for a spy so the capture path is
 // observable without rendering the (shell-owned) modal.
 const openAddAccount = vi.fn();
@@ -181,6 +221,11 @@ beforeEach(() => {
   (ipc.applyCodexProvider as Mock).mockResolvedValue(undefined);
   (ipc.clearCodexProvider as Mock).mockResolvedValue(undefined);
   (ipc.deleteCodexProvider as Mock).mockResolvedValue(undefined);
+  (ipc.listGrokAccounts as Mock).mockResolvedValue(GROK_ACCOUNTS);
+  (ipc.getActiveGrokIdentity as Mock).mockResolvedValue(GROK_ACTIVE);
+  (ipc.switchGrokAccount as Mock).mockResolvedValue(GROK_NONE);
+  (ipc.removeGrokAccount as Mock).mockResolvedValue(undefined);
+  (ipc.addGrokAccountFromActive as Mock).mockResolvedValue(GROK_ACCOUNTS[0]);
 });
 
 function renderScreen() {
@@ -365,6 +410,43 @@ describe("ConfigurationsScreen", () => {
 
     await waitFor(() =>
       expect(ipc.addCodexAccountFromActive).toHaveBeenCalled(),
+    );
+  });
+
+  it("renders Grok accounts with plan + email and no token", async () => {
+    renderScreen();
+
+    expect(await screen.findByText("lucas.moreau@gmail.com")).toBeInTheDocument();
+    expect(screen.getByText("Grok accounts")).toBeInTheDocument();
+    expect(screen.getByText("lucas@rivoli.dev")).toBeInTheDocument();
+    expect(screen.getByText("SuperGrok Heavy")).toBeInTheDocument();
+    expect(screen.queryByText(/eyJ/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/refresh_token/)).not.toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+  });
+
+  it("selecting a Grok account row triggers a Grok switch", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.click(await screen.findByText("Rivoli Labs"));
+
+    await waitFor(() =>
+      expect(ipc.switchGrokAccount).toHaveBeenCalledWith("grok-2"),
+    );
+  });
+
+  it("captures the live Grok account from the section header", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await screen.findByText("Grok accounts");
+    await user.click(
+      screen.getByRole("button", { name: "Add current Grok account" }),
+    );
+
+    await waitFor(() =>
+      expect(ipc.addGrokAccountFromActive).toHaveBeenCalled(),
     );
   });
 

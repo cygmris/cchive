@@ -310,6 +310,92 @@ pub struct CodexIdentity {
     pub expires_at: Option<i64>,
 }
 
+/// Non-secret metadata for one saved **Grok** account (the whole `auth.json`
+/// text lives in the keyring, never here). Mirrors `CodexAccountMeta`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrokAccountMeta {
+    pub id: String,
+    pub label: String,
+    pub email: Option<String>,
+    /// Human plan from the billing log (`ctx.subscriptionTier`), if known.
+    /// Never a JWT `tier` number and never a token.
+    pub plan: Option<String>,
+    /// Epoch milliseconds of the last switch-in, if ever used.
+    pub last_used: Option<i64>,
+}
+
+/// The currently-active **Grok** identity, derived from `~/.grok/auth.json`.
+/// `kind`: "account" | "none". Never carries `key` or `refresh_token`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrokIdentity {
+    pub kind: String,
+    pub label: String,
+    pub email: Option<String>,
+    pub plan: Option<String>,
+    /// Epoch milliseconds `expires_at` on the session blob, if parseable.
+    pub expires_at: Option<i64>,
+}
+
+/// Weekly Grok credit readout from the last `billing: fetched credits config`
+/// line in `unified.jsonl`. Numbers + dates + the plan label only.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrokCredits {
+    pub percent: f64,
+    pub period_start: String,
+    pub period_end: String,
+    pub period_type: String,
+    pub as_of: String,
+    pub age_minutes: Option<i64>,
+    pub subscription_tier: Option<String>,
+}
+
+/// One day of Grok spend (the Usage Grok pane's bar chart).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrokDayPoint {
+    pub date: String,
+    pub cost_usd: f64,
+    pub tokens: u64,
+    pub calls: u64,
+}
+
+/// Per-model Grok spend over the selected range.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrokModelTotal {
+    pub model: String,
+    pub cost_usd: f64,
+    pub tokens: u64,
+    pub calls: u64,
+}
+
+/// Range totals for the Grok Usage pane. Cost is `costUsdTicks / 10^10`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrokTokenTotals {
+    pub cost_usd: f64,
+    pub tokens: u64,
+    pub input: u64,
+    pub output: u64,
+    pub cache_read: u64,
+    pub calls: u64,
+}
+
+/// Grok usage aggregate. Numbers, dates, model ids, and the plan label only.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrokUsageSummary {
+    pub range_days: u32,
+    pub credits: Option<GrokCredits>,
+    pub totals: GrokTokenTotals,
+    pub per_day: Vec<GrokDayPoint>,
+    pub per_model: Vec<GrokModelTotal>,
+    pub heatmap: Vec<HeatCell>,
+}
+
 /// Non-secret metadata for one saved **Codex provider** (an OpenAI-compatible
 /// gateway). The API key lives in the keyring; here we keep only the routing
 /// fields cchive writes into `config.toml`. The Codex twin of `ProviderMeta`.

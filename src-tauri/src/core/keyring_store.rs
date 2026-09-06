@@ -28,6 +28,10 @@ const CODEX_ACCOUNTS_SERVICE: &str = "app.cchive.codex.accounts";
 /// Keyring service under which every **Codex provider** (gateway) API key is stored.
 const CODEX_PROVIDERS_SERVICE: &str = "app.cchive.codex.providers";
 
+/// Keyring service under which every saved **Grok** account (`auth.json` payload)
+/// is stored — isolated from the Claude, Codex, and provider namespaces.
+const GROK_ACCOUNTS_SERVICE: &str = "app.cchive.grok.accounts";
+
 /// Backend the vault dispatches to. `Sync` so the `'static` trait object can be
 /// shared across cargo's parallel test threads. Every call is namespaced by
 /// `service` so accounts and providers never collide.
@@ -219,6 +223,38 @@ pub fn codex_provider_vault_has(id: &str) -> Result<bool, CoreError> {
     backend().has(CODEX_PROVIDERS_SERVICE, id)
 }
 
+/// Store (or replace) the `auth.json` payload for Grok account `id`.
+pub fn grok_vault_put(id: &str, blob: &str) -> Result<(), CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty grok account id".to_string()));
+    }
+    backend().put(GROK_ACCOUNTS_SERVICE, id, blob)
+}
+
+/// Read the `auth.json` payload for Grok account `id`. Absent -> `CoreError::NotFound`.
+pub fn grok_vault_get(id: &str) -> Result<String, CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty grok account id".to_string()));
+    }
+    backend().get(GROK_ACCOUNTS_SERVICE, id)
+}
+
+/// Delete the payload for Grok account `id`. Absent entry is a no-op (idempotent).
+pub fn grok_vault_delete(id: &str) -> Result<(), CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty grok account id".to_string()));
+    }
+    backend().delete(GROK_ACCOUNTS_SERVICE, id)
+}
+
+/// Whether a payload exists for Grok account `id`.
+pub fn grok_vault_has(id: &str) -> Result<bool, CoreError> {
+    if id.is_empty() {
+        return Err(CoreError::InvalidInput("empty grok account id".to_string()));
+    }
+    backend().has(GROK_ACCOUNTS_SERVICE, id)
+}
+
 // ---------------------------------------------------------------------------
 // In-memory backend for headless tests (no live Secret Service required).
 // ---------------------------------------------------------------------------
@@ -327,5 +363,17 @@ mod tests {
             Err(CoreError::InvalidInput(_)) => {}
             other => panic!("expected InvalidInput for empty id, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn grok_namespace_round_trips_without_colliding_codex() {
+        let id = "shared-id";
+        grok_vault_put(id, "grok-blob").unwrap();
+        codex_vault_put(id, "codex-blob").unwrap();
+        assert_eq!(grok_vault_get(id).unwrap(), "grok-blob");
+        assert_eq!(codex_vault_get(id).unwrap(), "codex-blob");
+        grok_vault_delete(id).unwrap();
+        assert!(!grok_vault_has(id).unwrap());
+        assert!(codex_vault_has(id).unwrap());
     }
 }

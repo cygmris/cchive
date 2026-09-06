@@ -36,6 +36,9 @@ import type {
   ActivityEntry,
   CodexAccountMeta,
   CodexIdentity,
+  GrokAccountMeta,
+  GrokIdentity,
+  GrokUsageSummary,
   CodexProviderConfigView,
   CodexProviderInput,
   CodexProviderMeta,
@@ -75,6 +78,9 @@ export const queryKeys = {
   /** Saved Codex accounts + the active Codex identity (Codex switch path). */
   codexAccounts: ["codexAccounts"] as const,
   codexIdentity: ["codexIdentity"] as const,
+  /** Saved Grok accounts + the active Grok identity. */
+  grokAccounts: ["grokAccounts"] as const,
+  grokIdentity: ["grokIdentity"] as const,
   /** Saved Codex providers (gateways) + one provider's editor view. */
   codexProviders: ["codexProviders"] as const,
   codexProvider: (id: string) => ["codexProvider", id] as const,
@@ -82,6 +88,8 @@ export const queryKeys = {
   settingsSummary: ["settingsSummary"] as const,
   /** The usage aggregate for one range window (`usage:<rangeDays>`). */
   usage: (rangeDays: number) => ["usage", rangeDays] as const,
+  /** Grok usage aggregate for one range window (`grokUsage:<rangeDays>`). */
+  grokUsage: (rangeDays: number) => ["grokUsage", rangeDays] as const,
   /** Global MCP servers (enabled + disabled stash). */
   mcpServers: ["mcpServers"] as const,
   /** Markdown resources of one kind (`resources:<kind>`). */
@@ -213,6 +221,64 @@ const DEMO_CODEX_IDENTITY: CodexIdentity = {
   plan: "ChatGPT Pro",
   expiresAt: null,
 };
+
+/** Demo Grok accounts (off-Tauri) — same Lucas Moreau NPC. Never `demo@`/`DEMO`. */
+const DEMO_GROK_ACCOUNTS: GrokAccountMeta[] = [
+  {
+    id: "grok-demo-personal",
+    label: "Lucas Moreau",
+    email: "lucas.moreau@gmail.com",
+    plan: "SuperGrok Heavy",
+    lastUsed: null,
+  },
+  {
+    id: "grok-demo-studio",
+    label: "Rivoli Labs",
+    email: "lucas@rivoli.dev",
+    plan: "SuperGrok",
+    lastUsed: null,
+  },
+];
+
+const DEMO_GROK_IDENTITY: GrokIdentity = {
+  kind: "account",
+  label: "Lucas Moreau",
+  email: "lucas.moreau@gmail.com",
+  plan: "SuperGrok Heavy",
+  expiresAt: null,
+};
+
+function demoGrokUsageSummary(rangeDays: number): GrokUsageSummary {
+  return {
+    rangeDays,
+    credits: {
+      percent: 42,
+      periodStart: "2026-08-30T15:02:43Z",
+      periodEnd: "2026-09-06T15:02:43Z",
+      periodType: "USAGE_PERIOD_TYPE_WEEKLY",
+      asOf: "2026-09-06T12:00:00Z",
+      ageMinutes: 5,
+      subscriptionTier: "SuperGrok Heavy",
+    },
+    totals: {
+      costUsd: 12.5,
+      tokens: 4_200_000,
+      input: 3_800_000,
+      output: 400_000,
+      cacheRead: 2_000_000,
+      calls: 48,
+    },
+    perDay: [
+      { date: "2026-09-05", costUsd: 4.1, tokens: 1_400_000, calls: 16 },
+      { date: "2026-09-06", costUsd: 8.4, tokens: 2_800_000, calls: 32 },
+    ],
+    perModel: [
+      { model: "grok-4.6-build", costUsd: 10.2, tokens: 0, calls: 40 },
+      { model: "grok-4.5-build", costUsd: 2.3, tokens: 0, calls: 8 },
+    ],
+    heatmap: [],
+  };
+}
 
 /** Demo Codex provider (off-Tauri) — a fictional OpenAI-compatible gateway. */
 const DEMO_CODEX_PROVIDERS: CodexProviderMeta[] = [
@@ -909,6 +975,24 @@ export function useUsage(rangeDays: number): UseQueryResult<UsageSummary, Error>
 }
 
 /**
+ * Grok usage for a `rangeDays` window. Independent of {@link useUsage} — does
+ * not write `tokensToday`. Off-Tauri resolves to a labelled demo summary.
+ */
+export function useGrokUsage(
+  rangeDays: number,
+): UseQueryResult<GrokUsageSummary, Error> {
+  return useQuery({
+    queryKey: queryKeys.grokUsage(rangeDays),
+    queryFn: () =>
+      runQuery(demoGrokUsageSummary(rangeDays), () =>
+        ipc.readGrokUsage(rangeDays),
+      ),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+}
+
+/**
  * Global MCP servers (enabled from `~/.claude.json` + disabled from the stash).
  * Off-Tauri it resolves to a labelled demo set so the gallery renders.
  *
@@ -1242,6 +1326,66 @@ export function useRemoveCodexAccount(): UseMutationResult<void, Error, string> 
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.codexAccounts });
       void qc.invalidateQueries({ queryKey: queryKeys.codexIdentity });
+    },
+  });
+}
+
+/* ------------------------------------------------------------------------- *
+ * Grok account switching — the Grok twin of the Codex account hooks.
+ * ------------------------------------------------------------------------- */
+
+export function useGrokAccounts(): UseQueryResult<GrokAccountMeta[], Error> {
+  return useQuery({
+    queryKey: queryKeys.grokAccounts,
+    queryFn: () => runQuery(DEMO_GROK_ACCOUNTS, ipc.listGrokAccounts),
+  });
+}
+
+export function useActiveGrokIdentity(): UseQueryResult<GrokIdentity, Error> {
+  return useQuery({
+    queryKey: queryKeys.grokIdentity,
+    queryFn: () => runQuery(DEMO_GROK_IDENTITY, ipc.getActiveGrokIdentity),
+  });
+}
+
+export function useAddCurrentGrokAccount(): UseMutationResult<
+  GrokAccountMeta,
+  Error,
+  void
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => runMutation(() => ipc.addGrokAccountFromActive()),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.grokAccounts });
+      void qc.invalidateQueries({ queryKey: queryKeys.grokIdentity });
+    },
+  });
+}
+
+export function useSwitchGrokAccount(): UseMutationResult<
+  GrokIdentity,
+  Error,
+  string
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => runMutation(() => ipc.switchGrokAccount(id)),
+    onSuccess: (identity) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.grokAccounts });
+      void qc.invalidateQueries({ queryKey: queryKeys.grokIdentity });
+      recordActivity(qc, "account", `Switched Grok to ${identity.label}`);
+    },
+  });
+}
+
+export function useRemoveGrokAccount(): UseMutationResult<void, Error, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => runMutation(() => ipc.removeGrokAccount(id)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.grokAccounts });
+      void qc.invalidateQueries({ queryKey: queryKeys.grokIdentity });
     },
   });
 }

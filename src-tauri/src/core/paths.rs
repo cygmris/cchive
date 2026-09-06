@@ -61,6 +61,37 @@ pub fn codex_config_path() -> PathBuf {
     codex_dir().join("config.toml")
 }
 
+/// The Grok config directory: `$GROK_HOME` when set (and non-empty), otherwise
+/// `$HOME/.grok`. Switching only ever writes `auth.json` here.
+pub fn grok_dir() -> PathBuf {
+    match std::env::var_os("GROK_HOME") {
+        Some(v) if !v.is_empty() => PathBuf::from(v),
+        _ => home_dir().join(".grok"),
+    }
+}
+
+/// `<grok_dir>/auth.json` — Grok's live session. The whole file IS one "account".
+pub fn grok_auth_path() -> PathBuf {
+    grok_dir().join("auth.json")
+}
+
+/// `<grok_dir>/logs/unified.jsonl` — billing lines (`creditUsagePercent`,
+/// `subscriptionTier`). Read the tail; never a secret.
+pub fn grok_logs_path() -> PathBuf {
+    grok_dir().join("logs").join("unified.jsonl")
+}
+
+/// `<grok_dir>/sessions/` — per-session `updates.jsonl` usage logs.
+pub fn grok_sessions_dir() -> PathBuf {
+    grok_dir().join("sessions")
+}
+
+/// `<cchive_config_dir>/grok-usage-parse-cache.json` — incremental Grok usage
+/// parse cache (per-file byte offset + day buckets). Non-secret: counts only.
+pub fn grok_usage_cache_path() -> PathBuf {
+    cchive_config_dir().join("grok-usage-parse-cache.json")
+}
+
 /// `<cchive_config_dir>/usage-parse-cache.json` — the incremental usage parse cache
 /// (per-file parsed events keyed by mtime+size). Non-secret: token counts only.
 pub fn usage_cache_path() -> PathBuf {
@@ -224,6 +255,23 @@ mod tests {
         // Default falls back to $HOME/.codex (never under CLAUDE_CONFIG_DIR).
         let home = dirs::home_dir().unwrap();
         assert_eq!(codex_dir(), home.join(".codex"));
+    }
+
+    #[test]
+    fn grok_home_override_resolves_auth_and_logs() {
+        let _g = ENV_LOCK.lock().unwrap();
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().to_path_buf();
+        std::env::set_var("GROK_HOME", &dir);
+
+        assert_eq!(grok_dir(), dir);
+        assert_eq!(grok_auth_path(), dir.join("auth.json"));
+        assert_eq!(grok_logs_path(), dir.join("logs").join("unified.jsonl"));
+        assert_eq!(grok_sessions_dir(), dir.join("sessions"));
+
+        std::env::remove_var("GROK_HOME");
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(grok_dir(), home.join(".grok"));
     }
 
     #[test]

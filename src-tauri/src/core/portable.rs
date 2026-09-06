@@ -324,6 +324,11 @@ mod tests {
         assert!(!serialized.contains("secretApiKey"), "non-allow-listed pref leaked: {serialized}");
         assert!(!lower.contains("token"), "the word 'token' must not appear: {serialized}");
         assert!(!lower.contains("apikey"), "the word 'apiKey' must not appear: {serialized}");
+        assert!(!serialized.contains("refresh_token"), "grok/codex refresh leaked");
+        assert!(
+            !serialized.contains("app.cchive.grok"),
+            "grok keyring namespace must not be exported"
+        );
     }
 
     #[test]

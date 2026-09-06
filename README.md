@@ -1,10 +1,10 @@
 # cchive
 
-**A calm desktop hub for your coding agents — switch Claude Code and Codex accounts the moment one runs out.**
+**A calm desktop hub for your coding agents — switch Claude Code, Codex, and Grok accounts the moment one runs out.**
 
 cchive (cc + hive) is a local, offline-first desktop app that gathers everything about your
-Claude Code and Codex setup in one place: switch between subscription accounts (Claude **and**
-Codex) and API providers, manage MCP servers, agents, commands, skills and memory, and read
+Claude Code, Codex, and Grok setup in one place: switch between subscription accounts (Claude,
+Codex, and Grok) and API providers, manage MCP servers, agents, commands, skills and memory, and read
 your local usage — all on your machine, nothing leaving your device. It runs as a native
 [Tauri](https://tauri.app) app (Rust shell + React UI) and stores secrets in your OS keyring.
 
@@ -18,6 +18,10 @@ your local usage — all on your machine, nothing leaving your device. It runs a
 - **Codex account switching** — the same safe switch for OpenAI Codex: capture and flip
   between saved `~/.codex/auth.json` logins (ChatGPT or API-key), atomic and backup-first,
   with the plan (e.g. ChatGPT Pro) shown per account. Claude and Codex live side by side.
+- **Grok account switching** — the same safe switch for xAI Grok Build: capture and flip
+  the whole `~/.grok/auth.json` session (atomic, backup-first). Identity is the plaintext
+  email on that file; the plan badge is the last `subscriptionTier` grok wrote to
+  `~/.grok/logs/unified.jsonl`.
 - **Codex providers (gateways)** — point Codex at any OpenAI-compatible endpoint (e.g. your
   own LLM gateway): save a base URL + key and cchive surgically writes a
   `[model_providers.*]` block into `~/.codex/config.toml` (inline bearer token, preserving
@@ -29,7 +33,9 @@ your local usage — all on your machine, nothing leaving your device. It runs a
 - **Config management** — view and edit MCP servers, agents, commands, skills, and project /
   global memory (`CLAUDE.md`), with a CodeMirror editor.
 - **Usage analytics** — daily output-token chart + tokens-by-model breakdown and a cost
-  estimate, parsed from your local usage logs.
+  estimate from local Claude session logs, plus a Grok pane (weekly credit percent from
+  `unified.jsonl`, spend from `sessions/**/updates.jsonl`). Claude and Grok totals are
+  never added together; nothing is fetched over the network.
 - **System tray quick-switch** — a tray menu lists your accounts and providers (active one
   checked); selecting one runs the **same** safe switch core as the in-app UI, fires a desktop
   notification, and refreshes the window. Left-click toggles the window; single-instance

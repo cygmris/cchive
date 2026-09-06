@@ -2,7 +2,7 @@
 
 cchive is a calm, cross‑platform desktop tool for managing your coding agents:
 switch between Claude Code accounts (e.g. two Max plans — flip the moment one runs
-out) **and** Codex accounts, manage API providers, MCP servers,
+out), Codex accounts, **and** Grok accounts, manage API providers, MCP servers,
 agents/commands/skills, memory, and read local usage.
 This document captures the durable design that isn't obvious from the code alone.
 
@@ -27,13 +27,19 @@ This document captures the durable design that isn't obvious from the code alone
 - `core/credentials`, `core/claude_json`, `core/settings` — read/merge the three
   Claude files **preserving all unknown keys**.
 - `core/keyring_store` — the secret vault (Claude account tokens, provider API
-  keys, and Codex `auth.json` payloads — three isolated namespaces:
-  `app.cchive.accounts`, `app.cchive.providers`, `app.cchive.codex.accounts`).
+  keys, Codex `auth.json` payloads, and Grok `auth.json` payloads — isolated
+  namespaces: `app.cchive.accounts`, `app.cchive.providers`,
+  `app.cchive.codex.accounts`, `app.cchive.grok.accounts`).
 - `core/switch` — the account‑switch engine (below).
 - `core/codex` — the **Codex** account‑switch engine: capture / switch / identity
   against `~/.codex/auth.json` (the single‑file Codex twin of `core/switch`).
   Identity (email + plan, e.g. ChatGPT Pro) is read from the `id_token` claims;
   the whole auth payload stays in the keyring — never a token across IPC.
+- `core/grok` — the **Grok** account‑switch engine: capture / switch / identity
+  against `$GROK_HOME/auth.json` (default `~/.grok/auth.json`). The whole file is
+  the secret; identity is plaintext `email` / `first_name` / `user_id`; plan is
+  the last `ctx.subscriptionTier` from `logs/unified.jsonl` (never a JWT `tier`).
+  Namespace `app.cchive.grok.accounts`. Does not touch `config.toml` or sessions.
 - `core/codex_provider` — the **Codex provider (gateway)** engine, the Codex twin of
   `core/providers`: surgically edits `~/.codex/config.toml` (via `toml_edit`, preserving
   the user's MCP servers / projects / comments) to set `model_provider` + a
@@ -50,6 +56,10 @@ This document captures the durable design that isn't obvious from the code alone
   (`cchive-usage-cache.json`) and paints it **instantly** on open while the fresh
   recompute runs in the background (`lib/usageCache` + `useUsage` + `useGlobalData`;
   a 60 s stale window skips re‑parsing on quick revisits).
+- `core/grok_usage` — Grok local usage: weekly `creditUsagePercent` from the
+  `unified.jsonl` tail, plus incremental spend from `sessions/**/updates.jsonl`
+  (`costUsdTicks / 10^10`). Cache file `grok-usage-parse-cache.json`. Command
+  `read_grok_usage`. **`read_usage` remains Claude-only.**
 - `core/usage_cache` — the **incremental** parse cache behind that background recompute:
   each file's parsed events are cached by (mtime, size) in `usage-parse-cache.json`, so a
   repeat run re‑parses only changed files (cold cache = one full pass). The summary is

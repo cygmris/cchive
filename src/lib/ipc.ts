@@ -25,6 +25,9 @@ import type {
   ActiveIdentity,
   CodexAccountMeta,
   CodexIdentity,
+  GrokAccountMeta,
+  GrokIdentity,
+  GrokUsageSummary,
   CodexProviderConfigView,
   CodexProviderInput,
   CodexProviderMeta,
@@ -51,6 +54,7 @@ import type {
   SwitchResult,
   UsageSummary,
 } from "./types";
+
 
 /** Throw a clear error when invoked outside the Tauri runtime. */
 function ensureTauri(command: string): void {
@@ -119,6 +123,36 @@ export function switchCodexAccount(id: string): Promise<CodexIdentity> {
 export function removeCodexAccount(id: string): Promise<void> {
   ensureTauri("remove_codex_account");
   return invoke<void>("remove_codex_account", { id });
+}
+
+/** List saved Grok accounts (non-secret metadata only). */
+export function listGrokAccounts(): Promise<GrokAccountMeta[]> {
+  ensureTauri("list_grok_accounts");
+  return invoke<GrokAccountMeta[]>("list_grok_accounts");
+}
+
+/** Report the active Grok identity (label/email/plan/expiry). */
+export function getActiveGrokIdentity(): Promise<GrokIdentity> {
+  ensureTauri("get_active_grok_identity");
+  return invoke<GrokIdentity>("get_active_grok_identity");
+}
+
+/** Capture the currently-signed-in Grok account into the vault + index. */
+export function addGrokAccountFromActive(): Promise<GrokAccountMeta> {
+  ensureTauri("add_grok_account_from_active");
+  return invoke<GrokAccountMeta>("add_grok_account_from_active");
+}
+
+/** Switch the active Grok account to `id`; returns the new active identity. */
+export function switchGrokAccount(id: string): Promise<GrokIdentity> {
+  ensureTauri("switch_grok_account");
+  return invoke<GrokIdentity>("switch_grok_account", { id });
+}
+
+/** Remove a saved Grok account from the vault + index. */
+export function removeGrokAccount(id: string): Promise<void> {
+  ensureTauri("remove_grok_account");
+  return invoke<void>("remove_grok_account", { id });
 }
 
 /** List saved Codex providers (gateway routing metadata; no keys). */
@@ -306,6 +340,15 @@ export function testLatency(baseUrl: string): Promise<LatencyResult> {
 export function readUsage(rangeDays: number): Promise<UsageSummary> {
   ensureTauri("read_usage");
   return invoke<UsageSummary>("read_usage", { rangeDays });
+}
+
+/**
+ * Aggregate Grok spend from `$GROK_HOME/sessions` `updates.jsonl` files plus the
+ * weekly credit percent from `unified.jsonl`. Numbers only — never a credential.
+ */
+export function readGrokUsage(rangeDays: number): Promise<GrokUsageSummary> {
+  ensureTauri("read_grok_usage");
+  return invoke<GrokUsageSummary>("read_grok_usage", { rangeDays });
 }
 
 /**

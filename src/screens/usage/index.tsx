@@ -22,9 +22,11 @@ import { StatTile } from "@/ui/StatTile";
 import { Heatmap } from "@/ui/charts/Heatmap";
 import { OutputBars } from "@/ui/charts/OutputBars";
 import { Loader, Refresh } from "@/ui/icons";
-import { useUsage } from "@/lib/queries";
+import { useGrokUsage, useUsage } from "@/lib/queries";
+import type { DayPoint, GrokUsageSummary } from "@/lib/types";
 
 type Range = "30" | "7";
+type Agent = "claude" | "grok";
 
 /** Compact token label, e.g. `0` / `246.1K` / `84.2M` / `1.3B`. */
 function formatTokens(n: number): string {
@@ -86,11 +88,42 @@ function CardHeading({ title, subtitle }: { title: string; subtitle?: string }) 
   );
 }
 
+function grokDaysAsOutput(summary: GrokUsageSummary): DayPoint[] {
+  return summary.perDay.map((d) => ({
+    date: d.date,
+    output: d.tokens,
+    input: 0,
+    cacheRead: 0,
+  }));
+}
+
+function creditLine(summary: GrokUsageSummary): string | null {
+  const c = summary.credits;
+  if (!c) return null;
+  const pct = Number.isFinite(c.percent) ? `${c.percent.toFixed(0)}%` : "—";
+  const tier = c.subscriptionTier ?? "";
+  const end = c.periodEnd ? c.periodEnd.slice(0, 10) : "";
+  const parts = [pct, tier, end ? `resets ${end}` : ""].filter(Boolean);
+  const stale = (c.ageMinutes ?? 0) > 45 ? " · stale" : "";
+  return parts.join(" · ") + stale;
+}
+
 export function UsageScreen() {
   const { t } = useTranslation();
   const [range, setRange] = useState<Range>("30");
+  const [agent, setAgent] = useState<Agent>("claude");
   const rangeDays = range === "30" ? 30 : 7;
-  const { data, isPending, isFetching, refetch } = useUsage(rangeDays);
+  const claude = useUsage(rangeDays);
+  const grok = useGrokUsage(rangeDays);
+  const data = claude.data;
+  const grokData = grok.data;
+  const isPending =
+    agent === "grok" ? grok.isPending || grokData == null : claude.isPending || data == null;
+  const isFetching = agent === "grok" ? grok.isFetching : claude.isFetching;
+  function refresh() {
+    if (agent === "grok") void grok.refetch();
+    else void claude.refetch();
+  }
 
   return (
     <div
@@ -125,6 +158,16 @@ export function UsageScreen() {
             gap: "var(--space-2)",
           }}
         >
+          <SegmentedControl<Agent>
+            aria-label="Usage agent"
+            size="sm"
+            options={[
+              { value: "claude", label: "Claude" },
+              { value: "grok", label: "Grok" },
+            ]}
+            value={agent}
+            onChange={setAgent}
+          />
           <SegmentedControl<Range>
             aria-label="Usage range"
             size="sm"
@@ -139,7 +182,7 @@ export function UsageScreen() {
             aria-label="Refresh usage"
             icon={<Refresh size={16} />}
             disabled={isFetching}
-            onClick={() => void refetch()}
+            onClick={refresh}
           />
         </div>
       </div>
@@ -153,7 +196,7 @@ export function UsageScreen() {
           padding: "0 var(--gutter) var(--space-8)",
         }}
       >
-        {isPending || data == null ? (
+        {isPending ? (
           <div
             style={{
               flex: 1,
@@ -169,7 +212,91 @@ export function UsageScreen() {
             <Loader size={15} className="animate-spin" />
             Reading session logs…
           </div>
-        ) : (
+        ) : agent === "grok" && grokData ? (
+          <>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gap: "var(--card-gap)",
+              }}
+            >
+              <StatTile
+                label="Est. cost"
+                value={formatUsd(grokData.totals.costUsd)}
+                icon={<Dot color="var(--accent)" />}
+              />
+              <StatTile
+                label="Tokens"
+                value={formatTokens(grokData.totals.tokens)}
+                icon={<Dot color="var(--info)" />}
+              />
+              <StatTile
+                label="Cache read"
+                value={formatTokens(grokData.totals.cacheRead)}
+                icon={<Dot color="var(--warning)" />}
+              />
+              <StatTile
+                label="Calls"
+                value={formatTokens(grokData.totals.calls)}
+                icon={<Dot color="var(--success)" />}
+              />
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-body-sm)",
+                color: "var(--text-3)",
+              }}
+            >
+              {creditLine(grokData) ??
+                "Weekly credit percent is unavailable until grok fetches billing."}
+            </div>
+            <Card>
+              <CardHeading
+                title="Tokens per day"
+                subtitle={`Last ${rangeDays} days`}
+              />
+              <OutputBars data={grokDaysAsOutput(grokData)} />
+            </Card>
+            {grokData.perModel.length > 0 && (
+              <Card>
+                <CardHeading title="By model" subtitle="Last range · cost from ticks" />
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-2)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "var(--fs-mono-sm)",
+                    color: "var(--text-2)",
+                  }}
+                >
+                  {grokData.perModel.map((m) => (
+                    <div
+                      key={m.model}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "var(--space-3)",
+                      }}
+                    >
+                      <span>{m.model}</span>
+                      <span>{formatUsd(m.costUsd)}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+            <Card>
+              <CardHeading
+                title="Activity"
+                subtitle="Daily token usage · past year"
+              />
+              <Heatmap cells={grokData.heatmap} />
+            </Card>
+          </>
+        ) : data ? (
           <>
             <div
               style={{
@@ -232,7 +359,7 @@ export function UsageScreen() {
               <Heatmap cells={data.heatmap} />
             </Card>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );

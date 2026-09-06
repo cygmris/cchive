@@ -28,8 +28,11 @@ import {
   useActiveIdentity,
   useAddCurrentCodexAccount,
   useClearCodexProvider,
+  useAddCurrentGrokAccount,
   useCodexAccounts,
   useCodexProviders,
+  useActiveGrokIdentity,
+  useGrokAccounts,
   useProviders,
 } from "@/lib/queries";
 import { useShellStore } from "@/lib/store";
@@ -38,10 +41,13 @@ import type {
   CodexAccountMeta,
   CodexIdentity,
   CodexProviderMeta,
+  GrokAccountMeta,
+  GrokIdentity,
   ProviderMeta,
 } from "@/lib/types";
 import { AccountRow } from "./AccountRow";
 import { CodexAccountRow } from "./CodexAccountRow";
+import { GrokAccountRow } from "./GrokAccountRow";
 import { CodexProviderForm } from "./CodexProviderForm";
 import { CodexProviderRow } from "./CodexProviderRow";
 import { EnvOverrideBanner } from "./EnvOverrideBanner";
@@ -73,6 +79,16 @@ function providerIsActive(
 function codexAccountIsActive(
   account: CodexAccountMeta,
   identity: CodexIdentity | undefined,
+): boolean {
+  if (!identity || identity.kind === "none") return false;
+  if (identity.email && account.email) return identity.email === account.email;
+  return identity.label === account.label;
+}
+
+/** Is `account` the live active Grok account? Match on email, else label. */
+function grokAccountIsActive(
+  account: GrokAccountMeta,
+  identity: GrokIdentity | undefined,
 ): boolean {
   if (!identity || identity.kind === "none") return false;
   if (identity.email && account.email) return identity.email === account.email;
@@ -307,6 +323,66 @@ function CodexEmptyState({
   );
 }
 
+function GrokEmptyState({
+  onAdd,
+  signedInAs,
+}: {
+  onAdd: () => void;
+  signedInAs: string | null;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "var(--space-3)",
+        padding: "var(--space-8) var(--space-6)",
+        textAlign: "center",
+      }}
+    >
+      {signedInAs ? (
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body)",
+            color: "var(--text-2)",
+            maxWidth: 320,
+          }}
+        >
+          {signedInAs}
+        </span>
+      ) : (
+        <>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body)",
+              color: "var(--text-2)",
+            }}
+          >
+            No Grok accounts captured yet.
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body-sm)",
+              color: "var(--text-3)",
+              maxWidth: 320,
+            }}
+          >
+            Capture the account you are signed into in Grok to add it to your
+            keyring.
+          </span>
+        </>
+      )}
+      <Button icon={<Plus size={16} />} onClick={onAdd}>
+        Add current Grok account
+      </Button>
+    </div>
+  );
+}
+
 /** A muted single-line message inside a section card (loading / empty providers). */
 function CardNote({ children }: { children: React.ReactNode }) {
   return (
@@ -335,6 +411,9 @@ export function ConfigurationsScreen() {
   const codexAccounts = useCodexAccounts();
   const { data: codexIdentity } = useActiveCodexIdentity();
   const addCodex = useAddCurrentCodexAccount();
+  const grokAccounts = useGrokAccounts();
+  const { data: grokIdentity } = useActiveGrokIdentity();
+  const addGrok = useAddCurrentGrokAccount();
   const codexProviders = useCodexProviders();
   const clearCodexProvider = useClearCodexProvider();
   const [addingGateway, setAddingGateway] = useState(false);
@@ -342,6 +421,7 @@ export function ConfigurationsScreen() {
   const accountList = accounts.data ?? [];
   const providerList = providers.data ?? [];
   const codexList = codexAccounts.data ?? [];
+  const grokList = grokAccounts.data ?? [];
   const codexProviderList = codexProviders.data ?? [];
   const codexProviderActive = codexIdentity?.kind === "provider";
 
@@ -362,6 +442,23 @@ export function ConfigurationsScreen() {
     });
   }
 
+  function captureGrok() {
+    addGrok.mutate(undefined, {
+      onSuccess: (m) =>
+        toast({
+          title: "Grok account added",
+          description: m.label,
+          variant: "success",
+        }),
+      onError: (e) =>
+        toast({
+          title: "Couldn't add Grok account",
+          description: e.message,
+          variant: "danger",
+        }),
+    });
+  }
+
   // Name the live Codex login when it isn't captured yet (one-click first add).
   const codexCaptured = codexIdentity
     ? codexList.some((a) => codexAccountIsActive(a, codexIdentity))
@@ -370,6 +467,16 @@ export function ConfigurationsScreen() {
     codexIdentity && codexIdentity.kind !== "none" && !codexCaptured
       ? `You're signed into Codex as ${
           codexIdentity.email ?? codexIdentity.label
+        } — add it to your keyring.`
+      : null;
+
+  const grokCaptured = grokIdentity
+    ? grokList.some((a) => grokAccountIsActive(a, grokIdentity))
+    : true;
+  const grokSignedInAs =
+    grokIdentity && grokIdentity.kind !== "none" && !grokCaptured
+      ? `You're signed into Grok as ${
+          grokIdentity.email ?? grokIdentity.label
         } — add it to your keyring.`
       : null;
 
@@ -475,6 +582,40 @@ export function ConfigurationsScreen() {
                   index={i}
                   divider={i > 0}
                   active={codexAccountIsActive(account, codexIdentity)}
+                />
+              ))
+            )}
+          </Card>
+        </section>
+
+        {/* Grok accounts -------------------------------------------------- */}
+        <section>
+          <SectionHeader
+            label="Grok accounts"
+            action={
+              <Button
+                size="sm"
+                icon={<Plus size={15} />}
+                onClick={captureGrok}
+                disabled={addGrok.isPending}
+              >
+                Add current Grok account
+              </Button>
+            }
+          />
+          <Card pad={0} style={{ overflow: "hidden" }}>
+            {grokAccounts.isLoading ? (
+              <CardNote>Loading Grok accounts…</CardNote>
+            ) : grokList.length === 0 ? (
+              <GrokEmptyState onAdd={captureGrok} signedInAs={grokSignedInAs} />
+            ) : (
+              grokList.map((account, i) => (
+                <GrokAccountRow
+                  key={account.id}
+                  account={account}
+                  index={i}
+                  divider={i > 0}
+                  active={grokAccountIsActive(account, grokIdentity)}
                 />
               ))
             )}
