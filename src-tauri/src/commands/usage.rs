@@ -43,8 +43,8 @@ pub fn read_grok_usage(range_days: u32) -> Result<GrokUsageSummary, CoreError> {
 }
 
 /// Aggregate Codex tokens from `$CODEX_HOME/sessions/**/rollout-*.jsonl`.
-/// Same wire shape as Grok (`GrokUsageSummary`); `costUsd` is always 0 (logs
-/// have no USD). Never returns a secret; never reads `auth.json`; no HTTP.
+/// Same wire shape as Grok (`GrokUsageSummary`); `costUsd` is an OpenAI
+/// list-rate estimate. Never returns a secret; never reads `auth.json`; no HTTP.
 #[tauri::command]
 pub fn read_codex_usage(range_days: u32) -> Result<GrokUsageSummary, CoreError> {
     let range = if range_days == 0 { 30 } else { range_days };

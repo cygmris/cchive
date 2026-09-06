@@ -2,8 +2,9 @@
 //!
 //! Sum `token_usage_record.payload.usage` (per-response). If a file has none,
 //! sum `token_count` `last_token_usage` instead. Never sum `thread_token_usage`
-//! / `total_token_usage` (those are running totals). Cost is always 0 — the
-//! logs have no USD. No `auth.json`. No HTTP.
+//! / `total_token_usage` (those are running totals). Est. cost is OpenAI list
+//! rates (standard, short context), not a field in the logs. No `auth.json`.
+//! No HTTP.
 //!
 //! SAFETY: numbers, dates, model ids, plan label only.
 //! ROBUSTNESS: malformed lines and unreadable files are skipped.
@@ -23,11 +24,76 @@ use crate::model::{
     GrokCredits, GrokDayPoint, GrokModelTotal, GrokTokenTotals, GrokUsageSummary, HeatCell,
 };
 
-const CACHE_VERSION: u32 = 1;
+const CACHE_VERSION: u32 = 2;
+
+/// USD / million tokens. Official OpenAI Pricing (developers.openai.com/api/docs/pricing)
+/// 2026-09-06 **and** BaseLLM `all.json` agree on these short-context standard rates.
+#[derive(Clone, Copy)]
+struct Rate {
+    input: f64,
+    output: f64,
+    cache_write: f64,
+    cache_read: f64,
+}
+
+fn pricing() -> &'static [(&'static str, Rate)] {
+    &[
+        // Longest names first is not required: lookup uses longest-prefix match.
+        ("gpt-6-astra", Rate { input: 10.0, output: 50.0, cache_write: 12.5, cache_read: 1.0 }),
+        ("gpt-5.6-sol", Rate { input: 4.0, output: 20.0, cache_write: 5.0, cache_read: 0.4 }),
+        ("gpt-5.6-terra", Rate { input: 2.0, output: 12.0, cache_write: 2.5, cache_read: 0.2 }),
+        ("gpt-5.6-luna", Rate { input: 0.2, output: 1.2, cache_write: 0.25, cache_read: 0.02 }),
+        ("gpt-5.6-cyber", Rate { input: 12.5, output: 75.0, cache_write: 15.625, cache_read: 1.25 }),
+        ("gpt-5.6", Rate { input: 4.0, output: 20.0, cache_write: 5.0, cache_read: 0.4 }),
+        ("gpt-5.5-pro", Rate { input: 30.0, output: 180.0, cache_write: 0.0, cache_read: 0.0 }),
+        ("gpt-5.5", Rate { input: 5.0, output: 30.0, cache_write: 0.0, cache_read: 0.5 }),
+        ("gpt-5.4-mini", Rate { input: 0.75, output: 4.5, cache_write: 0.0, cache_read: 0.075 }),
+        ("gpt-5.4-nano", Rate { input: 0.2, output: 1.25, cache_write: 0.0, cache_read: 0.02 }),
+        ("gpt-5.4-pro", Rate { input: 30.0, output: 180.0, cache_write: 0.0, cache_read: 0.0 }),
+        ("gpt-5.4", Rate { input: 2.5, output: 15.0, cache_write: 0.0, cache_read: 0.25 }),
+        ("gpt-5.3-codex-spark", Rate { input: 1.75, output: 14.0, cache_write: 0.0, cache_read: 0.175 }),
+        ("gpt-5.3-codex", Rate { input: 1.75, output: 14.0, cache_write: 0.0, cache_read: 0.175 }),
+        ("gpt-5.3", Rate { input: 1.75, output: 14.0, cache_write: 0.0, cache_read: 0.175 }),
+        ("gpt-5.2", Rate { input: 1.75, output: 14.0, cache_write: 0.0, cache_read: 0.175 }),
+        ("gpt-5.1", Rate { input: 1.25, output: 10.0, cache_write: 0.0, cache_read: 0.125 }),
+        ("gpt-5-mini", Rate { input: 0.25, output: 2.0, cache_write: 0.0, cache_read: 0.025 }),
+        ("gpt-5-nano", Rate { input: 0.05, output: 0.4, cache_write: 0.0, cache_read: 0.005 }),
+        ("gpt-5-pro", Rate { input: 15.0, output: 120.0, cache_write: 0.0, cache_read: 0.0 }),
+        ("gpt-5", Rate { input: 1.25, output: 10.0, cache_write: 0.0, cache_read: 0.125 }),
+    ]
+}
+
+fn price_of(model: &str) -> Option<Rate> {
+    let m = model.to_ascii_lowercase();
+    pricing()
+        .iter()
+        .filter(|(pat, _)| m == *pat || m.starts_with(&format!("{pat}-")))
+        .max_by_key(|(pat, _)| pat.len())
+        .map(|(_, r)| *r)
+}
+
+fn model_cost_usd(model: &str, m: &ModelAgg) -> Option<f64> {
+    let r = price_of(model)?;
+    let uncached = m.input.saturating_sub(m.cache_read);
+    Some(
+        uncached as f64 * r.input / 1e6
+            + m.output as f64 * r.output / 1e6
+            + m.cache_read as f64 * r.cache_read / 1e6
+            + m.cache_write as f64 * r.cache_write / 1e6,
+    )
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct ModelAgg {
     tok: u64,
+    #[serde(default)]
+    input: u64,
+    #[serde(default)]
+    output: u64,
+    #[serde(default, rename = "cacheRead")]
+    cache_read: u64,
+    #[serde(default, rename = "cacheWrite")]
+    cache_write: u64,
     calls: u64,
 }
 
@@ -38,6 +104,8 @@ struct DayAgg {
     output: u64,
     #[serde(rename = "cacheRead")]
     cache_read: u64,
+    #[serde(default, rename = "cacheWrite")]
+    cache_write: u64,
     calls: u64,
     models: BTreeMap<String, ModelAgg>,
 }
@@ -138,27 +206,27 @@ fn find_rollout_files(sessions_dir: &Path) -> Vec<PathBuf> {
 }
 
 fn add_tokens(day: &mut DayAgg, usage: &Value, model: &str) {
-    let input = usage
-        .get("input_tokens")
-        .map(as_u64)
-        .unwrap_or(0);
-    let output = usage
-        .get("output_tokens")
-        .map(as_u64)
-        .unwrap_or(0);
-    let cache = usage
-        .get("cached_input_tokens")
+    let input = usage.get("input_tokens").map(as_u64).unwrap_or(0);
+    let output = usage.get("output_tokens").map(as_u64).unwrap_or(0);
+    let cache = usage.get("cached_input_tokens").map(as_u64).unwrap_or(0);
+    let cache_write = usage
+        .get("cache_write_input_tokens")
         .map(as_u64)
         .unwrap_or(0);
     let tot = usage.get("total_tokens").map(as_u64).unwrap_or(input + output);
     day.input += input;
     day.output += output;
     day.cache_read += cache;
+    day.cache_write += cache_write;
     day.tok += tot;
     day.calls += 1;
     let mid = if model.is_empty() { "codex" } else { model };
     let m = day.models.entry(mid.to_string()).or_default();
     m.tok += tot;
+    m.input += input;
+    m.output += output;
+    m.cache_read += cache;
+    m.cache_write += cache_write;
     m.calls += 1;
 }
 
@@ -412,10 +480,15 @@ fn merge_day(dst: &mut DayAgg, src: &DayAgg) {
     dst.input += src.input;
     dst.output += src.output;
     dst.cache_read += src.cache_read;
+    dst.cache_write += src.cache_write;
     dst.calls += src.calls;
     for (mid, m) in &src.models {
         let e = dst.models.entry(mid.clone()).or_default();
         e.tok += m.tok;
+        e.input += m.input;
+        e.output += m.output;
+        e.cache_read += m.cache_read;
+        e.cache_write += m.cache_write;
         e.calls += m.calls;
     }
 }
@@ -455,7 +528,7 @@ fn credits_from_entry(e: &FileEntry) -> Option<GrokCredits> {
 }
 
 /// Incremental aggregate over Codex `sessions_dir`. `today_local` is injected
-/// so tests are deterministic. Cost is always 0.
+/// so tests are deterministic. Cost is OpenAI list-rate estimate.
 pub fn aggregate_incremental(
     sessions_dir: &Path,
     cache_path: &Path,
@@ -508,31 +581,56 @@ pub fn aggregate_incremental(
         totals.output += day.output;
         totals.cache_read += day.cache_read;
         totals.calls += day.calls;
-        for (mid, m) in &day.models {
+        let mut day_cost = 0.0;
+        let mut models_sorted: Vec<(&String, &ModelAgg)> = day.models.iter().collect();
+        models_sorted.sort_by(|a, b| a.0.cmp(b.0));
+        for (mid, m) in models_sorted {
             let e = range_models.entry(mid.clone()).or_default();
             e.tok += m.tok;
+            e.input += m.input;
+            e.output += m.output;
+            e.cache_read += m.cache_read;
+            e.cache_write += m.cache_write;
             e.calls += m.calls;
+            if let Some(c) = model_cost_usd(mid, m) {
+                day_cost += c;
+            }
         }
+        totals.cost_usd += day_cost;
         per_day.push(GrokDayPoint {
             date: date.format("%Y-%m-%d").to_string(),
-            cost_usd: 0.0,
+            cost_usd: day_cost,
             tokens: day.tok,
             calls: day.calls,
         });
     }
 
+    let mut unknown_models = Vec::new();
     let mut per_model: Vec<GrokModelTotal> = range_models
         .into_iter()
-        .map(|(model, m)| GrokModelTotal {
-            model,
-            cost_usd: 0.0,
-            tokens: m.tok,
-            calls: m.calls,
+        .map(|(model, m)| {
+            let cost_usd = match model_cost_usd(&model, &m) {
+                Some(c) => c,
+                None => {
+                    unknown_models.push(model.clone());
+                    0.0
+                }
+            };
+            GrokModelTotal {
+                model,
+                cost_usd,
+                tokens: m.tok,
+                calls: m.calls,
+            }
         })
         .collect();
+    unknown_models.sort();
+    unknown_models.dedup();
     per_model.sort_by(|a, b| {
-        b.tokens
-            .cmp(&a.tokens)
+        b.cost_usd
+            .partial_cmp(&a.cost_usd)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| b.tokens.cmp(&a.tokens))
             .then_with(|| a.model.cmp(&b.model))
     });
 
@@ -558,6 +656,7 @@ pub fn aggregate_incremental(
         per_day,
         per_model,
         heatmap,
+        unknown_models,
     }
 }
 
@@ -568,13 +667,25 @@ mod tests {
     const JWT: &str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0aWVyIjo1fQ.sig";
 
     fn tur(ts: &str, input: u64, output: u64, thread_tot: u64) -> String {
+        tur_full(ts, input, 0, 0, output, thread_tot)
+    }
+
+    fn tur_full(
+        ts: &str,
+        input: u64,
+        cached: u64,
+        cache_write: u64,
+        output: u64,
+        thread_tot: u64,
+    ) -> String {
         serde_json::json!({
             "timestamp": ts,
             "type": "token_usage_record",
             "payload": {
                 "usage": {
                     "input_tokens": input,
-                    "cached_input_tokens": 10,
+                    "cached_input_tokens": cached,
+                    "cache_write_input_tokens": cache_write,
                     "output_tokens": output,
                     "total_tokens": input + output
                 },
@@ -758,5 +869,75 @@ mod tests {
         std::fs::write(&path, tur("2026-09-06T12:00:00Z", 40, 0, 40) + "\n").unwrap();
         let after = aggregate_incremental(&dir.path().join("sessions"), &cache, 7, today);
         assert_eq!(after.totals.tokens, 40);
+    }
+
+    #[test]
+    fn gpt6_astra_uses_openai_list_rate() {
+        let dir = tempfile::tempdir().unwrap();
+        let today = NaiveDate::from_ymd_opt(2026, 9, 6).unwrap();
+        write_rollout(
+            dir.path(),
+            "rollout-price.jsonl",
+            &format!(
+                "{}\n{}\n",
+                turn_ctx("2026-09-06T10:00:00Z", "gpt-6-astra"),
+                tur_full("2026-09-06T10:00:01Z", 1_000_000, 0, 0, 100_000, 1_100_000),
+            ),
+        );
+        let sum = aggregate_incremental(
+            &dir.path().join("sessions"),
+            &dir.path().join("cache.json"),
+            7,
+            today,
+        );
+        // 1M uncached in × $10 + 0.1M out × $50 = $15
+        assert!((sum.totals.cost_usd - 15.0).abs() < 1e-9, "got {}", sum.totals.cost_usd);
+        assert!(sum.unknown_models.is_empty());
+    }
+
+    #[test]
+    fn luna_is_not_billed_at_sol_rates() {
+        let dir = tempfile::tempdir().unwrap();
+        let today = NaiveDate::from_ymd_opt(2026, 9, 6).unwrap();
+        write_rollout(
+            dir.path(),
+            "rollout-luna.jsonl",
+            &format!(
+                "{}\n{}\n",
+                turn_ctx("2026-09-06T10:00:00Z", "gpt-5.6-luna"),
+                tur_full("2026-09-06T10:00:01Z", 1_000_000, 0, 0, 0, 1_000_000),
+            ),
+        );
+        let sum = aggregate_incremental(
+            &dir.path().join("sessions"),
+            &dir.path().join("cache.json"),
+            7,
+            today,
+        );
+        // luna $0.20/MTok, not sol $4
+        assert!((sum.totals.cost_usd - 0.2).abs() < 1e-9, "got {}", sum.totals.cost_usd);
+    }
+
+    #[test]
+    fn cached_input_is_not_billed_at_input_rate() {
+        let dir = tempfile::tempdir().unwrap();
+        let today = NaiveDate::from_ymd_opt(2026, 9, 6).unwrap();
+        write_rollout(
+            dir.path(),
+            "rollout-cache.jsonl",
+            &format!(
+                "{}\n{}\n",
+                turn_ctx("2026-09-06T10:00:00Z", "gpt-6-astra"),
+                tur_full("2026-09-06T10:00:01Z", 1_000_000, 1_000_000, 0, 0, 1_000_000),
+            ),
+        );
+        let sum = aggregate_incremental(
+            &dir.path().join("sessions"),
+            &dir.path().join("cache.json"),
+            7,
+            today,
+        );
+        // all cached → $1/MTok cache_read, not $10 input
+        assert!((sum.totals.cost_usd - 1.0).abs() < 1e-9, "got {}", sum.totals.cost_usd);
     }
 }

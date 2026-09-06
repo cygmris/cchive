@@ -87,15 +87,15 @@ const CODEX_SUMMARY: GrokUsageSummary = {
     subscriptionTier: "pro",
   },
   totals: {
-    costUsd: 0,
+    costUsd: 18.4,
     tokens: 1_200_000,
     input: 1_000_000,
     output: 200_000,
     cacheRead: 800_000,
     calls: 24,
   },
-  perDay: [{ date: "2026-09-06", costUsd: 0, tokens: 800_000, calls: 16 }],
-  perModel: [{ model: "gpt-6-astra", costUsd: 0, tokens: 1_200_000, calls: 24 }],
+  perDay: [{ date: "2026-09-06", costUsd: 18.4, tokens: 800_000, calls: 16 }],
+  perModel: [{ model: "gpt-6-astra", costUsd: 18.4, tokens: 1_200_000, calls: 24 }],
   heatmap: [{ date: "2026-09-06", tokens: 800_000, level: 3 }],
 };
 
@@ -247,7 +247,8 @@ describe("UsageScreen", () => {
     await user.click(screen.getByRole("radio", { name: "Codex" }));
     expect(await screen.findByText("1.0M")).toBeInTheDocument();
     expect(screen.getByText("gpt-6-astra")).toBeInTheDocument();
-    expect(screen.getByText(/Codex session logs have no USD/)).toBeInTheDocument();
+    expect(screen.getByText(/OpenAI list rates/)).toBeInTheDocument();
+    expect(screen.getByText("$18.40")).toBeInTheDocument();
     expect(screen.queryByText("84.2M")).not.toBeInTheDocument();
   });
 
@@ -258,9 +259,9 @@ describe("UsageScreen", () => {
     await user.click(screen.getByRole("radio", { name: "All" }));
     expect(await screen.findByText("By agent")).toBeInTheDocument();
     expect(screen.getByText(/\$128\.40 · 96\.7M/)).toBeInTheDocument();
-    expect(screen.getByText(/\$0\.00 · 1\.2M/)).toBeInTheDocument();
+    expect(screen.getByText(/\$18\.40 · 1\.2M/)).toBeInTheDocument();
     expect(screen.getByText(/\$12\.50 · 4\.2M/)).toBeInTheDocument();
-    expect(screen.getByText(/Cost sums Claude estimates and Grok ticks/)).toBeInTheDocument();
+    expect(screen.getByText(/Cost sums Claude estimates, Codex OpenAI list rates, and Grok ticks/)).toBeInTheDocument();
     expect(screen.queryByText("grok-4.6-build")).not.toBeInTheDocument();
   });
 

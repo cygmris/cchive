@@ -33,7 +33,7 @@ your local usage — all on your machine, nothing leaving your device. It runs a
 - **Config management** — view and edit MCP servers, agents, commands, skills, and project /
   global memory (`CLAUDE.md`), with a CodeMirror editor.
 - **Usage analytics** — All | Claude | Codex | Grok. Claude from local session jsonl;
-  Codex from `~/.codex/sessions` rollout jsonl (tokens only, no USD in the logs, no
+  Codex from `~/.codex/sessions` rollout jsonl (est. cost from OpenAI list rates, no
   ChatGPT HTTP); Grok from `updates.jsonl` + weekly credit percent. All is a labelled
   sum with a By-agent breakdown. Status-bar tokens-today stays Claude-only.
 - **System tray quick-switch** — a tray menu lists your accounts and providers (active one

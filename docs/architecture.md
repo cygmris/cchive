@@ -63,9 +63,9 @@ This document captures the durable design that isn't obvious from the code alone
 - `core/codex_usage` — Codex local usage from `sessions/**/rollout-*.jsonl`.
   Sums `token_usage_record.payload.usage`, or `token_count.last_token_usage`
   when a file has no tur (never the cumulative thread/total fields). Cache
-  `codex-usage-parse-cache.json`. Command `read_codex_usage`. Cost is 0 (logs
-  have no USD); no ChatGPT HTTP. Usage All pane folds Claude+Codex+Grok with
-  a By-agent breakdown.
+  `codex-usage-parse-cache.json`. Command `read_codex_usage`. Est. cost uses
+  OpenAI list rates (standard, short context); no ChatGPT HTTP. Usage All pane
+  folds Claude+Codex+Grok with a By-agent breakdown.
 - `core/usage_cache` — the **incremental** parse cache behind that background recompute:
   each file's parsed events are cached by (mtime, size) in `usage-parse-cache.json`, so a
   repeat run re‑parses only changed files (cold cache = one full pass). The summary is

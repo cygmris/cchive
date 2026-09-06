@@ -295,7 +295,7 @@ function demoCodexUsageSummary(rangeDays: number): GrokUsageSummary {
       subscriptionTier: "pro",
     },
     totals: {
-      costUsd: 0,
+      costUsd: 18.4,
       tokens: 1_200_000,
       input: 1_000_000,
       output: 200_000,
@@ -303,10 +303,10 @@ function demoCodexUsageSummary(rangeDays: number): GrokUsageSummary {
       calls: 24,
     },
     perDay: [
-      { date: "2026-09-05", costUsd: 0, tokens: 400_000, calls: 8 },
-      { date: "2026-09-06", costUsd: 0, tokens: 800_000, calls: 16 },
+      { date: "2026-09-05", costUsd: 6.1, tokens: 400_000, calls: 8 },
+      { date: "2026-09-06", costUsd: 12.3, tokens: 800_000, calls: 16 },
     ],
-    perModel: [{ model: "gpt-6-astra", costUsd: 0, tokens: 1_200_000, calls: 24 }],
+    perModel: [{ model: "gpt-6-astra", costUsd: 18.4, tokens: 1_200_000, calls: 24 }],
     heatmap: [],
   };
 }

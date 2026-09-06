@@ -394,6 +394,9 @@ pub struct GrokUsageSummary {
     pub per_day: Vec<GrokDayPoint>,
     pub per_model: Vec<GrokModelTotal>,
     pub heatmap: Vec<HeatCell>,
+    /// Model ids with no OpenAI list rate (Codex). Empty on Grok.
+    #[serde(default)]
+    pub unknown_models: Vec<String>,
 }
 
 /// Non-secret metadata for one saved **Codex provider** (an OpenAI-compatible

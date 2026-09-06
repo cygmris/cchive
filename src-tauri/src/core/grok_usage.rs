@@ -397,6 +397,7 @@ pub fn aggregate_incremental(
         per_day,
         per_model,
         heatmap,
+        unknown_models: Vec::new(),
     }
 }
 

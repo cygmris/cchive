@@ -269,7 +269,11 @@ function CodexPane({
           color: "var(--text-3)",
         }}
       >
-        Codex session logs have no USD. Est. cost is $0.00.
+        {summary.unknownModels && summary.unknownModels.length > 0
+          ? `Cost is estimated from OpenAI list rates (standard, short context) · ${
+              summary.unknownModels.length
+            } model${summary.unknownModels.length === 1 ? "" : "s"} unpriced.`
+          : "Cost is estimated from OpenAI list rates (standard, short context)."}
       </div>
       <CreditReadout
         credits={summary.credits}
@@ -281,7 +285,7 @@ function CodexPane({
       </Card>
       {summary.perModel.length > 0 && (
         <Card>
-          <CardHeading title="By model" subtitle="Last range · tokens" />
+          <CardHeading title="By model" subtitle="Last range · list-rate estimate" />
           <div
             style={{
               display: "flex",
@@ -302,7 +306,9 @@ function CodexPane({
                 }}
               >
                 <span>{m.model}</span>
-                <span>{formatTokens(m.tokens)}</span>
+                <span>
+                  {formatUsd(m.costUsd)} · {formatTokens(m.tokens)}
+                </span>
               </div>
             ))}
           </div>
@@ -391,7 +397,7 @@ function AllPane({
           color: "var(--text-3)",
         }}
       >
-        Cost sums Claude estimates and Grok ticks. Codex logs have no USD.
+        Cost sums Claude estimates, Codex OpenAI list rates, and Grok ticks.
       </div>
       <Card>
         <CardHeading title="By agent" subtitle="This range · not a silent mix" />

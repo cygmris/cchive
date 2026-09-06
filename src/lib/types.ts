@@ -487,6 +487,8 @@ export interface GrokUsageSummary {
   perDay: GrokDayPoint[];
   perModel: GrokModelTotal[];
   heatmap: HeatCell[];
+  /** Codex: model ids with no OpenAI list rate. Empty on Grok. */
+  unknownModels?: string[];
 }
 
 /* ------------------------------------------------------------------------- *
