@@ -602,6 +602,9 @@ pub fn aggregate_incremental(
             cost_usd: day_cost,
             tokens: day.tok,
             calls: day.calls,
+            input: day.input,
+            output: day.output,
+            cache_read: day.cache_read,
         });
     }
 
@@ -757,6 +760,9 @@ mod tests {
         let sum = aggregate_incremental(&dir.path().join("sessions"), &cache, 7, today);
         assert_eq!(sum.totals.tokens, 1130, "must SUM usage, not last thread total");
         assert_eq!(sum.totals.cost_usd, 0.0);
+        let day_out: u64 = sum.per_day.iter().map(|d| d.output).sum();
+        assert_eq!(day_out, sum.totals.output);
+        assert_eq!(sum.totals.output, 30);
         let json = serde_json::to_string(&sum).unwrap();
         assert!(!json.contains(JWT));
         assert!(!json.contains("access_token"));

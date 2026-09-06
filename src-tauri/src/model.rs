@@ -352,7 +352,7 @@ pub struct GrokCredits {
     pub subscription_tier: Option<String>,
 }
 
-/// One day of Grok spend (the Usage Grok pane's bar chart).
+/// One day of Grok/Codex spend (the Usage Grok pane's bar chart).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrokDayPoint {
@@ -360,6 +360,14 @@ pub struct GrokDayPoint {
     pub cost_usd: f64,
     pub tokens: u64,
     pub calls: u64,
+    /// Uncached+cached input for this day. Default 0 for old payloads.
+    #[serde(default)]
+    pub input: u64,
+    /// Output tokens for this day. All pane bars use this, not `tokens`.
+    #[serde(default)]
+    pub output: u64,
+    #[serde(default)]
+    pub cache_read: u64,
 }
 
 /// Per-model Grok spend over the selected range.

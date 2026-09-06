@@ -356,6 +356,9 @@ pub fn aggregate_incremental(
             cost_usd: ticks_usd(day.cost),
             tokens: day.tok,
             calls: day.calls,
+            input: day.input,
+            output: day.output,
+            cache_read: day.cache_read,
         });
     }
 
@@ -481,6 +484,8 @@ mod tests {
         let sum = aggregate_incremental(&dir.path().join("sessions"), &cache, &log, 7, today);
         assert_eq!(sum.totals.tokens, 1100, "must SUM turns, not take the last");
         assert!((sum.totals.cost_usd - 3.0).abs() < 1e-9);
+        let day_out: u64 = sum.per_day.iter().map(|d| d.output).sum();
+        assert_eq!(day_out, sum.totals.output);
         let credits = sum.credits.as_ref().expect("billing fixture");
         assert_eq!(credits.percent, 73.0);
         assert_eq!(credits.subscription_tier.as_deref(), Some("SuperGrok Heavy"));

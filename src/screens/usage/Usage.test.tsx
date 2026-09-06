@@ -22,7 +22,7 @@ vi.mock("@/lib/ipc", () => ({
 }));
 
 import * as ipc from "@/lib/ipc";
-import { UsageScreen } from "./index";
+import { foldAllDays, UsageScreen } from "./index";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import type { GrokUsageSummary, UsageSummary } from "@/lib/types";
 
@@ -70,7 +70,17 @@ const GROK_SUMMARY: GrokUsageSummary = {
     cacheRead: 2_000_000,
     calls: 48,
   },
-  perDay: [{ date: "2026-09-06", costUsd: 8.4, tokens: 2_800_000, calls: 32 }],
+  perDay: [
+    {
+      date: "2026-09-06",
+      costUsd: 8.4,
+      tokens: 2_800_000,
+      calls: 32,
+      input: 2_400_000,
+      output: 400_000,
+      cacheRead: 2_000_000,
+    },
+  ],
   perModel: [{ model: "grok-4.6-build", costUsd: 10.2, tokens: 0, calls: 40 }],
   heatmap: [{ date: "2026-09-06", tokens: 2_800_000, level: 4 }],
 };
@@ -94,7 +104,17 @@ const CODEX_SUMMARY: GrokUsageSummary = {
     cacheRead: 800_000,
     calls: 24,
   },
-  perDay: [{ date: "2026-09-06", costUsd: 18.4, tokens: 800_000, calls: 16 }],
+  perDay: [
+    {
+      date: "2026-09-06",
+      costUsd: 18.4,
+      tokens: 800_000,
+      calls: 16,
+      input: 600_000,
+      output: 200_000,
+      cacheRead: 800_000,
+    },
+  ],
   perModel: [{ model: "gpt-6-astra", costUsd: 18.4, tokens: 1_200_000, calls: 24 }],
   heatmap: [{ date: "2026-09-06", tokens: 800_000, level: 3 }],
 };
@@ -263,6 +283,33 @@ describe("UsageScreen", () => {
     expect(screen.getByText(/\$12\.50 · 4\.2M/)).toBeInTheDocument();
     expect(screen.getByText(/Cost sums Claude estimates, Codex OpenAI list rates, and Grok ticks/)).toBeInTheDocument();
     expect(screen.queryByText("grok-4.6-build")).not.toBeInTheDocument();
+  });
+
+  it("All daily bars plot output only and sum to the Output tile", () => {
+    const claude: UsageSummary = {
+      ...SUMMARY,
+      totals: { ...SUMMARY.totals, output: 5_000_000, input: 100_000_000 },
+      perDay: [
+        {
+          date: "2026-09-06",
+          output: 5_000_000,
+          input: 100_000_000,
+          cacheRead: 1_000_000,
+        },
+      ],
+    };
+    const days = foldAllDays(claude, GROK_SUMMARY, CODEX_SUMMARY);
+    const tile =
+      claude.totals.output +
+      GROK_SUMMARY.totals.output +
+      CODEX_SUMMARY.totals.output;
+    const barSum = days.reduce((s, d) => s + d.output, 0);
+    expect(days).toHaveLength(1);
+    expect(days[0].output).toBe(5_600_000);
+    expect(barSum).toBe(tile);
+    expect(Math.max(...days.map((d) => d.output))).toBeLessThanOrEqual(tile);
+    const mashup = 5_000_000 + 100_000_000 + 2_800_000 + 800_000;
+    expect(days[0].output).not.toBe(mashup);
   });
 
   it("labels Grok credits stale when ageMinutes is over 45", async () => {

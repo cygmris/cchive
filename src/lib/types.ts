@@ -454,12 +454,17 @@ export interface GrokCredits {
   subscriptionTier: string | null;
 }
 
-/** One day of Grok spend. */
+/** One day of Grok/Codex spend. */
 export interface GrokDayPoint {
   date: string;
   costUsd: number;
   tokens: number;
   calls: number;
+  /** Uncached+cached input for this day. */
+  input: number;
+  /** Output tokens for this day. All pane bars use this, not `tokens`. */
+  output: number;
+  cacheRead: number;
 }
 
 /** Per-model Grok spend over the selected range. */

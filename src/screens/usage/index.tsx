@@ -1,13 +1,7 @@
 /**
- * Usage screen — local consumption for Claude (projects jsonl via
- * {@link useUsage}) or Grok (session updates.jsonl via {@link useGrokUsage}).
- * The two series are never added together.
- *
- * Header (sticky flex row) carries Claude|Grok, a 30/7-day range
- * {@link SegmentedControl}, and a refresh {@link IconButton}. Claude branch:
- * four tiles (input/output/cache-read/est-cost) + output-per-day + heatmap.
- * Grok branch: est-cost/tokens/cache-read/calls + weekly credit bar + tokens
- * per day + per-model + heatmap.
+ * Usage screen — Claude (`useUsage`), Codex (`useCodexUsage`), Grok
+ * (`useGrokUsage`). Header: All | Claude | Codex | Grok plus 30/7.
+ * All is a labelled fold (By agent); other panes stay separate.
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -99,6 +93,41 @@ function grokDaysAsOutput(summary: GrokUsageSummary): DayPoint[] {
     input: 0,
     cacheRead: 0,
   }));
+}
+
+function codexDaysAsOutput(summary: GrokUsageSummary): DayPoint[] {
+  return summary.perDay.map((d) => ({
+    date: d.date,
+    output: d.output,
+    input: d.input,
+    cacheRead: d.cacheRead,
+  }));
+}
+
+/** All pane daily series: output/input/cacheRead summed per date. */
+export function foldAllDays(
+  claude: UsageSummary,
+  grok: GrokUsageSummary,
+  codex: GrokUsageSummary,
+): DayPoint[] {
+  const grokByDate = new Map(grok.perDay.map((d) => [d.date, d]));
+  const codexByDate = new Map(codex.perDay.map((d) => [d.date, d]));
+  const claudeByDate = new Map(claude.perDay.map((d) => [d.date, d]));
+  const dates = new Set<string>();
+  for (const d of claude.perDay) dates.add(d.date);
+  for (const d of grok.perDay) dates.add(d.date);
+  for (const d of codex.perDay) dates.add(d.date);
+  return [...dates].sort().map((date) => {
+    const c = claudeByDate.get(date);
+    const g = grokByDate.get(date);
+    const x = codexByDate.get(date);
+    return {
+      date,
+      output: (c?.output ?? 0) + (g?.output ?? 0) + (x?.output ?? 0),
+      input: (c?.input ?? 0) + (g?.input ?? 0) + (x?.input ?? 0),
+      cacheRead: (c?.cacheRead ?? 0) + (g?.cacheRead ?? 0) + (x?.cacheRead ?? 0),
+    };
+  });
 }
 
 function heatLevel(tokens: number, max: number): HeatCell["level"] {
@@ -280,8 +309,8 @@ function CodexPane({
         unavailable="Weekly percent is unavailable until a Codex session writes rate_limits."
       />
       <Card>
-        <CardHeading title="Tokens per day" subtitle={`Last ${rangeDays} days`} />
-        <OutputBars data={grokDaysAsOutput(summary)} />
+        <CardHeading title="Output tokens per day" subtitle={`Last ${rangeDays} days`} />
+        <OutputBars data={codexDaysAsOutput(summary)} />
       </Card>
       {summary.perModel.length > 0 && (
         <Card>
@@ -333,18 +362,7 @@ function AllPane({
   codex: GrokUsageSummary;
   rangeDays: number;
 }) {
-  const grokByDate = new Map(grok.perDay.map((d) => [d.date, d]));
-  const codexByDate = new Map(codex.perDay.map((d) => [d.date, d]));
-  const days: DayPoint[] = claude.perDay.map((d) => {
-    const g = grokByDate.get(d.date);
-    const x = codexByDate.get(d.date);
-    return {
-      date: d.date,
-      output: d.output + d.input + (g?.tokens ?? 0) + (x?.tokens ?? 0),
-      input: 0,
-      cacheRead: d.cacheRead,
-    };
-  });
+  const days = foldAllDays(claude, grok, codex);
   const rows = [
     {
       name: "Claude",
@@ -429,7 +447,7 @@ function AllPane({
         </div>
       </Card>
       <Card>
-        <CardHeading title="Tokens per day" subtitle={`Last ${rangeDays} days`} />
+        <CardHeading title="Output tokens per day" subtitle={`Last ${rangeDays} days`} />
         <OutputBars data={days} />
       </Card>
       <Card>
