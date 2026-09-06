@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "使用状況",
-      "description": "Claude Code と Grok のローカル使用量。両者の合計はしません。"
+      "description": "Claude / Codex / Grok のローカル使用量。All は内訳付き、各ペインは分離。"
     },
     "notifications": {
       "title": "通知",

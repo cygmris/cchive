@@ -352,6 +352,15 @@ export function readGrokUsage(rangeDays: number): Promise<GrokUsageSummary> {
 }
 
 /**
+ * Aggregate Codex tokens from `$CODEX_HOME/sessions` rollout jsonl files.
+ * Same wire shape as Grok; costUsd is always 0. Numbers only.
+ */
+export function readCodexUsage(rangeDays: number): Promise<GrokUsageSummary> {
+  ensureTauri("read_codex_usage");
+  return invoke<GrokUsageSummary>("read_codex_usage", { rangeDays });
+}
+
+/**
  * List global MCP servers: enabled (from `~/.claude.json` `mcpServers`) + disabled
  * (from the cchive stash), each normalized. `.credentials.json`/`mcpOAuth`
  * untouched.

@@ -20,11 +20,17 @@ import { StatTile } from "@/ui/StatTile";
 import { Heatmap } from "@/ui/charts/Heatmap";
 import { OutputBars } from "@/ui/charts/OutputBars";
 import { Loader, Refresh } from "@/ui/icons";
-import { useGrokUsage, useUsage } from "@/lib/queries";
-import type { DayPoint, GrokCredits, GrokUsageSummary } from "@/lib/types";
+import { useCodexUsage, useGrokUsage, useUsage } from "@/lib/queries";
+import type {
+  DayPoint,
+  GrokCredits,
+  GrokUsageSummary,
+  HeatCell,
+  UsageSummary,
+} from "@/lib/types";
 
 type Range = "30" | "7";
-type Agent = "claude" | "grok";
+type Agent = "all" | "claude" | "codex" | "grok";
 
 /** Compact token label, e.g. `0` / `246.1K` / `84.2M` / `1.3B`. */
 function formatTokens(n: number): string {
@@ -95,8 +101,39 @@ function grokDaysAsOutput(summary: GrokUsageSummary): DayPoint[] {
   }));
 }
 
+function heatLevel(tokens: number, max: number): HeatCell["level"] {
+  if (tokens === 0 || max === 0) return 0;
+  const frac = tokens / max;
+  if (frac <= 0.25) return 1;
+  if (frac <= 0.5) return 2;
+  if (frac <= 0.75) return 3;
+  return 4;
+}
+
+function mergeHeatmaps(series: HeatCell[][]): HeatCell[] {
+  const byDate = new Map<string, number>();
+  const order: string[] = [];
+  for (const cells of series) {
+    for (const cell of cells) {
+      if (!byDate.has(cell.date)) order.push(cell.date);
+      byDate.set(cell.date, (byDate.get(cell.date) ?? 0) + cell.tokens);
+    }
+  }
+  const max = Math.max(0, ...byDate.values());
+  return order.map((date) => {
+    const tokens = byDate.get(date) ?? 0;
+    return { date, tokens, level: heatLevel(tokens, max) };
+  });
+}
+
 /** Weekly Grok credit bar. Missing billing → a one-liner, not a fake 0%. */
-function CreditReadout({ credits }: { credits: GrokCredits | null }) {
+function CreditReadout({
+  credits,
+  unavailable = "Weekly credit percent is unavailable until grok fetches billing.",
+}: {
+  credits: GrokCredits | null;
+  unavailable?: string;
+}) {
   if (!credits) {
     return (
       <div
@@ -106,7 +143,7 @@ function CreditReadout({ credits }: { credits: GrokCredits | null }) {
           color: "var(--text-3)",
         }}
       >
-        Weekly credit percent is unavailable until grok fetches billing.
+        {unavailable}
       </div>
     );
   }
@@ -124,7 +161,7 @@ function CreditReadout({ credits }: { credits: GrokCredits | null }) {
   return (
     <div
       role="meter"
-      aria-label="Weekly Grok credits"
+      aria-label="Weekly credits"
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(clamped)}
@@ -188,20 +225,256 @@ function CreditReadout({ credits }: { credits: GrokCredits | null }) {
   );
 }
 
+function CodexPane({
+  summary,
+  rangeDays,
+}: {
+  summary: GrokUsageSummary;
+  rangeDays: number;
+}) {
+  return (
+    <>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gap: "var(--card-gap)",
+        }}
+      >
+        <StatTile
+          label="Input tokens"
+          value={formatTokens(summary.totals.input)}
+          icon={<Dot color="var(--info)" />}
+        />
+        <StatTile
+          label="Output tokens"
+          value={formatTokens(summary.totals.output)}
+          icon={<Dot color="var(--success)" />}
+        />
+        <StatTile
+          label="Cache read"
+          value={formatTokens(summary.totals.cacheRead)}
+          icon={<Dot color="var(--warning)" />}
+        />
+        <StatTile
+          label="Est. cost"
+          value={formatUsd(summary.totals.costUsd)}
+          icon={<Dot color="var(--accent)" />}
+        />
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-body-sm)",
+          color: "var(--text-3)",
+        }}
+      >
+        Codex session logs have no USD. Est. cost is $0.00.
+      </div>
+      <CreditReadout
+        credits={summary.credits}
+        unavailable="Weekly percent is unavailable until a Codex session writes rate_limits."
+      />
+      <Card>
+        <CardHeading title="Tokens per day" subtitle={`Last ${rangeDays} days`} />
+        <OutputBars data={grokDaysAsOutput(summary)} />
+      </Card>
+      {summary.perModel.length > 0 && (
+        <Card>
+          <CardHeading title="By model" subtitle="Last range · tokens" />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-2)",
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--fs-mono-sm)",
+              color: "var(--text-2)",
+            }}
+          >
+            {summary.perModel.map((m) => (
+              <div
+                key={m.model}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "var(--space-3)",
+                }}
+              >
+                <span>{m.model}</span>
+                <span>{formatTokens(m.tokens)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+      <Card>
+        <CardHeading title="Activity" subtitle="Daily token usage · past year" />
+        <Heatmap cells={summary.heatmap} />
+      </Card>
+    </>
+  );
+}
+
+function AllPane({
+  claude,
+  grok,
+  codex,
+  rangeDays,
+}: {
+  claude: UsageSummary;
+  grok: GrokUsageSummary;
+  codex: GrokUsageSummary;
+  rangeDays: number;
+}) {
+  const grokByDate = new Map(grok.perDay.map((d) => [d.date, d]));
+  const codexByDate = new Map(codex.perDay.map((d) => [d.date, d]));
+  const days: DayPoint[] = claude.perDay.map((d) => {
+    const g = grokByDate.get(d.date);
+    const x = codexByDate.get(d.date);
+    return {
+      date: d.date,
+      output: d.output + d.input + (g?.tokens ?? 0) + (x?.tokens ?? 0),
+      input: 0,
+      cacheRead: d.cacheRead,
+    };
+  });
+  const rows = [
+    {
+      name: "Claude",
+      cost: claude.estCostUsd,
+      tokens: claude.totals.input + claude.totals.output,
+    },
+    { name: "Codex", cost: codex.totals.costUsd, tokens: codex.totals.tokens },
+    { name: "Grok", cost: grok.totals.costUsd, tokens: grok.totals.tokens },
+  ];
+  return (
+    <>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gap: "var(--card-gap)",
+        }}
+      >
+        <StatTile
+          label="Input tokens"
+          value={formatTokens(
+            claude.totals.input + grok.totals.input + codex.totals.input,
+          )}
+          icon={<Dot color="var(--info)" />}
+        />
+        <StatTile
+          label="Output tokens"
+          value={formatTokens(
+            claude.totals.output + grok.totals.output + codex.totals.output,
+          )}
+          icon={<Dot color="var(--success)" />}
+        />
+        <StatTile
+          label="Cache read"
+          value={formatTokens(
+            claude.totals.cacheRead + grok.totals.cacheRead + codex.totals.cacheRead,
+          )}
+          icon={<Dot color="var(--warning)" />}
+        />
+        <StatTile
+          label="Est. cost"
+          value={formatUsd(claude.estCostUsd + grok.totals.costUsd + codex.totals.costUsd)}
+          icon={<Dot color="var(--accent)" />}
+        />
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-body-sm)",
+          color: "var(--text-3)",
+        }}
+      >
+        Cost sums Claude estimates and Grok ticks. Codex logs have no USD.
+      </div>
+      <Card>
+        <CardHeading title="By agent" subtitle="This range · not a silent mix" />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-2)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--fs-mono-sm)",
+            color: "var(--text-2)",
+          }}
+        >
+          {rows.map((r) => (
+            <div
+              key={r.name}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "var(--space-3)",
+              }}
+            >
+              <span>{r.name}</span>
+              <span>
+                {formatUsd(r.cost)} · {formatTokens(r.tokens)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card>
+        <CardHeading title="Tokens per day" subtitle={`Last ${rangeDays} days`} />
+        <OutputBars data={days} />
+      </Card>
+      <Card>
+        <CardHeading title="Activity" subtitle="Daily token usage · past year" />
+        <Heatmap cells={mergeHeatmaps([claude.heatmap, grok.heatmap, codex.heatmap])} />
+      </Card>
+    </>
+  );
+}
+
 export function UsageScreen() {
   const { t } = useTranslation();
   const [range, setRange] = useState<Range>("30");
   const [agent, setAgent] = useState<Agent>("claude");
   const rangeDays = range === "30" ? 30 : 7;
+  const wantGrok = agent === "grok" || agent === "all";
+  const wantCodex = agent === "codex" || agent === "all";
   const claude = useUsage(rangeDays);
-  const grok = useGrokUsage(rangeDays);
+  const grok = useGrokUsage(rangeDays, wantGrok);
+  const codex = useCodexUsage(rangeDays, wantCodex);
   const data = claude.data;
   const grokData = grok.data;
+  const codexData = codex.data;
   const isPending =
-    agent === "grok" ? grok.isPending || grokData == null : claude.isPending || data == null;
-  const isFetching = agent === "grok" ? grok.isFetching : claude.isFetching;
+    agent === "all"
+      ? claude.isPending ||
+        data == null ||
+        grok.isPending ||
+        grokData == null ||
+        codex.isPending ||
+        codexData == null
+      : agent === "grok"
+        ? grok.isPending || grokData == null
+        : agent === "codex"
+          ? codex.isPending || codexData == null
+          : claude.isPending || data == null;
+  const isFetching =
+    agent === "all"
+      ? claude.isFetching || grok.isFetching || codex.isFetching
+      : agent === "grok"
+        ? grok.isFetching
+        : agent === "codex"
+          ? codex.isFetching
+          : claude.isFetching;
   function refresh() {
-    if (agent === "grok") void grok.refetch();
+    if (agent === "all") {
+      void claude.refetch();
+      void grok.refetch();
+      void codex.refetch();
+    } else if (agent === "grok") void grok.refetch();
+    else if (agent === "codex") void codex.refetch();
     else void claude.refetch();
   }
 
@@ -249,7 +522,9 @@ export function UsageScreen() {
             aria-label="Usage agent"
             size="sm"
             options={[
+              { value: "all", label: "All" },
               { value: "claude", label: "Claude" },
+              { value: "codex", label: "Codex" },
               { value: "grok", label: "Grok" },
             ]}
             value={agent}
@@ -299,6 +574,15 @@ export function UsageScreen() {
             <Loader size={15} className="animate-spin" />
             Reading session logs…
           </div>
+        ) : agent === "all" && data && grokData && codexData ? (
+          <AllPane
+            claude={data}
+            grok={grokData}
+            codex={codexData}
+            rangeDays={rangeDays}
+          />
+        ) : agent === "codex" && codexData ? (
+          <CodexPane summary={codexData} rangeDays={rangeDays} />
         ) : agent === "grok" && grokData ? (
           <>
             <div

@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "Usage",
-      "description": "Local usage for Claude Code and Grok. The two are never added together."
+      "description": "Local usage for Claude, Codex, and Grok. All is labelled; each pane stays separate."
     },
     "notifications": {
       "title": "Notifications",

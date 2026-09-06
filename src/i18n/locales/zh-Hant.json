@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "用量",
-      "description": "Claude Code 與 Grok 的本機用量。兩家數字不會加總。"
+      "description": "Claude、Codex、Grok 的本機用量。匯總帶分項，分開看各家自己的數。"
     },
     "notifications": {
       "title": "通知",

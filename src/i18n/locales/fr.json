@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "Utilisation",
-      "description": "Consommation locale de Claude Code et de Grok. Les totaux ne sont jamais additionnés."
+      "description": "Consommation locale de Claude, Codex et Grok. All est étiqueté ; chaque volet reste séparé."
     },
     "notifications": {
       "title": "Notifications",

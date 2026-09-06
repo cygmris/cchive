@@ -18,6 +18,7 @@ vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true }));
 vi.mock("@/lib/ipc", () => ({
   readUsage: vi.fn(),
   readGrokUsage: vi.fn(),
+  readCodexUsage: vi.fn(),
 }));
 
 import * as ipc from "@/lib/ipc";
@@ -74,6 +75,30 @@ const GROK_SUMMARY: GrokUsageSummary = {
   heatmap: [{ date: "2026-09-06", tokens: 2_800_000, level: 4 }],
 };
 
+const CODEX_SUMMARY: GrokUsageSummary = {
+  rangeDays: 30,
+  credits: {
+    percent: 32,
+    periodStart: "",
+    periodEnd: "2026-09-13T15:02:43Z",
+    periodType: "10080m",
+    asOf: "2026-09-06T12:00:00Z",
+    ageMinutes: 8,
+    subscriptionTier: "pro",
+  },
+  totals: {
+    costUsd: 0,
+    tokens: 1_200_000,
+    input: 1_000_000,
+    output: 200_000,
+    cacheRead: 800_000,
+    calls: 24,
+  },
+  perDay: [{ date: "2026-09-06", costUsd: 0, tokens: 800_000, calls: 16 }],
+  perModel: [{ model: "gpt-6-astra", costUsd: 0, tokens: 1_200_000, calls: 24 }],
+  heatmap: [{ date: "2026-09-06", tokens: 800_000, level: 3 }],
+};
+
 const EMPTY: UsageSummary = {
   rangeDays: 30,
   totals: { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 },
@@ -101,6 +126,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   (ipc.readUsage as Mock).mockResolvedValue(SUMMARY);
   (ipc.readGrokUsage as Mock).mockResolvedValue(GROK_SUMMARY);
+  (ipc.readCodexUsage as Mock).mockResolvedValue(CODEX_SUMMARY);
 });
 
 describe("UsageScreen", () => {
@@ -198,18 +224,44 @@ describe("UsageScreen", () => {
     expect(screen.getByText("grok-4.6-build")).toBeInTheDocument();
     expect(screen.getByText("73%")).toBeInTheDocument();
     expect(screen.getByText(/SuperGrok Heavy/)).toBeInTheDocument();
-    expect(screen.getByRole("meter", { name: "Weekly Grok credits" })).toBeInTheDocument();
+    expect(screen.getByRole("meter", { name: "Weekly credits" })).toBeInTheDocument();
     expect(screen.queryByText("Input tokens")).not.toBeInTheDocument();
     expect(screen.queryByText("84.2M")).not.toBeInTheDocument();
     expect(screen.queryByText("$128.40")).not.toBeInTheDocument();
   });
 
-  it("shows the Claude|Grok toggle on the default Claude view", async () => {
+  it("shows the All|Claude|Codex|Grok toggle on the default Claude view", async () => {
     renderScreen();
     await screen.findByText("Input tokens");
+    expect(screen.getByRole("radio", { name: "All" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Grok" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Claude" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Codex" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "7 days" })).toBeInTheDocument();
+  });
+
+  it("Codex pane uses Codex totals and does not show Claude's 84.2M", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByText("Input tokens");
+    await user.click(screen.getByRole("radio", { name: "Codex" }));
+    expect(await screen.findByText("1.0M")).toBeInTheDocument();
+    expect(screen.getByText("gpt-6-astra")).toBeInTheDocument();
+    expect(screen.getByText(/Codex session logs have no USD/)).toBeInTheDocument();
+    expect(screen.queryByText("84.2M")).not.toBeInTheDocument();
+  });
+
+  it("All pane lists each agent instead of mixing Claude tokens into Grok", async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByText("Input tokens");
+    await user.click(screen.getByRole("radio", { name: "All" }));
+    expect(await screen.findByText("By agent")).toBeInTheDocument();
+    expect(screen.getByText(/\$128\.40 · 96\.7M/)).toBeInTheDocument();
+    expect(screen.getByText(/\$0\.00 · 1\.2M/)).toBeInTheDocument();
+    expect(screen.getByText(/\$12\.50 · 4\.2M/)).toBeInTheDocument();
+    expect(screen.getByText(/Cost sums Claude estimates and Grok ticks/)).toBeInTheDocument();
+    expect(screen.queryByText("grok-4.6-build")).not.toBeInTheDocument();
   });
 
   it("labels Grok credits stale when ageMinutes is over 45", async () => {

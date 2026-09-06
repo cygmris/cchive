@@ -90,6 +90,8 @@ export const queryKeys = {
   usage: (rangeDays: number) => ["usage", rangeDays] as const,
   /** Grok usage aggregate for one range window (`grokUsage:<rangeDays>`). */
   grokUsage: (rangeDays: number) => ["grokUsage", rangeDays] as const,
+  /** Codex usage aggregate for one range window (`codexUsage:<rangeDays>`). */
+  codexUsage: (rangeDays: number) => ["codexUsage", rangeDays] as const,
   /** Global MCP servers (enabled + disabled stash). */
   mcpServers: ["mcpServers"] as const,
   /** Markdown resources of one kind (`resources:<kind>`). */
@@ -276,6 +278,35 @@ function demoGrokUsageSummary(rangeDays: number): GrokUsageSummary {
       { model: "grok-4.6-build", costUsd: 10.2, tokens: 0, calls: 40 },
       { model: "grok-4.5-build", costUsd: 2.3, tokens: 0, calls: 8 },
     ],
+    heatmap: [],
+  };
+}
+
+function demoCodexUsageSummary(rangeDays: number): GrokUsageSummary {
+  return {
+    rangeDays,
+    credits: {
+      percent: 32,
+      periodStart: "",
+      periodEnd: "2026-09-13T15:02:43Z",
+      periodType: "10080m",
+      asOf: "2026-09-06T12:00:00Z",
+      ageMinutes: 8,
+      subscriptionTier: "pro",
+    },
+    totals: {
+      costUsd: 0,
+      tokens: 1_200_000,
+      input: 1_000_000,
+      output: 200_000,
+      cacheRead: 800_000,
+      calls: 24,
+    },
+    perDay: [
+      { date: "2026-09-05", costUsd: 0, tokens: 400_000, calls: 8 },
+      { date: "2026-09-06", costUsd: 0, tokens: 800_000, calls: 16 },
+    ],
+    perModel: [{ model: "gpt-6-astra", costUsd: 0, tokens: 1_200_000, calls: 24 }],
     heatmap: [],
   };
 }
@@ -980,6 +1011,7 @@ export function useUsage(rangeDays: number): UseQueryResult<UsageSummary, Error>
  */
 export function useGrokUsage(
   rangeDays: number,
+  enabled = true,
 ): UseQueryResult<GrokUsageSummary, Error> {
   return useQuery({
     queryKey: queryKeys.grokUsage(rangeDays),
@@ -989,6 +1021,27 @@ export function useGrokUsage(
       ),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
+    enabled,
+  });
+}
+
+/**
+ * Codex usage for a `rangeDays` window. Independent of {@link useUsage}.
+ * Off-Tauri resolves to a labelled demo summary. Does not write `tokensToday`.
+ */
+export function useCodexUsage(
+  rangeDays: number,
+  enabled = true,
+): UseQueryResult<GrokUsageSummary, Error> {
+  return useQuery({
+    queryKey: queryKeys.codexUsage(rangeDays),
+    queryFn: () =>
+      runQuery(demoCodexUsageSummary(rangeDays), () =>
+        ipc.readCodexUsage(rangeDays),
+      ),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    enabled,
   });
 }
 

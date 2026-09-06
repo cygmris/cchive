@@ -108,6 +108,7 @@ pub fn run() {
             commands::settings::get_initial_screen,
             commands::usage::read_usage,
             commands::usage::read_grok_usage,
+            commands::usage::read_codex_usage,
             commands::memory::read_memory,
             commands::memory::write_memory,
             commands::projects::list_projects,

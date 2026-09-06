@@ -32,10 +32,10 @@ your local usage — all on your machine, nothing leaving your device. It runs a
   untouched; a built-in **latency test** helps you pick the fastest endpoint.
 - **Config management** — view and edit MCP servers, agents, commands, skills, and project /
   global memory (`CLAUDE.md`), with a CodeMirror editor.
-- **Usage analytics** — daily output-token chart + tokens-by-model breakdown and a cost
-  estimate from local Claude session logs, plus a Grok pane (weekly credit percent from
-  `unified.jsonl`, spend from `sessions/**/updates.jsonl`). Claude and Grok totals are
-  never added together; nothing is fetched over the network.
+- **Usage analytics** — All | Claude | Codex | Grok. Claude from local session jsonl;
+  Codex from `~/.codex/sessions` rollout jsonl (tokens only, no USD in the logs, no
+  ChatGPT HTTP); Grok from `updates.jsonl` + weekly credit percent. All is a labelled
+  sum with a By-agent breakdown. Status-bar tokens-today stays Claude-only.
 - **System tray quick-switch** — a tray menu lists your accounts and providers (active one
   checked); selecting one runs the **same** safe switch core as the in-app UI, fires a desktop
   notification, and refreshes the window. Left-click toggles the window; single-instance
@@ -64,7 +64,7 @@ your local usage — all on your machine, nothing leaving your device. It runs a
 
 ![Configurations](docs/images/configurations.png)
 
-**Usage** — Claude or Grok (never mixed); Grok also shows the weekly credit percent:
+**Usage** — All / Claude / Codex / Grok (All is labelled; each pane stays separate):
 
 ![Usage](docs/images/usage.png)
 

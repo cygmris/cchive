@@ -61,6 +61,17 @@ pub fn codex_config_path() -> PathBuf {
     codex_dir().join("config.toml")
 }
 
+/// `<codex_dir>/sessions/` — per-session `rollout-*.jsonl` usage logs.
+pub fn codex_sessions_dir() -> PathBuf {
+    codex_dir().join("sessions")
+}
+
+/// `<cchive_config_dir>/codex-usage-parse-cache.json` — incremental Codex usage
+/// parse cache (per-file byte offset + day buckets). Non-secret: counts only.
+pub fn codex_usage_cache_path() -> PathBuf {
+    cchive_config_dir().join("codex-usage-parse-cache.json")
+}
+
 /// The Grok config directory: `$GROK_HOME` when set (and non-empty), otherwise
 /// `$HOME/.grok`. Switching only ever writes `auth.json` here.
 pub fn grok_dir() -> PathBuf {
@@ -250,6 +261,7 @@ mod tests {
 
         assert_eq!(codex_dir(), dir);
         assert_eq!(codex_auth_path(), dir.join("auth.json"));
+        assert_eq!(codex_sessions_dir(), dir.join("sessions"));
 
         std::env::remove_var("CODEX_HOME");
         // Default falls back to $HOME/.codex (never under CLAUDE_CONFIG_DIR).
