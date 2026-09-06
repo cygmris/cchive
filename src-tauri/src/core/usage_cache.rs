@@ -30,11 +30,15 @@ const CACHE_VERSION: u32 = 1;
 /// `[key, dateDays, model, input, output, cacheCreation, cacheRead]`.
 type EventRepr = (u64, i32, String, u64, u64, u64, u64);
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 struct FileEntry {
     mtime_ns: u128,
     size: u64,
     events: Vec<EventRepr>,
+    /// Bytes consumed through the last complete newline. 0 on caches written
+    /// before this field existed — a grown file then seeks to `size`.
+    #[serde(default)]
+    offset: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -121,6 +125,7 @@ pub fn aggregate_incremental(
     let mut cache = load(cache_path);
     let mut all_events: Vec<UsageEvent> = Vec::new();
     let mut live: HashSet<String> = HashSet::new();
+    let mut dirty = false;
 
     // Sorted walk MUST match usage::aggregate so the global dedup winner is the same.
     for entry in WalkDir::new(projects_dir)
@@ -142,9 +147,8 @@ pub fn aggregate_incremental(
         let key = path.to_string_lossy().into_owned();
         live.insert(key.clone());
 
-        // Reuse unchanged files from cache; otherwise parse + upsert.
         if let Some(hit) = cache.files.get(&key) {
-            if hit.mtime_ns == mtime_ns && hit.size == size {
+            if hit.size == size {
                 for r in &hit.events {
                     if let Some(ev) = from_repr(r) {
                         all_events.push(ev);
@@ -153,23 +157,52 @@ pub fn aggregate_incremental(
                 continue;
             }
         }
-        let events = usage::parse_file_events(path);
+
+        dirty = true;
+        let prev = cache.files.get(&key).cloned();
+        let start = match &prev {
+            Some(hit) if size >= hit.size => {
+                if hit.offset > 0 {
+                    hit.offset
+                } else {
+                    hit.size
+                }
+            }
+            _ => 0,
+        };
+        let parsed = usage::parse_file_from(path, start);
+        let events: Vec<UsageEvent> = if start == 0 {
+            parsed.events
+        } else if let Some(hit) = prev {
+            let mut evs: Vec<UsageEvent> = hit.events.iter().filter_map(from_repr).collect();
+            evs.extend(parsed.events);
+            evs
+        } else {
+            parsed.events
+        };
         all_events.extend(events.iter().cloned());
         cache.files.insert(
             key,
             FileEntry {
                 mtime_ns,
                 size,
+                offset: parsed.offset,
                 events: events.iter().map(to_repr).collect(),
             },
         );
     }
 
     // Drop entries for files that no longer exist.
+    let before = cache.files.len();
     cache.files.retain(|k, _| live.contains(k));
+    if cache.files.len() != before {
+        dirty = true;
+    }
 
     let summary = usage::events_to_summary(all_events, range_days, today_local);
-    save(cache_path, &cache);
+    if dirty {
+        save(cache_path, &cache);
+    }
     summary
 }
 
@@ -178,6 +211,7 @@ mod tests {
     use super::*;
     use std::fs;
     use std::io::Write;
+    use std::time::Instant;
 
     fn today() -> NaiveDate {
         NaiveDate::from_ymd_opt(2024, 6, 15).unwrap()
@@ -219,11 +253,17 @@ mod tests {
         assert!(eq(&inc, &usage::aggregate(proj.path(), 30, today())));
         assert!(cache.exists());
 
-        // Append to file b (mtime+size change) → re-parsed; still exact.
+        // Append to file b (mtime+size change) → suffix-scanned; still exact.
         let mut f = fs::OpenOptions::new().append(true).open(&fb).unwrap();
         writeln!(f, "{}", line("r3", "m3", "claude-sonnet-4", 7, 3)).unwrap();
         let inc2 = aggregate_incremental(proj.path(), &cache, 30, today());
         assert!(eq(&inc2, &usage::aggregate(proj.path(), 30, today())));
+
+        // A second append must also suffix, not lose the first extra line.
+        let mut f = fs::OpenOptions::new().append(true).open(&fb).unwrap();
+        writeln!(f, "{}", line("r3b", "m3b", "claude-sonnet-4", 8, 4)).unwrap();
+        let inc2b = aggregate_incremental(proj.path(), &cache, 30, today());
+        assert!(eq(&inc2b, &usage::aggregate(proj.path(), 30, today())));
 
         // Add a new file → picked up; still exact.
         write(proj.path(), "c", "s.jsonl", &[line("r4", "m4", "claude-haiku-4", 4, 2)]);
@@ -274,5 +314,57 @@ mod tests {
         let stale = cachedir.path().join("stale.json");
         fs::write(&stale, br#"{"version":999,"files":{}}"#).unwrap();
         assert!(eq(&aggregate_incremental(proj.path(), &stale, 30, today()), &expected));
+    }
+
+    /// Live timings against this machine's logs. Not a correctness test.
+    #[test]
+    #[ignore]
+    fn live_usage_parse_times() {
+        let today = chrono::Local::now().date_naive();
+        let claude_dir = crate::core::paths::projects_dir();
+        let claude_cache = crate::core::paths::usage_cache_path();
+        let grok_dir = crate::core::paths::grok_sessions_dir();
+        let grok_cache = crate::core::paths::grok_usage_cache_path();
+        let grok_log = crate::core::paths::grok_logs_path();
+        let codex_dir = crate::core::paths::codex_sessions_dir();
+        let codex_cache = crate::core::paths::codex_usage_cache_path();
+
+        let t0 = Instant::now();
+        let bytes = std::fs::read(&claude_cache).unwrap_or_default();
+        eprintln!("claude cache file {} bytes read {:?}", bytes.len(), t0.elapsed());
+        let t1 = Instant::now();
+        let _parsed: serde_json::Value = serde_json::from_slice(&bytes).unwrap_or_default();
+        eprintln!("claude cache json-value {:?}", t1.elapsed());
+
+        for pass in 1..=2 {
+            let t = Instant::now();
+            let s = aggregate_incremental(&claude_dir, &claude_cache, 30, today);
+            eprintln!(
+                "claude pass{pass} {:?} in={} out={}",
+                t.elapsed(),
+                s.totals.input,
+                s.totals.output
+            );
+            let t = Instant::now();
+            let s = crate::core::grok_usage::aggregate_incremental(
+                &grok_dir, &grok_cache, &grok_log, 30, today,
+            );
+            eprintln!(
+                "grok   pass{pass} {:?} tok={} out={}",
+                t.elapsed(),
+                s.totals.tokens,
+                s.totals.output
+            );
+            let t = Instant::now();
+            let s = crate::core::codex_usage::aggregate_incremental(
+                &codex_dir, &codex_cache, 30, today,
+            );
+            eprintln!(
+                "codex  pass{pass} {:?} tok={} out={}",
+                t.elapsed(),
+                s.totals.tokens,
+                s.totals.output
+            );
+        }
     }
 }

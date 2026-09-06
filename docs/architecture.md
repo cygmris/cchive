@@ -69,11 +69,14 @@ This document captures the durable design that isn't obvious from the code alone
   tokens (same metric as the Output tile), not Claude input or Codex/Grok
   `tokens` totals.
 - `core/usage_cache` — the **incremental** parse cache behind that background recompute:
-  each file's parsed events are cached by (mtime, size) in `usage-parse-cache.json`, so a
-  repeat run re‑parses only changed files (cold cache = one full pass). The summary is
-  byte‑identical to `usage::aggregate` — the walk is sorted and the cost is summed in
-  sorted model order, so the output is deterministic (which is also what lets the two
-  paths match). Cross‑file retry dedup is preserved (measured: 443 keys span >1 file).
+  each file's parsed events are cached by (size, byte offset) in `usage-parse-cache.json`.
+  A grown jsonl is suffix-scanned from the stored offset (not re-parsed from byte 0);
+  truncation rescans from 0; unchanged files skip the cache rewrite. Cold cache = one
+  full pass. The three `read_*_usage` commands run on `spawn_blocking` so a parse
+  cannot freeze the GTK thread. The summary is byte‑identical to `usage::aggregate` —
+  the walk is sorted and the cost is summed in sorted model order, so the output is
+  deterministic (which is also what lets the two paths match). Cross‑file retry dedup
+  is preserved (measured: 443 keys span >1 file).
 - `core/mcp`, `core/resources`, `core/memory`, `core/projects` — the manager
   backends for those screens.
 - `core/notify_hook` — install/remove a `cchive-notify`‑marked command hook in

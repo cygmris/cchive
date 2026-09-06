@@ -13,7 +13,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use chrono::{DateTime, Duration, Local, NaiveDate};
@@ -136,25 +136,55 @@ fn dedup_key(req_id: &str, msg_id: &str) -> u64 {
     }
 }
 
+/// Events parsed from a file suffix, plus the byte offset consumed through the
+/// last complete newline (a trailing partial line is not consumed).
+pub(crate) struct FileParse {
+    pub events: Vec<UsageEvent>,
+    pub offset: u64,
+}
+
 /// Parse one `.jsonl` into its usage events, in file order, collapsing within-file
 /// duplicate keys (identical retries). Unreadable file/line → skipped; never fails.
 /// The range window is NOT applied here — that is the summary's job, so a parsed
 /// file can be cached once and reused for any range.
 pub(crate) fn parse_file_events(path: &Path) -> Vec<UsageEvent> {
-    let file = match File::open(path) {
-        Ok(f) => f,
-        Err(_) => return Vec::new(), // unreadable file → no events, never fail
+    parse_file_from(path, 0).events
+}
+
+/// Parse complete lines starting at `offset`. Same skip rules as
+/// [`parse_file_events`]. Holds back a trailing partial line so a later suffix
+/// scan can finish it.
+pub(crate) fn parse_file_from(path: &Path, offset: u64) -> FileParse {
+    let Ok(mut file) = File::open(path) else {
+        return FileParse { events: Vec::new(), offset };
     };
+    if file.seek(SeekFrom::Start(offset)).is_err() {
+        return FileParse { events: Vec::new(), offset };
+    }
+    let mut chunk = Vec::new();
+    if file.read_to_end(&mut chunk).is_err() {
+        return FileParse { events: Vec::new(), offset };
+    }
+    let consumed = if chunk.ends_with(b"\n") {
+        chunk.len()
+    } else {
+        match chunk.iter().rposition(|&b| b == b'\n') {
+            Some(cut) => cut + 1,
+            None => return FileParse { events: Vec::new(), offset },
+        }
+    };
+    let text = String::from_utf8_lossy(&chunk[..consumed]);
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut seen_in_file: HashSet<u64> = HashSet::new();
 
-    for line in BufReader::new(file).lines() {
-        let line = match line {
-            Ok(l) => l,
-            Err(_) => continue, // unreadable line → skip
-        };
+    for line in text.split('\n') {
         let trimmed = line.trim();
         if trimmed.is_empty() {
+            continue;
+        }
+        // Tool-result lines dominate file size; skip serde unless a usage block
+        // is even possible.
+        if !trimmed.contains("\"usage\"") {
             continue;
         }
         let v: Value = match serde_json::from_str(trimmed) {
@@ -206,7 +236,10 @@ pub(crate) fn parse_file_events(path: &Path) -> Vec<UsageEvent> {
         });
     }
 
-    events
+    FileParse {
+        events,
+        offset: offset + consumed as u64,
+    }
 }
 
 /// Roll a stream of events (in walk order) into a [`UsageSummary`]: global retry
