@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "使用状況",
-      "description": "すべての Claude Code セッションのトークン消費量。"
+      "description": "Claude Code と Grok のローカル使用量。両者の合計はしません。"
     },
     "notifications": {
       "title": "通知",

@@ -64,7 +64,7 @@ your local usage — all on your machine, nothing leaving your device. It runs a
 
 ![Configurations](docs/images/configurations.png)
 
-**Usage** — local token usage, per day and per model, with a cost estimate:
+**Usage** — Claude or Grok (never mixed); Grok also shows the weekly credit percent:
 
 ![Usage](docs/images/usage.png)
 

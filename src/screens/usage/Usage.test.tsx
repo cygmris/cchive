@@ -196,9 +196,32 @@ describe("UsageScreen", () => {
     expect(screen.getByText("4.2M")).toBeInTheDocument();
     expect(screen.getByText("$12.50")).toBeInTheDocument();
     expect(screen.getByText("grok-4.6-build")).toBeInTheDocument();
-    expect(screen.getByText(/73% · SuperGrok Heavy/)).toBeInTheDocument();
+    expect(screen.getByText("73%")).toBeInTheDocument();
+    expect(screen.getByText(/SuperGrok Heavy/)).toBeInTheDocument();
+    expect(screen.getByRole("meter", { name: "Weekly Grok credits" })).toBeInTheDocument();
     expect(screen.queryByText("Input tokens")).not.toBeInTheDocument();
     expect(screen.queryByText("84.2M")).not.toBeInTheDocument();
     expect(screen.queryByText("$128.40")).not.toBeInTheDocument();
+  });
+
+  it("shows the Claude|Grok toggle on the default Claude view", async () => {
+    renderScreen();
+    await screen.findByText("Input tokens");
+    expect(screen.getByRole("radio", { name: "Grok" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Claude" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "7 days" })).toBeInTheDocument();
+  });
+
+  it("labels Grok credits stale when ageMinutes is over 45", async () => {
+    const user = userEvent.setup();
+    (ipc.readGrokUsage as Mock).mockResolvedValue({
+      ...GROK_SUMMARY,
+      credits: { ...GROK_SUMMARY.credits!, ageMinutes: 80 },
+    });
+    renderScreen();
+    await screen.findByText("Input tokens");
+    await user.click(screen.getByRole("radio", { name: "Grok" }));
+    expect(await screen.findByText(/stale/)).toBeInTheDocument();
+    expect(screen.getByText("73%")).toBeInTheDocument();
   });
 });

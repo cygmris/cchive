@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "用量",
-      "description": "所有 Claude Code 会话的令牌消耗。"
+      "description": "Claude Code 与 Grok 的本地用量。两家数字不会加总。"
     },
     "notifications": {
       "title": "通知",

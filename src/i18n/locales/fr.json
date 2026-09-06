@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "Utilisation",
-      "description": "Consommation de jetons sur toutes vos sessions Claude Code."
+      "description": "Consommation locale de Claude Code et de Grok. Les totaux ne sont jamais additionnés."
     },
     "notifications": {
       "title": "Notifications",

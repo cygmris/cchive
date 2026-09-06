@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "Usage",
-      "description": "Token consumption across all your Claude Code sessions."
+      "description": "Local usage for Claude Code and Grok. The two are never added together."
     },
     "notifications": {
       "title": "Notifications",

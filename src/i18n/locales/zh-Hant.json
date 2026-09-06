@@ -67,7 +67,7 @@
     },
     "usage": {
       "title": "用量",
-      "description": "所有 Claude Code 工作階段的權杖消耗。"
+      "description": "Claude Code 與 Grok 的本機用量。兩家數字不會加總。"
     },
     "notifications": {
       "title": "通知",

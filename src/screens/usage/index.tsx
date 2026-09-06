@@ -1,15 +1,13 @@
 /**
- * Usage screen — token consumption parsed from the local Claude Code session
- * logs (`~/.claude/projects/**`), served by the {@link useUsage} query.
+ * Usage screen — local consumption for Claude (projects jsonl via
+ * {@link useUsage}) or Grok (session updates.jsonl via {@link useGrokUsage}).
+ * The two series are never added together.
  *
- * Header (sticky) carries a 30/7-day range {@link SegmentedControl} and a
- * refresh {@link IconButton} that re-parses the logs on demand. Below: four
- * {@link StatTile}s (input/output/cache-read totals + an estimated cost) each
- * flagged by a semantic colored dot and rendered in Geist-Mono numerals; an
- * "Output tokens per day" {@link OutputBars} chart for the active range; and an
- * "Activity" {@link Heatmap} of the trailing year. Loading shows a quiet state;
- * an empty history flows through naturally as zeros + an empty grid. Styling is
- * token-only — the dots use the semantic tokens, everything else the accent.
+ * Header (sticky flex row) carries Claude|Grok, a 30/7-day range
+ * {@link SegmentedControl}, and a refresh {@link IconButton}. Claude branch:
+ * four tiles (input/output/cache-read/est-cost) + output-per-day + heatmap.
+ * Grok branch: est-cost/tokens/cache-read/calls + weekly credit bar + tokens
+ * per day + per-model + heatmap.
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,7 +21,7 @@ import { Heatmap } from "@/ui/charts/Heatmap";
 import { OutputBars } from "@/ui/charts/OutputBars";
 import { Loader, Refresh } from "@/ui/icons";
 import { useGrokUsage, useUsage } from "@/lib/queries";
-import type { DayPoint, GrokUsageSummary } from "@/lib/types";
+import type { DayPoint, GrokCredits, GrokUsageSummary } from "@/lib/types";
 
 type Range = "30" | "7";
 type Agent = "claude" | "grok";
@@ -97,15 +95,97 @@ function grokDaysAsOutput(summary: GrokUsageSummary): DayPoint[] {
   }));
 }
 
-function creditLine(summary: GrokUsageSummary): string | null {
-  const c = summary.credits;
-  if (!c) return null;
-  const pct = Number.isFinite(c.percent) ? `${c.percent.toFixed(0)}%` : "—";
-  const tier = c.subscriptionTier ?? "";
-  const end = c.periodEnd ? c.periodEnd.slice(0, 10) : "";
-  const parts = [pct, tier, end ? `resets ${end}` : ""].filter(Boolean);
-  const stale = (c.ageMinutes ?? 0) > 45 ? " · stale" : "";
-  return parts.join(" · ") + stale;
+/** Weekly Grok credit bar. Missing billing → a one-liner, not a fake 0%. */
+function CreditReadout({ credits }: { credits: GrokCredits | null }) {
+  if (!credits) {
+    return (
+      <div
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-body-sm)",
+          color: "var(--text-3)",
+        }}
+      >
+        Weekly credit percent is unavailable until grok fetches billing.
+      </div>
+    );
+  }
+  const pct = Number.isFinite(credits.percent) ? credits.percent : 0;
+  const clamped = Math.max(0, Math.min(100, pct));
+  const stale = (credits.ageMinutes ?? 0) > 45;
+  const end = credits.periodEnd ? credits.periodEnd.slice(0, 10) : "";
+  const meta = [
+    credits.subscriptionTier,
+    end ? `resets ${end}` : "",
+    stale ? "stale" : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <div
+      role="meter"
+      aria-label="Weekly Grok credits"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(clamped)}
+      style={{ display: "flex", flexDirection: "column", gap: 8 }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: "var(--space-3)",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body-sm)",
+            color: "var(--text-2)",
+          }}
+        >
+          Weekly credits{" "}
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--fs-mono)",
+              color: "var(--text)",
+            }}
+          >
+            {pct.toFixed(0)}%
+          </span>
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body-sm)",
+            color: stale ? "var(--warning)" : "var(--text-3)",
+          }}
+        >
+          {meta}
+        </span>
+      </div>
+      <div
+        aria-hidden
+        style={{
+          height: 6,
+          borderRadius: "var(--radius-pill)",
+          background: "var(--surface-2)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${clamped}%`,
+            height: "100%",
+            background: stale ? "var(--warning)" : "var(--accent)",
+            borderRadius: "var(--radius-pill)",
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function UsageScreen() {
@@ -134,28 +214,35 @@ export function UsageScreen() {
         overflow: "auto",
       }}
     >
-      {/* Sticky header: title/one-liner + range toggle + refresh. The sticky
-          element is the absolute containing block for the controls cluster. */}
+      {/* Flex header, not an absolute overlay: ScreenHeader's opaque sticky
+          layer paints on top of absolute siblings in WebKitGTK, so the
+          Claude|Grok radios existed in the DOM but could not be seen or
+          clicked in the native app. Collection uses the same row. */}
       <div
         style={{
           position: "sticky",
           top: 0,
           zIndex: 6,
           background: "var(--app-bg)",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "var(--space-3)",
         }}
       >
-        <ScreenHeader
-          title={t("header.usage.title")}
-          description={t("header.usage.description")}
-        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <ScreenHeader
+            title={t("header.usage.title")}
+            description={t("header.usage.description")}
+          />
+        </div>
         <div
           style={{
-            position: "absolute",
-            top: "var(--space-6)",
-            right: "var(--gutter)",
             display: "inline-flex",
             alignItems: "center",
             gap: "var(--space-2)",
+            padding: "var(--space-6) var(--gutter) 0 0",
+            flexShrink: 0,
           }}
         >
           <SegmentedControl<Agent>
@@ -242,16 +329,7 @@ export function UsageScreen() {
                 icon={<Dot color="var(--success)" />}
               />
             </div>
-            <div
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "var(--fs-body-sm)",
-                color: "var(--text-3)",
-              }}
-            >
-              {creditLine(grokData) ??
-                "Weekly credit percent is unavailable until grok fetches billing."}
-            </div>
+            <CreditReadout credits={grokData.credits} />
             <Card>
               <CardHeading
                 title="Tokens per day"
