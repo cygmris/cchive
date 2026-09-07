@@ -167,6 +167,15 @@
         "restoreSuccess": "Backup restored",
         "restoreDetail": "Restored {{name}}.",
         "restoreError": "Couldn't restore backup"
+      },
+      "legacyCreds": {
+        "label": "Old credential backups",
+        "description": "Earlier versions kept a copy of the credential beside it before every switch. Each copy holds a refresh token that has since been rotated away, so restoring one signs you out instead of undoing anything.",
+        "action": "Delete {{count}} old credential backups",
+        "confirmBody": "Delete {{count}} old credential backups? They cannot restore a session — each holds a token the server has already replaced.",
+        "success": "Old credential backups deleted",
+        "successDetail": "Deleted {{count}} files.",
+        "error": "Couldn't delete the old backups"
       }
     }
   },

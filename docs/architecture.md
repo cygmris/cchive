@@ -31,6 +31,16 @@ This document captures the durable design that isn't obvious from the code alone
   namespaces: `app.cchive.accounts`, `app.cchive.providers`,
   `app.cchive.codex.accounts`, `app.cchive.grok.accounts`).
 - `core/switch` — the account‑switch engine (below).
+- `core/oauth` — token freshness: expiry judgement (5‑minute buffer), the
+  credential‑lineage fingerprint (`sha256(refreshToken)`), the refresh exchange
+  behind a `TokenEndpoint` trait (so tests never reach the network), and the
+  permanent / deterministic / transient classification of a failure.
+- `core/claude_locks` — Claude Code's own advisory locks (`proper-lockfile`
+  protocol: directory locks, 60s stale for credentials, 10s for the config,
+  touched every 5s), so a swap never lands inside its refresh window.
+- `core/sessions` — read‑only detection of running Claude Code processes
+  (`~/.claude/sessions/<pid>.json` + `procStart` vs `/proc/<pid>/stat`, guarding
+  against pid reuse). Reported to the user; never gates a switch.
 - `core/codex` — the **Codex** account‑switch engine: capture / switch / identity
   against `~/.codex/auth.json` (the single‑file Codex twin of `core/switch`).
   Identity (email + plan, e.g. ChatGPT Pro) is read from the `id_token` claims;
@@ -104,6 +114,47 @@ both call it — no duplicated logic):
 Every write is **atomic** (temp + fsync + rename, 0600), **backup‑first**, with
 **rollback on failure**, and **preserves unknown keys**. The active identity is
 derived from these files (account vs provider variant), including the org name.
+
+### Token freshness (why a switch is more than a file copy)
+
+A stored account snapshot goes stale on its own. Claude Code **rotates the
+refresh token on every refresh** and the grant is **single‑use**, so a snapshot
+captured hours ago holds a spent grant plus an expired access token. Activating
+it hands Claude Code a dead credential — which surfaces as a 403 on the first
+first‑party MCP handshake, long before anything says "sign in again".
+
+So a switch (`core/switch`, `core/oauth`, `core/claude_locks`, `core/sessions`):
+
+1. runs inside **Claude Code's own advisory locks** — `.oauth_refresh.lock` then
+   the legacy `~/.claude.lock` (directory locks; `mkdir` is the mutex; 60s stale,
+   touched every 5s). Its refresh reads, refreshes and saves inside that lock, so
+   an unlocked swap landing in the window is overwritten by the refreshed *old*
+   account's token. Contended → `LOCK_BUSY`, a zero‑change outcome;
+2. **captures the live credential under the lock**, so the vault gets the
+   generation on disk right now;
+3. **freshens the target before activating it**: near expiry (5‑minute buffer) →
+   refresh at `platform.claude.com/v1/oauth/token`, then persist the successor to
+   the vault too, under a **compare‑and‑swap on `sha256(refreshToken)`** (that
+   hash survives access‑token rotation and changes exactly when the lineage
+   advances). Never for the **active** account — Claude Code owns that one.
+   A server‑rejected grant is `CREDENTIAL_DEAD` and is *not* activated; a
+   transient failure activates the stored token and lets Claude Code retry;
+4. keeps its rollback copy of the credential in a **private temp directory for
+   the length of the transaction only**. Credential backups are not restore
+   points: each holds a grant the server has already replaced, so restoring one
+   signs the user out. Settings offers a one‑time cleanup of the legacy ones.
+
+Running Claude Code sessions are **reported, not gated**: they keep the
+credential they already read, so they stay on the previous account.
+
+> The lock protocol, the freshen‑before‑activate shape and the fingerprint CAS
+> follow [claude‑swap](https://github.com/realiti4/claude-swap) (MIT,
+> © 2026 Onur Cetinkol), which solved this class first. The **design** was
+> ported, not its code, and every premise was re‑verified against the Claude
+> Code bundle installed here (2.1.263). One premise does **not** transfer:
+> claude‑swap can attribute a live session to one account because `cswap run`
+> gives each its own config dir; cchive has no per‑account session, so its
+> ownership gate reduces to "the target is not the active account".
 
 ## Security model
 

@@ -18,7 +18,7 @@ import { LogOut } from "@/ui/icons";
 import { useToast } from "@/ui/Toast";
 import { AccountAvatar, initialsOf } from "@/app/AccountSwitcher";
 import { useRemoveAccount, useSwitchAccount } from "@/lib/queries";
-import type { AccountMeta } from "@/lib/types";
+import type { AccountMeta, SwitchResult } from "@/lib/types";
 
 export interface AccountRowProps {
   account: AccountMeta;
@@ -55,18 +55,13 @@ export function AccountRow({
   function select() {
     if (active || switchAccount.isPending) return;
     switchAccount.mutate(account.id, {
-      onSuccess: () =>
+      onSuccess: (result) =>
         toast({
           title: "Account switched",
-          description: name,
+          description: switchDescription(name, result),
           variant: "success",
         }),
-      onError: (error) =>
-        toast({
-          title: "Couldn't switch account",
-          description: error.message,
-          variant: "danger",
-        }),
+      onError: (error) => toast({ ...switchError(name, error), variant: "danger" }),
     });
   }
 
@@ -165,4 +160,68 @@ export function AccountRow({
       />
     </div>
   );
+}
+
+/**
+ * What actually happened, in one line. A switch has four shapes and they are
+ * not interchangeable: a refreshed token means the account is ready to use,
+ * while a token we could not refresh may need Claude Code to retry on its own.
+ * Running sessions are worth naming too — they hold the credential they already
+ * read, so they stay on the previous account.
+ */
+export function switchDescription(name: string, result: SwitchResult): string {
+  const parts = [name];
+  switch (result.freshen.status) {
+    case "refreshed":
+      parts.push("token refreshed");
+      break;
+    case "skippedTransient":
+      parts.push(
+        `token not refreshed (${result.freshen.detail ?? "network"}) — Claude Code will retry`,
+      );
+      break;
+    case "skippedActive":
+    case "notNeeded":
+      break;
+  }
+  if (result.liveSessions > 0) {
+    parts.push(
+      `${result.liveSessions} Claude Code ${result.liveSessions === 1 ? "session is" : "sessions are"} running and stay on the previous account`,
+    );
+  }
+  return parts.join(" · ");
+}
+
+/**
+ * Turn a failed switch into something the user can act on. Two failures have a
+ * specific remedy and deserve to say so rather than repeat the backend string:
+ * a credential the server has rejected needs a fresh sign-in and re-capture,
+ * and a busy lock just needs another try once Claude Code finishes its own
+ * refresh.
+ */
+export function switchError(
+  name: string,
+  error: Error & { code?: string },
+): { title: string; description: string } {
+  switch (error.code) {
+    case "CREDENTIAL_DEAD":
+      return {
+        title: `${name} needs signing in again`,
+        description:
+          "Its saved credential was rejected. Sign in to this account in Claude Code, then capture it again.",
+      };
+    case "LOCK_BUSY":
+      return {
+        title: "Claude Code is busy",
+        description:
+          "It is refreshing its own token right now. Nothing was changed — try again in a moment.",
+      };
+    case "CORRUPT_FILE":
+      return {
+        title: `${name} can't be activated`,
+        description: `${error.message} Nothing was changed.`,
+      };
+    default:
+      return { title: "Couldn't switch account", description: error.message };
+  }
 }

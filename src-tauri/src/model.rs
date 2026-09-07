@@ -278,6 +278,44 @@ pub struct ActiveIdentity {
 pub struct SwitchResult {
     pub identity: ActiveIdentity,
     pub apply_note: String,
+    /// What the freshness step did to the target's token before activating it.
+    pub freshen: Freshen,
+    /// Claude Code processes still running at switch time. They keep the
+    /// credential they already read, so they do NOT follow this switch.
+    pub live_sessions: u32,
+}
+
+/// Outcome of the freshen-before-activate step (never carries a token).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Freshen {
+    pub status: FreshenStatus,
+    /// Human-readable reason, for the statuses that have one.
+    pub detail: Option<String>,
+}
+
+impl Freshen {
+    pub fn new(status: FreshenStatus) -> Self {
+        Freshen { status, detail: None }
+    }
+    pub fn with_detail(status: FreshenStatus, detail: impl Into<String>) -> Self {
+        Freshen { status, detail: Some(detail.into()) }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum FreshenStatus {
+    /// The token was refreshed, then activated.
+    Refreshed,
+    /// Still valid well past the buffer — activated as stored, no network call.
+    NotNeeded,
+    /// The target IS the active account; Claude Code owns that credential and
+    /// we never refresh it out from under a running session.
+    SkippedActive,
+    /// The refresh failed in a retryable way; the stored token was activated
+    /// as-is and Claude Code will refresh it itself on first use.
+    SkippedTransient,
 }
 
 /// Non-secret metadata for one saved **Codex** account (the `auth.json` payload
@@ -701,6 +739,12 @@ pub enum CoreError {
 
     #[error("io error: {0}")]
     Io(String),
+
+    #[error("another process holds Claude Code's credential lock: {0}")]
+    LockBusy(String),
+
+    #[error("the saved credential is no longer valid and was not activated: {0}")]
+    CredentialDead(String),
 }
 
 impl CoreError {
@@ -715,6 +759,8 @@ impl CoreError {
             CoreError::InvalidInput(_) => "INVALID_INPUT",
             CoreError::NotFound(_) => "NOT_FOUND",
             CoreError::Io(_) => "IO",
+            CoreError::LockBusy(_) => "LOCK_BUSY",
+            CoreError::CredentialDead(_) => "CREDENTIAL_DEAD",
         }
     }
 }

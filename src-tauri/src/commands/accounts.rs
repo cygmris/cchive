@@ -68,3 +68,21 @@ pub fn remove_account<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), C
     crate::refresh_tray(&app);
     Ok(())
 }
+
+/// Count the legacy credential backups left on disk by earlier versions.
+/// On-disk effect: reads the `~/.claude` directory listing; writes nothing.
+#[tauri::command]
+pub fn count_legacy_credential_backups() -> Result<u32, CoreError> {
+    Ok(switch::legacy_credential_backup_count())
+}
+
+/// Delete every `~/.claude/.credentials.json.cchive.bak.*` this app ever wrote.
+///
+/// These are not restore points: each holds a refresh token that has since been
+/// rotated away, so restoring one signs the user out. The UI asks first — this
+/// command performs the deletion, it does not confirm it.
+/// On-disk effect: removes those backup files only; the live credential is untouched.
+#[tauri::command]
+pub fn purge_legacy_credential_backups() -> Result<u32, CoreError> {
+    Ok(switch::purge_legacy_credential_backups())
+}

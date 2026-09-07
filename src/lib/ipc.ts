@@ -313,6 +313,24 @@ export function listBackups(): Promise<BackupEntry[]> {
 }
 
 /**
+ * How many legacy credential backups (`.credentials.json.cchive.bak.*`) are
+ * still on disk. Earlier versions wrote one before every switch.
+ */
+export function countLegacyCredentialBackups(): Promise<number> {
+  ensureTauri("count_legacy_credential_backups");
+  return invoke<number>("count_legacy_credential_backups");
+}
+
+/**
+ * Delete every legacy credential backup, returning how many went. They are not
+ * restore points: each holds a refresh token the server has already replaced.
+ */
+export function purgeLegacyCredentialBackups(): Promise<number> {
+  ensureTauri("purge_legacy_credential_backups");
+  return invoke<number>("purge_legacy_credential_backups");
+}
+
+/**
  * Restore the backup `id` back to its original Claude file (snapshotting the
  * current state first so it stays recoverable). Touches only Claude file content.
  */

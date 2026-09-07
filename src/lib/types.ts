@@ -237,7 +237,36 @@ export interface CodexProviderInput {
 export interface SwitchResult {
   identity: ActiveIdentity;
   applyNote: string;
+  /** What the freshness step did to the target's token before activating it. */
+  freshen: Freshen;
+  /**
+   * Claude Code processes running at switch time. They keep the credential
+   * they already read, so they do NOT follow this switch.
+   */
+  liveSessions: number;
 }
+
+/**
+ * Outcome of the freshen-before-activate step. A stored account snapshot goes
+ * stale on its own — Claude Code rotates the refresh token on every refresh and
+ * the grant is single-use — so a switch refreshes the target first when needed.
+ * Never carries a token.
+ */
+export interface Freshen {
+  status: FreshenStatus;
+  /** Human-readable reason, for the statuses that have one. */
+  detail: string | null;
+}
+
+export type FreshenStatus =
+  /** Refreshed, then activated. */
+  | "refreshed"
+  /** Still valid — activated as stored, with no network call. */
+  | "notNeeded"
+  /** The target is already active; Claude Code owns that credential. */
+  | "skippedActive"
+  /** Refresh failed retryably; the stored token was activated as-is. */
+  | "skippedTransient";
 
 /** Auth-relevant environment variables that can override what cchive writes. */
 export interface EnvOverrides {

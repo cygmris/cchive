@@ -34,6 +34,8 @@ import {
   useBackups,
   useExportConfig,
   useImportConfig,
+  useLegacyCredentialBackups,
+  usePurgeLegacyCredentialBackups,
   useRestoreBackup,
   useSetAutostart,
 } from "@/lib/queries";
@@ -353,8 +355,38 @@ function DataBackupsCard() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const backups = useBackups();
+  const legacyCreds = useLegacyCredentialBackups();
+  const purgeLegacyCreds = usePurgeLegacyCredentialBackups();
   const exportConfig = useExportConfig();
   const importConfig = useImportConfig();
+
+  const legacyCount = legacyCreds.data ?? 0;
+
+  function handlePurgeLegacyCreds() {
+    if (
+      !window.confirm(
+        t("settings.dataBackups.legacyCreds.confirmBody", { count: legacyCount }),
+      )
+    ) {
+      return;
+    }
+    purgeLegacyCreds.mutate(undefined, {
+      onSuccess: (removed) =>
+        toast({
+          title: t("settings.dataBackups.legacyCreds.success"),
+          description: t("settings.dataBackups.legacyCreds.successDetail", {
+            count: removed,
+          }),
+          variant: "success",
+        }),
+      onError: (error) =>
+        toast({
+          title: t("settings.dataBackups.legacyCreds.error"),
+          description: error.message,
+          variant: "danger",
+        }),
+    });
+  }
 
   function handleExport() {
     exportConfig.mutate(undefined, {
@@ -495,6 +527,53 @@ function DataBackupsCard() {
             ))
           )}
         </div>
+
+        {/* Legacy credential backups — offered only while any remain. Each one
+            holds a refresh token the server has already replaced, so it can
+            sign the user out but never restore anything. */}
+        {legacyCount > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-1)",
+              marginTop: "var(--space-3)",
+              paddingTop: "var(--space-3)",
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-body)",
+                fontWeight: "var(--weight-semibold)",
+                color: "var(--text)",
+              }}
+            >
+              {t("settings.dataBackups.legacyCreds.label")}
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-body-sm)",
+                color: "var(--text-2)",
+              }}
+            >
+              {t("settings.dataBackups.legacyCreds.description")}
+            </span>
+            <div style={{ marginTop: "var(--space-2)" }}>
+              <Button
+                variant="secondary"
+                onClick={handlePurgeLegacyCreds}
+                disabled={purgeLegacyCreds.isPending}
+              >
+                {t("settings.dataBackups.legacyCreds.action", {
+                  count: legacyCount,
+                })}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );

@@ -164,6 +164,80 @@ fn rotate_backups(path: &Path) {
     }
 }
 
+
+/// Copy `path` into a private temp directory for the duration of one
+/// transaction. Returns `None` when `path` does not exist.
+///
+/// Credential backups do NOT go through [`backup`]: its rotation keeps the last
+/// `BACKUP_KEEP` copies next to the original, and every one of those holds a
+/// refresh token that has since been rotated away. A spent grant is not a
+/// restore point — restoring one signs the user out. This copy exists only
+/// until the transaction ends, and [`discard`] removes it.
+pub fn backup_transactional(path: &Path) -> Result<Option<BackupHandle>, CoreError> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "credential".to_string());
+    // pid + millis alone is not unique: two backups taken in the same
+    // millisecond (the pair this transaction takes, or two switches at once)
+    // would share a directory and the second copy would overwrite the first —
+    // and a rollback would then restore the wrong file's contents.
+    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let dir = std::env::temp_dir().join(format!(
+        "cchive-swap-{}-{}-{}",
+        std::process::id(),
+        now_millis(),
+        SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    fs::create_dir_all(&dir).map_err(io_err)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(&dir, fs::Permissions::from_mode(0o700));
+    }
+
+    let backup = dir.join(name);
+    fs::copy(path, &backup).map_err(io_err)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        // The copy holds a live token: 0600 regardless of the source's bits.
+        let _ = fs::set_permissions(&backup, fs::Permissions::from_mode(0o600));
+    }
+    Ok(Some(BackupHandle { original: path.to_path_buf(), backup }))
+}
+
+/// Delete a transactional backup (and its directory once empty). Best-effort:
+/// a leftover temp copy is not worth failing a completed switch over.
+pub fn discard(handle: &Option<BackupHandle>) {
+    let Some(h) = handle else { return };
+    let _ = fs::remove_file(&h.backup);
+    if let Some(dir) = h.backup.parent() {
+        let _ = fs::remove_dir(dir); // only succeeds when empty
+    }
+}
+
+/// How many rotating backups exist beside `path`.
+pub fn count_backups(path: &Path) -> usize {
+    list_backups(path).len()
+}
+
+/// Delete every rotating backup this app ever wrote beside `path`, returning
+/// how many were removed. Used to clear the historical credential backups that
+/// predate `backup_transactional`.
+pub fn purge_backups(path: &Path) -> usize {
+    let mut removed = 0;
+    for entry in list_backups(path) {
+        if fs::remove_file(&entry.path).is_ok() {
+            removed += 1;
+        }
+    }
+    removed
+}
+
 /// Copy `path` to `path.cchive.bak.<epoch_millis>` and rotate. Returns `None`
 /// when `path` does not exist (nothing to back up).
 pub fn backup(path: &Path) -> Result<Option<BackupHandle>, CoreError> {
@@ -382,5 +456,55 @@ mod tests {
             Err(CoreError::CorruptFile(_)) => {}
             other => panic!("expected CorruptFile, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn transactional_backup_lives_outside_the_original_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join(".credentials.json");
+        fs::write(&file, b"{\"claudeAiOauth\":{}}").unwrap();
+
+        let handle = backup_transactional(&file).unwrap().expect("file exists");
+        assert!(handle.backup.exists());
+        assert!(
+            !handle.backup.starts_with(dir.path()),
+            "a credential copy must not sit next to the original"
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = fs::metadata(&handle.backup).unwrap().permissions().mode() & 0o777;
+            assert_eq!(mode, 0o600, "the copy holds a live token");
+        }
+
+        // Restore still works from it…
+        fs::write(&file, b"clobbered").unwrap();
+        restore(&handle).unwrap();
+        assert_eq!(fs::read(&file).unwrap(), b"{\"claudeAiOauth\":{}}");
+
+        // …and discarding removes both the copy and its directory.
+        let parent = handle.backup.parent().unwrap().to_path_buf();
+        discard(&Some(handle));
+        assert!(!parent.exists());
+    }
+
+    #[test]
+    fn transactional_backup_of_a_missing_file_is_none() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(backup_transactional(&dir.path().join("nope.json")).unwrap().is_none());
+        discard(&None); // and discarding nothing is a no-op
+    }
+
+    #[test]
+    fn purge_backups_removes_every_rotating_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join(".credentials.json");
+        fs::write(&file, b"live").unwrap();
+        backup_at(&file, 1).unwrap();
+        backup_at(&file, 2).unwrap();
+
+        assert_eq!(purge_backups(&file), 2);
+        assert_eq!(purge_backups(&file), 0);
+        assert!(file.exists(), "the original is never touched");
     }
 }

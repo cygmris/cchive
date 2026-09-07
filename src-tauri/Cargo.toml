@@ -27,6 +27,9 @@ serde = { version = "1", features = ["derive"] }
 # Claude's JSON files (G11: never drop future keys we don't model).
 serde_json = { version = "1", features = ["preserve_order"] }
 dirs = "5"
+# SHA-256 for the credential lineage fingerprint (CAS on vault write-back).
+# RustCrypto, matching the keyring crypto-rust choice — no OpenSSL.
+sha2 = "0.10"
 thiserror = "2"
 # Streaming usage parser: recursive *.jsonl walk + ISO-8601 → local-date bucketing.
 walkdir = "2"

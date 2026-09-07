@@ -110,6 +110,8 @@ export const queryKeys = {
   autostart: ["autostart"] as const,
   /** The rotating Claude-file backups (restore + import invalidate this). */
   backups: ["backups"] as const,
+  /** How many legacy credential backups are still on disk. */
+  legacyCredentialBackups: ["legacyCredentialBackups"] as const,
 };
 
 /** Stable key fragment for a memory scope (so invalidation can target one doc). */
@@ -820,6 +822,25 @@ export const DESKTOP_ONLY_MESSAGE =
  * Boundary helpers.
  * ------------------------------------------------------------------------- */
 
+/**
+ * Normalise a rejected IPC call into an `Error` that keeps the backend's stable
+ * `code`. The message alone cannot be branched on — wording changes, and some
+ * of it (a lock path, say) is noise a caller would rather replace with its own
+ * guidance for that code.
+ */
+export function coreError(error: unknown): Error & { code?: string } {
+  const out: Error & { code?: string } = new Error(coreErrorMessage(error));
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as { code: unknown }).code === "string"
+  ) {
+    out.code = (error as { code: string }).code;
+  }
+  return out;
+}
+
 /** Extract the human message from a `CoreError` (`{ code, message }`) or Error. */
 function coreErrorMessage(error: unknown): string {
   if (
@@ -839,7 +860,7 @@ async function runQuery<T>(demo: T, call: () => Promise<T>): Promise<T> {
   try {
     return await call();
   } catch (error) {
-    throw new Error(coreErrorMessage(error));
+    throw coreError(error);
   }
 }
 
@@ -849,7 +870,7 @@ async function runMutation<T>(call: () => Promise<T>): Promise<T> {
   try {
     return await call();
   } catch (error) {
-    throw new Error(coreErrorMessage(error));
+    throw coreError(error);
   }
 }
 
@@ -1218,6 +1239,14 @@ export function useBackups(): UseQueryResult<BackupEntry[], Error> {
   });
 }
 
+/** How many legacy credential backups are left on disk (0 off-Tauri). */
+export function useLegacyCredentialBackups(): UseQueryResult<number, Error> {
+  return useQuery({
+    queryKey: queryKeys.legacyCredentialBackups,
+    queryFn: () => runQuery(0, ipc.countLegacyCredentialBackups),
+  });
+}
+
 /* ------------------------------------------------------------------------- *
  * Mutations. Each invalidates the queries it can change, on success.
  * ------------------------------------------------------------------------- */
@@ -1240,6 +1269,22 @@ export function useSwitchAccount(): UseMutationResult<
         "account",
         `Switched account to ${result.identity.label}`,
       );
+    },
+  });
+}
+
+/** Delete the legacy credential backups; resolves with how many were removed. */
+export function usePurgeLegacyCredentialBackups(): UseMutationResult<
+  number,
+  Error,
+  void
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => runMutation(ipc.purgeLegacyCredentialBackups),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.legacyCredentialBackups });
+      void qc.invalidateQueries({ queryKey: queryKeys.backups });
     },
   });
 }

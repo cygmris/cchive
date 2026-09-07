@@ -67,6 +67,8 @@ pub fn run() {
             commands::accounts::add_account_from_active,
             commands::accounts::switch_account,
             commands::accounts::remove_account,
+            commands::accounts::count_legacy_credential_backups,
+            commands::accounts::purge_legacy_credential_backups,
             commands::codex::list_codex_accounts,
             commands::codex::get_active_codex_identity,
             commands::codex::add_codex_account_from_active,

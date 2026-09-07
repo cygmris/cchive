@@ -167,6 +167,15 @@
         "restoreSuccess": "Sauvegarde restaurée",
         "restoreDetail": "{{name}} restauré.",
         "restoreError": "Échec de la restauration de la sauvegarde"
+      },
+      "legacyCreds": {
+        "label": "Anciennes sauvegardes d'identifiants",
+        "description": "Les versions précédentes conservaient une copie de l'identifiant à côté du fichier avant chaque bascule. Chaque copie contient un jeton de rafraîchissement depuis remplacé : la restaurer vous déconnecte au lieu d'annuler quoi que ce soit.",
+        "action": "Supprimer {{count}} anciennes sauvegardes",
+        "confirmBody": "Supprimer {{count}} anciennes sauvegardes d'identifiants ? Elles ne peuvent pas restaurer une session : leur jeton a déjà été remplacé par le serveur.",
+        "success": "Anciennes sauvegardes supprimées",
+        "successDetail": "{{count}} fichiers supprimés.",
+        "error": "Impossible de supprimer les anciennes sauvegardes"
       }
     }
   },

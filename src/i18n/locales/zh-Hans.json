@@ -167,6 +167,15 @@
         "restoreSuccess": "已恢复备份",
         "restoreDetail": "已恢复 {{name}}。",
         "restoreError": "无法恢复备份"
+      },
+      "legacyCreds": {
+        "label": "旧的凭据备份",
+        "description": "早先的版本会在每次切换前把凭据副本留在原文件旁边。每一份里的 refresh token 都已被轮换作废，恢复它只会让你掉线，撤销不了任何东西。",
+        "action": "删除 {{count}} 份旧凭据备份",
+        "confirmBody": "删除 {{count}} 份旧凭据备份？它们无法用来恢复会话——每一份里的令牌服务端都已经换掉了。",
+        "success": "旧凭据备份已删除",
+        "successDetail": "共删除 {{count}} 个文件。",
+        "error": "旧备份删除失败"
       }
     }
   },

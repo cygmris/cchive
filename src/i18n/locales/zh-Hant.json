@@ -167,6 +167,15 @@
         "restoreSuccess": "已還原備份",
         "restoreDetail": "已還原 {{name}}。",
         "restoreError": "無法還原備份"
+      },
+      "legacyCreds": {
+        "label": "舊的憑據備份",
+        "description": "先前的版本會在每次切換前把憑據副本留在原檔案旁邊。每一份裡的 refresh token 都已被輪換作廢，還原它只會讓你掉線，撤銷不了任何東西。",
+        "action": "刪除 {{count}} 份舊憑據備份",
+        "confirmBody": "刪除 {{count}} 份舊憑據備份？它們無法用來還原工作階段——每一份裡的權杖伺服器都已經換掉了。",
+        "success": "舊憑據備份已刪除",
+        "successDetail": "共刪除 {{count}} 個檔案。",
+        "error": "舊備份刪除失敗"
       }
     }
   },

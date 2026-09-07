@@ -38,6 +38,8 @@ vi.mock("@/lib/ipc", () => ({
   exportConfig: vi.fn(),
   importConfig: vi.fn(),
   restoreBackup: vi.fn(),
+  countLegacyCredentialBackups: vi.fn(),
+  purgeLegacyCredentialBackups: vi.fn(),
   appendActivity: vi.fn(),
   getProvider: vi.fn(),
   saveProvider: vi.fn(),
@@ -115,6 +117,8 @@ beforeEach(() => {
   (ipc.getProvider as Mock).mockResolvedValue(VIEW);
   (ipc.saveProvider as Mock).mockResolvedValue(VIEW);
   (ipc.deleteProvider as Mock).mockResolvedValue(undefined);
+  (ipc.countLegacyCredentialBackups as Mock).mockResolvedValue(0);
+  (ipc.purgeLegacyCredentialBackups as Mock).mockResolvedValue(0);
   (ipc.testLatency as Mock).mockResolvedValue({ ms: 128, ok: true, status: 200 });
 });
 
@@ -215,5 +219,52 @@ describe("config-editor Test-latency action", () => {
       ),
     );
     expect(await screen.findByText("128 ms")).toBeInTheDocument();
+  });
+});
+
+describe("legacy credential backups", () => {
+  it("stays hidden when there are none left", async () => {
+    (ipc.countLegacyCredentialBackups as Mock).mockResolvedValue(0);
+    renderSettings();
+
+    // The Backups card itself renders, so an absent offer is a real absence.
+    await screen.findByText("Backups");
+    expect(screen.queryByText("Old credential backups")).toBeNull();
+  });
+
+  it("offers the deletion and performs it once confirmed", async () => {
+    (ipc.countLegacyCredentialBackups as Mock).mockResolvedValue(10);
+    (ipc.purgeLegacyCredentialBackups as Mock).mockResolvedValue(10);
+    const confirm = vi
+      .spyOn(window, "confirm")
+      .mockReturnValue(true);
+    renderSettings();
+
+    const button = await screen.findByRole("button", {
+      name: /Delete 10 old credential backups/i,
+    });
+    await userEvent.click(button);
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(ipc.purgeLegacyCredentialBackups).toHaveBeenCalledTimes(1),
+    );
+    await screen.findByText("Old credential backups deleted");
+    confirm.mockRestore();
+  });
+
+  it("does nothing when the confirm is declined", async () => {
+    (ipc.countLegacyCredentialBackups as Mock).mockResolvedValue(3);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderSettings();
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /Delete 3 old credential backups/i,
+      }),
+    );
+
+    expect(ipc.purgeLegacyCredentialBackups).not.toHaveBeenCalled();
+    confirm.mockRestore();
   });
 });

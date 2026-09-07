@@ -4,6 +4,9 @@
 //! (commands, the webview) ever holds a secret.
 
 pub mod paths;
+pub mod oauth;
+pub mod claude_locks;
+pub mod sessions;
 pub mod atomic_fs;
 pub mod activity;
 pub mod backups;
