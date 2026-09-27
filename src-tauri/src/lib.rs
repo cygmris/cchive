@@ -25,6 +25,9 @@ pub(crate) fn refresh_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    disable_webkit_dmabuf_on_nvidia_wayland();
+
     let mut builder = tauri::Builder::default();
 
     // Single-instance must be the FIRST plugin registered; on a second launch
@@ -128,4 +131,27 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running the cchive application");
+}
+
+/// On NVIDIA + Wayland, route WebKitGTK off its DMA-BUF renderer.
+///
+/// After the 2026-09-27 system upgrade (NVIDIA 610 -> 615, egl-wayland
+/// 1.1.21 -> 1.1.22, Plasma 6.7.5 in the same transaction) the webview's
+/// DMA-BUF path trips a compositor protocol error on startup —
+/// `Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display` —
+/// and the app exits before a window is shown. With the DMA-BUF renderer off it
+/// starts and renders normally (verified on the real Wayland session).
+///
+/// Gated to NVIDIA + Wayland so other GPUs keep the fast path, and never
+/// overrides a value the user set themselves. Must run before GTK/WebKit init.
+/// Revisit once a driver/egl-wayland release fixes the protocol error.
+#[cfg(target_os = "linux")]
+fn disable_webkit_dmabuf_on_nvidia_wayland() {
+    const VAR: &str = "WEBKIT_DISABLE_DMABUF_RENDERER";
+    let nvidia = std::path::Path::new("/proc/driver/nvidia/version").exists();
+    let wayland = std::env::var_os("WAYLAND_DISPLAY").is_some()
+        && std::env::var("GDK_BACKEND").map_or(true, |b| !b.starts_with("x11"));
+    if nvidia && wayland && std::env::var_os(VAR).is_none() {
+        std::env::set_var(VAR, "1");
+    }
 }
