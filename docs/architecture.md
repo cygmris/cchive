@@ -181,6 +181,14 @@ credential they already read, so they stay on the previous account.
   `CCHIVE_INITIAL_SCREEN` env (e.g. `configs`) that the shell honours at boot, so a
   headless harness opens the app directly on a screen — no flaky WebKitGTK synthetic
   navigation. See the `tauri-app-smoke-test` skill (Xvfb‑isolated capture).
+- **NVIDIA + Wayland startup crash** (since the 2026‑09‑27 driver 615 /
+  egl‑wayland 1.1.22 / Plasma 6.7.5 upgrade): WebKitGTK's DMA‑BUF renderer trips
+  `Error 71 (Protocol error) dispatching to Wayland display` and the app exits
+  before a window shows. `run()` sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` on
+  NVIDIA + Wayland unless the user set it. ⚠️ The Xvfb recipe above forces X11
+  with DMA‑BUF off, so it **cannot** reproduce this — verify on a real, unlocked
+  Wayland session (a locked session paints nothing and every capture comes out
+  blank).
 
 ## Spec history
 
